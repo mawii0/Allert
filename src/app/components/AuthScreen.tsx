@@ -120,7 +120,7 @@ export function AuthScreen() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8"
         >
-          <div className="mx-auto mb-2 w-full max-w-[170px]">
+          <div className="mx-auto mb-2 w-full max-w-[130px]">
             <img
               src={logoImage}
               alt="Allert Logo"

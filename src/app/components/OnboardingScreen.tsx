@@ -52,7 +52,7 @@ export function OnboardingScreen() {
       <div className="w-full max-w-md mx-auto min-h-screen bg-gradient-to-b from-emerald-950 to-zinc-950 px-6 py-12 flex flex-col">
         {/* Logo and Title */}
         <div className="text-center mb-12">
-          <div className="mx-auto mb-4 w-full max-w-[160px]">
+          <div className="mx-auto mb-4 w-full max-w-[130px]">
             {/* Adjust max-w-[96px] to change logo size */}
             <img
               src={logoImage}
