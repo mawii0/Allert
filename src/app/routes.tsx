@@ -7,6 +7,9 @@ import { EnvironmentalScreen } from "./components/EnvironmentalScreen";
 import { ClinicalScreen } from "./components/ClinicalScreen";
 import { SettingsScreen } from "./components/SettingsScreen";
 import { DeviceConnectionScreen } from "./components/DeviceConnectionScreen";
+import { AdminOverviewScreen } from "./components/AdminOverviewScreen";
+import { AdminSensorDetailScreen } from "./components/AdminSensorDetailScreen";
+import { AdminAnomalyInvestigationScreen } from "./components/AdminAnomalyInvestigationScreen";
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +23,18 @@ export const router = createBrowserRouter([
   {
     path: "/device-connection",
     Component: DeviceConnectionScreen,
+  },
+  {
+    path: "/admin/overview",
+    Component: AdminOverviewScreen,
+  },
+  {
+    path: "/admin/sensor-detail",
+    Component: AdminSensorDetailScreen,
+  },
+  {
+    path: "/admin/anomaly-investigation",
+    Component: AdminAnomalyInvestigationScreen,
   },
   {
     path: "/app",
