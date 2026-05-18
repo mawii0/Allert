@@ -674,7 +674,7 @@ export function ClinicalScreen() {
                   setShowHistory(false);
                 }
               }}
-              className="fixed inset-x-0 bottom-0 z-50 bg-zinc-900 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col"
+              className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 bg-zinc-900 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col"
             >
               {/* Drag Handle */}
               <div className="w-full pt-4 pb-2 flex justify-center">
