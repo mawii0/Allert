@@ -29,6 +29,13 @@ export const set = async (key: string, value: any): Promise<void> => {
   }
 };
 
+// Insert-once retry records: the primary key chooses one winner under concurrency.
+export const setIfAbsent = async (key: string, value: any): Promise<any> => {
+  const { error } = await client().from("kv_store_a473accf").upsert({ key, value }, { onConflict: "key", ignoreDuplicates: true });
+  if (error) throw new Error(error.message);
+  return await get(key);
+};
+
 // Get retrieves a key-value pair from the database.
 export const get = async (key: string): Promise<any> => {
   const supabase = client()
@@ -84,4 +91,11 @@ export const getByPrefix = async (prefix: string): Promise<any[]> => {
     throw new Error(error.message);
   }
   return data?.map((d) => d.value) ?? [];
+};
+
+export const getRecentByPrefix = async (prefix: string, limit = 100): Promise<any[]> => {
+  const { data, error } = await client().from("kv_store_a473accf").select("value").like("key", prefix + "%")
+    .order("value->>date", { ascending: false }).limit(limit);
+  if (error) throw new Error(error.message);
+  return data?.map(row => row.value) ?? [];
 };

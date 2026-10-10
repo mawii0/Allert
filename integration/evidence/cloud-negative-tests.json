@@ -1,0 +1,85 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "check": "private endpoint denies no credential /ready",
+      "passed": true
+    },
+    {
+      "check": "private endpoint denies no credential /v1/model",
+      "passed": true
+    },
+    {
+      "check": "private endpoint denies no credential /v1/forecast",
+      "passed": true
+    },
+    {
+      "check": "private endpoint denies no credential /v1/risk",
+      "passed": true
+    },
+    {
+      "check": "private endpoint denies no credential /v1/observed/evaluate",
+      "passed": true
+    },
+    {
+      "check": "malformed model JSON rejected",
+      "passed": true
+    },
+    {
+      "check": "oversize model JSON rejected",
+      "passed": true
+    },
+    {
+      "check": "forecast rejects wrong node",
+      "passed": true
+    },
+    {
+      "check": "forecast rejects missing history",
+      "passed": true
+    },
+    {
+      "check": "forecast rejects short history",
+      "passed": true
+    },
+    {
+      "check": "forecast rejects negative PM",
+      "passed": true
+    },
+    {
+      "check": "forecast rejects humidity beyond bounds",
+      "passed": true
+    },
+    {
+      "check": "forecast rejects imputed reading",
+      "passed": true
+    },
+    {
+      "check": "forecast rejects duplicate block",
+      "passed": true
+    },
+    {
+      "check": "forecast rejects invalid timestamp",
+      "passed": true
+    },
+    {
+      "check": "indicator rejects negative PM",
+      "passed": true
+    },
+    {
+      "check": "indicator rejects string PM",
+      "passed": true
+    },
+    {
+      "check": "indicator rejects boolean PM",
+      "passed": true
+    },
+    {
+      "check": "indicator rejects humidity beyond bounds",
+      "passed": true
+    },
+    {
+      "check": "observed detector missing fields rejected",
+      "passed": true
+    }
+  ]
+}

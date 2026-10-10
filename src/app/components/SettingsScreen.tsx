@@ -16,28 +16,30 @@ import {
   Wifi,
   Zap,
 } from "lucide-react";
+import { useEnvironment, displayTime } from "../utils/environment";
 import { Switch } from "./ui/switch";
 import { Button } from "./ui/button";
 import { logout, getCurrentUser, getProfile, type UserProfile } from "../utils/auth";
 
 export function SettingsScreen() {
   const navigate = useNavigate();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [locationEnabled, setLocationEnabled] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [locationEnabled, setLocationEnabled] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [nodeConnected, setNodeConnected] = useState(false);
   const [nodeId, setNodeId] = useState("");
   const [nodeNetwork, setNodeNetwork] = useState("");
 
-  // Mock system data
+  const { snapshot, status } = useEnvironment();
+  // Only display verified model metadata; device health is unavailable without telemetry.
   const systemData = {
-    nodeId: "Iloilo-01",
-    uptime: "99.8%",
-    lastSync: "2 minutes ago",
-    algorithmVersion: "v2.4.1",
-    modelAccuracy: "94.2%",
-    dataPoints: "156,432",
+    nodeId: snapshot?.node_id || "Unassigned",
+    uptime: "Not available",
+    lastSync: snapshot ? displayTime(snapshot.forecast.generated_at) : "Not available",
+    algorithmVersion: snapshot?.forecast.model_id || "Not available",
+    modelAccuracy: "See model validation report",
+    dataPoints: "Not available",
   };
 
   // Load user profile from Supabase
@@ -58,7 +60,7 @@ export function SettingsScreen() {
               email: localUser.email || "",
               name: localUser.name || "",
               demographic: (localStorage.getItem("allert_demographic") as "adult" | "pediatric") || "adult",
-              createdAt: new Date().toISOString(),
+              createdAt: "",
             });
           }
         }
@@ -71,13 +73,8 @@ export function SettingsScreen() {
 
     loadProfile();
 
-    // Check node connection status
-    const connected = localStorage.getItem("allert_node_connected") === "true";
-    setNodeConnected(connected);
-    if (connected) {
-      setNodeId(localStorage.getItem("allert_node_id") || "");
-      setNodeNetwork(localStorage.getItem("allert_node_network") || "");
-    }
+    // Browser flags cannot establish a hardware connection.
+    setNodeConnected(false);
   }, []);
 
   const handleLogout = () => {
@@ -129,7 +126,7 @@ export function SettingsScreen() {
                   {userProfile.email}
                 </p>
                 <p className="text-xs text-zinc-500 capitalize mt-1">
-                  {userProfile.demographic} • Member since {formatJoinDate(userProfile.createdAt)}
+                  {userProfile.demographic} • {userProfile.createdAt ? `Member since ${formatJoinDate(userProfile.createdAt)}` : "Profile loaded locally"}
                 </p>
               </div>
             </div>
@@ -227,7 +224,7 @@ export function SettingsScreen() {
           </div>
           <div>
             <h3 className="font-semibold">Sensor Node Status</h3>
-            <p className="text-xs text-zinc-500">Real-time connection status</p>
+            <p className="text-xs text-zinc-500">Hardware not connected · stored model results</p>
           </div>
         </div>
 
@@ -271,7 +268,7 @@ export function SettingsScreen() {
           </div>
           <div>
             <h3 className="font-semibold">LSTM Prediction Model</h3>
-            <p className="text-xs text-zinc-500">Research-grade forecasting</p>
+            <p className="text-xs text-zinc-500">PM2.5 and PM10 forecasting</p>
           </div>
         </div>
 
@@ -284,14 +281,14 @@ export function SettingsScreen() {
           </div>
 
           <div className="flex justify-between items-center py-2 border-b border-zinc-800">
-            <span className="text-sm text-zinc-400">Model Accuracy</span>
+            <span className="text-sm text-zinc-400">Validation</span>
             <span className="text-sm font-medium text-emerald-400">
               {systemData.modelAccuracy}
             </span>
           </div>
 
           <div className="flex justify-between items-center py-2">
-            <span className="text-sm text-zinc-400">Training Data Points</span>
+            <span className="text-sm text-zinc-400">Live Readings</span>
             <span className="text-sm font-medium">{systemData.dataPoints}</span>
           </div>
         </div>
@@ -300,7 +297,7 @@ export function SettingsScreen() {
           <div className="flex items-start gap-2">
             <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-blue-300">
-              Model validated using Spearman's correlation coefficient with clinical ground truth data.
+              Environmental forecasting model. Twelve supplied reference cases passed cloud verification; this does not establish clinical accuracy.
             </p>
           </div>
         </div>
@@ -322,10 +319,12 @@ export function SettingsScreen() {
           <div className="flex items-center justify-between py-2">
             <div>
               <div className="text-sm font-medium">Push Notifications</div>
-              <div className="text-xs text-zinc-500">Anomaly alerts & risk warnings</div>
+              <div className="text-xs text-zinc-500">Not connected yet</div>
             </div>
             <Switch
-              checked={notificationsEnabled}
+              disabled
+              aria-label="Push notifications unavailable"
+              checked={false}
               onCheckedChange={setNotificationsEnabled}
             />
           </div>
@@ -335,10 +334,12 @@ export function SettingsScreen() {
           <div className="flex items-center justify-between py-2">
             <div>
               <div className="text-sm font-medium">Location Services</div>
-              <div className="text-xs text-zinc-500">Sensor node proximity mapping</div>
+              <div className="text-xs text-zinc-500">Not connected yet</div>
             </div>
             <Switch
-              checked={locationEnabled}
+              disabled
+              aria-label="Location services unavailable"
+              checked={false}
               onCheckedChange={setLocationEnabled}
             />
           </div>
@@ -350,7 +351,7 @@ export function SettingsScreen() {
         <div className="text-center text-sm text-zinc-500 space-y-1">
           <div className="flex items-center justify-center gap-2 mb-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span className="font-medium text-emerald-400">System Operational</span>
+            <span className="font-medium text-emerald-400">{snapshot?.mode === "historical_fixture" ? "Historical Replay Available" : status === "ready" ? "Stored Measurements Available" : "Measurements Unavailable"}</span>
           </div>
           <div>ALLERT System • Version 1.0.0</div>
           <div>Allergic Rhinitis Environmental Monitoring</div>

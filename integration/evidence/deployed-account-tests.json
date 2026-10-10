@@ -1,0 +1,223 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "check": "backend health",
+      "passed": true
+    },
+    {
+      "check": "unauthenticated /profile denied",
+      "passed": true
+    },
+    {
+      "check": "anonymous user /profile denied",
+      "passed": true
+    },
+    {
+      "check": "unauthenticated /health-logs denied",
+      "passed": true
+    },
+    {
+      "check": "anonymous user /health-logs denied",
+      "passed": true
+    },
+    {
+      "check": "unauthenticated /environment denied",
+      "passed": true
+    },
+    {
+      "check": "anonymous user /environment denied",
+      "passed": true
+    },
+    {
+      "check": "malformed sign-in JSON rejected",
+      "passed": true
+    },
+    {
+      "check": "missing sign-in fields rejected",
+      "passed": true
+    },
+    {
+      "check": "invalid signup rejected",
+      "passed": true
+    },
+    {
+      "check": "synthetic signup 0",
+      "passed": true
+    },
+    {
+      "check": "wrong password 0 rejected",
+      "passed": true
+    },
+    {
+      "check": "login 0",
+      "passed": true
+    },
+    {
+      "check": "refresh 0",
+      "passed": true
+    },
+    {
+      "check": "synthetic signup 1",
+      "passed": true
+    },
+    {
+      "check": "wrong password 1 rejected",
+      "passed": true
+    },
+    {
+      "check": "login 1",
+      "passed": true
+    },
+    {
+      "check": "refresh 1",
+      "passed": true
+    },
+    {
+      "check": "unassigned model user denied",
+      "passed": true
+    },
+    {
+      "check": "invalid profile rejected 19",
+      "passed": true
+    },
+    {
+      "check": "invalid profile rejected 20",
+      "passed": true
+    },
+    {
+      "check": "invalid profile rejected 21",
+      "passed": true
+    },
+    {
+      "check": "profile update ignores spoofed user ID",
+      "passed": true
+    },
+    {
+      "check": "profile persists",
+      "passed": true
+    },
+    {
+      "check": "profiles isolated",
+      "passed": true
+    },
+    {
+      "check": "name can be cleared",
+      "passed": true
+    },
+    {
+      "check": "invalid diary input rejected 26",
+      "passed": true
+    },
+    {
+      "check": "invalid diary input rejected 27",
+      "passed": true
+    },
+    {
+      "check": "invalid diary input rejected 28",
+      "passed": true
+    },
+    {
+      "check": "invalid diary input rejected 29",
+      "passed": true
+    },
+    {
+      "check": "invalid diary input rejected 30",
+      "passed": true
+    },
+    {
+      "check": "invalid diary input rejected 31",
+      "passed": true
+    },
+    {
+      "check": "invalid diary input rejected 32",
+      "passed": true
+    },
+    {
+      "check": "invalid diary input rejected 33",
+      "passed": true
+    },
+    {
+      "check": "diary save includes all symptoms and observation time",
+      "passed": true
+    },
+    {
+      "check": "retry returns same saved entry",
+      "passed": true
+    },
+    {
+      "check": "conflicting retry rejected",
+      "passed": true
+    },
+    {
+      "check": "diary isolation",
+      "passed": true
+    },
+    {
+      "check": "six concurrent saves succeed",
+      "passed": true
+    },
+    {
+      "check": "concurrent saves retained without duplicates",
+      "passed": true
+    },
+    {
+      "check": "concurrent identical retries return one identity",
+      "passed": true
+    },
+    {
+      "check": "concurrent conflicting retries choose one winner",
+      "passed": true
+    },
+    {
+      "check": "legacy fixture stored for compatibility test",
+      "passed": true
+    },
+    {
+      "check": "existing legacy diary survives new storage format",
+      "passed": true
+    },
+    {
+      "check": "synthetic pagination fixture stored",
+      "passed": true
+    },
+    {
+      "check": "latest 100 diary entries returned in descending order",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows cleaned 46",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows cleaned 47",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows cleaned 48",
+      "passed": true
+    },
+    {
+      "check": "synthetic account cleaned 49",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows cleaned 50",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows cleaned 51",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows cleaned 52",
+      "passed": true
+    },
+    {
+      "check": "synthetic account cleaned 53",
+      "passed": true
+    }
+  ],
+  "synthetic_accounts_removed": 2,
+  "existing_account_records_modified": false
+}

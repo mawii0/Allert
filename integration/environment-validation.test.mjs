@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { CHECKPOINT, RULE_HASH, validSnapshot } from "../supabase/functions/server/environment-validation.mjs";
 function fixture() {
   const origin = "2026-09-12T20:45:00+00:00";
-  const indicator = { score_0_100: 25, indicator_0_1: 0.25, tier: "low" };
+  const indicator = { score_0_100: 25, indicator_0_1: 0.25, tier: "high" };
   return { node_id: "node-1", mode: "historical_fixture",
     current: { node_id: "node-1", block_start: "2026-09-12T20:40:00+00:00", block_end: origin, quality: "ORIGINAL", pm2_5: 20, pm10: 40, temperature_c: 30, humidity_percent: 70 },
     risk: { rule_id: "environmental-indicator-v1", rule_sha256: RULE_HASH, not_a_symptom_probability: true, adult: indicator, pediatric: indicator },
@@ -22,4 +22,7 @@ for (const [label, mutate] of [
   ["invalid quality", s => s.current.quality = "imputed"],
   ["missing live receipt", s => { s.mode = "live"; s.forecast.mode = "live"; }],
   ["probability claim", s => s.forecast.is_future_allergy_probability = true],
+  ["incorrect tier", s => s.risk.adult = {...s.risk.adult, tier:"low"}],
+  ["unaligned measurement", s => { s.current.block_start = "2026-09-12T20:40:01Z"; s.current.block_end = "2026-09-12T20:45:01Z"; }],
+  ["future live forecast origin", s => { s.mode="live";s.forecast.mode="live";s.current.received_at=new Date().toISOString();s.forecast.forecast_origin=new Date(Date.now()+86400000).toISOString(); }],
 ]) test(`rejects ${label}`, () => { const s = fixture(); mutate(s); assert.equal(validSnapshot(s), false); });

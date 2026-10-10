@@ -13,9 +13,12 @@ export function Root() {
 
   // Check authentication on mount
   useEffect(() => {
-    if (!isAuthenticated()) {
-      navigate("/");
-    }
+    const userId = localStorage.getItem("allert_user_id");
+    const check = () => { if (!isAuthenticated() || localStorage.getItem("allert_user_id") !== userId) navigate("/", { replace: true }); };
+    check();
+    window.addEventListener("storage", check);
+    window.addEventListener("allert-session-changed", check);
+    return () => { window.removeEventListener("storage", check); window.removeEventListener("allert-session-changed", check); };
   }, [navigate]);
 
   return (

@@ -4,6 +4,7 @@ import { logger } from "npm:hono/logger";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import * as kv from "./kv_store.tsx";
 import { validSnapshot } from "./environment-validation.mjs";
+import { validProfile, validHealthLog, sameHealthLog } from "./account-validation.mjs";
 
 const app = new Hono();
 
@@ -30,12 +31,21 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Allert-Worker-Token"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
   }),
 );
+
+// Reject malformed JSON consistently before any route can create records.
+app.use("/*", async (c, next) => {
+  c.header("Cache-Control", "no-store");
+  if (["POST", "PUT", "PATCH"].includes(c.req.method)) {
+    try { await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  }
+  await next();
+});
 
 // Health check endpoint
 app.get("/make-server-a473accf/health", (c) => {
@@ -47,7 +57,7 @@ app.post("/make-server-a473accf/signup", async (c) => {
   try {
     const { email, password, name } = await c.req.json();
 
-    if (!email || !password) {
+    if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || typeof password !== "string" || password.length < 6 || password.length > 200 || (name !== undefined && (typeof name !== "string" || name.length > 100))) {
       return c.json({ error: "Email and password are required" }, 400);
     }
 
@@ -92,6 +102,7 @@ app.post("/make-server-a473accf/signup", async (c) => {
     return c.json({
       user: data.user,
       access_token: sessionData.session.access_token,
+      refresh_token: sessionData.session.refresh_token,
     });
   } catch (error: any) {
     console.log("Signup error:", error);
@@ -104,7 +115,7 @@ app.post("/make-server-a473accf/login", async (c) => {
   try {
     const { email, password } = await c.req.json();
 
-    if (!email || !password) {
+    if (typeof email !== "string" || !email || typeof password !== "string" || !password) {
       return c.json({ error: "Email and password are required" }, 400);
     }
 
@@ -128,6 +139,7 @@ app.post("/make-server-a473accf/login", async (c) => {
     return c.json({
       user: data.user,
       access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
     });
   } catch (error: any) {
     console.log("Login error:", error);
@@ -151,7 +163,9 @@ app.post("/make-server-a473accf/profile", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const { demographic, name } = await c.req.json();
+    const body = await c.req.json();
+    if (!validProfile(body)) return c.json({ error: "Invalid profile" }, 400);
+    const { demographic, name } = body;
 
     // Update or create profile
     const existingProfile = await kv.get(`profile:${user.id}`);
@@ -159,7 +173,9 @@ app.post("/make-server-a473accf/profile", async (c) => {
       ...(existingProfile || {}),
       userId: user.id,
       email: user.email,
-      ...(name && { name }),
+      createdAt: existingProfile?.createdAt || new Date().toISOString(),
+      demographic: existingProfile?.demographic || "adult",
+      ...(name !== undefined && { name: name.trim() }),
       ...(demographic && { demographic }),
       updatedAt: new Date().toISOString(),
     };
@@ -218,30 +234,36 @@ app.post("/make-server-a473accf/health-logs", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const { vasScore, tnssScore, riskLevel, notes } = await c.req.json();
+    const body = await c.req.json();
+    if (!validHealthLog(body)) return c.json({ error: "Invalid symptom scores, observation time, or notes" }, 400);
+    const { vasScore, tnssScore, riskLevel, notes, symptomSeverities, observedAt, requestId } = body;
+    const id = requestId || crypto.randomUUID();
+    const key = `health-log:v2:${user.id}:${id}`;
+    const existing = await kv.get(key);
+    if (existing) {
+      const same = sameHealthLog(existing, body);
+      if (!same) return c.json({ error: "Request ID already belongs to a different entry" }, 409);
+      return c.json({ success: true, entry: existing });
+    }
 
     const logEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id,
       userId: user.id,
       date: new Date().toISOString(),
       vasScore,
       tnssScore,
       riskLevel,
       notes: notes || null,
+      ...(symptomSeverities && { symptomSeverities }),
+      ...(observedAt && { observedAt }),
+      scoreKind: "symptom_summary_not_environmental_probability",
     };
 
-    // Get existing logs
-    const existingLogs = await kv.get(`health-logs:${user.id}`) || [];
-
-    // Add new entry at the beginning (most recent first)
-    const updatedLogs = [logEntry, ...existingLogs];
-
-    // Keep only last 100 entries
-    const trimmedLogs = updatedLogs.slice(0, 100);
-
-    await kv.set(`health-logs:${user.id}`, trimmedLogs);
-
-    return c.json({ success: true, entry: logEntry });
+    // Independent keys prevent simultaneous diary submissions overwriting each other.
+    const saved = await kv.setIfAbsent(key, logEntry);
+    const same = sameHealthLog(saved, body);
+    if (!same) return c.json({ error: "Request ID already belongs to a different entry" }, 409);
+    return c.json({ success: true, entry: saved });
   } catch (error: any) {
     console.log("Health log save error:", error);
     return c.json({ error: error.message || "Health log save failed" }, 500);
@@ -264,7 +286,9 @@ app.get("/make-server-a473accf/health-logs", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const logs = await kv.get(`health-logs:${user.id}`) || [];
+    const legacyLogs = await kv.get(`health-logs:${user.id}`) || [];
+    const entries = await kv.getRecentByPrefix(`health-log:v2:${user.id}:`);
+    const logs = [...entries, ...legacyLogs].sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 100);
 
     return c.json({ logs });
   } catch (error: any) {

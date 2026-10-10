@@ -1,0 +1,21 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { build } from "esbuild";
+import { mkdirSync } from "node:fs";
+import { resolve } from "node:path";
+mkdirSync("integration/test-output",{recursive:true});
+await build({entryPoints:["src/app/utils/auth.ts"],outfile:"integration/test-output/auth.mjs",bundle:true,format:"esm",platform:"browser",plugins:[{name:"supabase-info",setup(b){b.onResolve({filter:/^\/utils\/supabase\/info$/},()=>({path:resolve("utils/supabase/info.tsx")}));}}]});
+class Storage { getItem(k){return this[k]??null;} setItem(k,v){this[k]=String(v);} removeItem(k){delete this[k];} }
+globalThis.localStorage=new Storage(); globalThis.window=new EventTarget();
+const auth=await import("./test-output/auth.mjs");
+const jwt=(exp)=>`header.${Buffer.from(JSON.stringify({exp})).toString("base64url")}.signature`;
+const session=(id="test-a",exp=Date.now()/1000+3600)=>({user:{id,email:`${id}@example.invalid`,user_metadata:{name:id}},access_token:jwt(exp),refresh_token:`refresh-${id}`});
+test("fresh session is accepted without a refresh request",async()=>{auth.logout();auth.storeSession(session());globalThis.fetch=()=>{throw Error("Unexpected fetch");};assert.ok(auth.isAuthenticated());assert.equal(await auth.getValidAuthToken(),auth.getAuthToken());});
+test("switching accounts clears previous demographic, onboarding, and node flags",()=>{localStorage.setItem("allert_demographic","pediatric");localStorage.setItem("allert_node_connected","true");localStorage.setItem("allert_onboarding_complete","true");auth.storeSession(session("test-b"));assert.equal(localStorage.getItem("allert_demographic"),null);assert.equal(localStorage.getItem("allert_node_connected"),null);});
+test("logout clears all account-scoped state while preserving unrelated storage",()=>{localStorage.setItem("other-app","kept");auth.logout();assert.equal(auth.isAuthenticated(),false);assert.equal(localStorage.getItem("allert_refresh_token"),null);assert.equal(localStorage.getItem("other-app"),"kept");});
+test("expired legacy session requires sign-in",async()=>{localStorage.setItem("allert_auth_token",jwt(1));assert.equal(auth.isAuthenticated(),false);assert.equal(await auth.getValidAuthToken(),null);assert.equal(auth.getAuthToken(),null);});
+test("malformed token is not accepted",()=>{localStorage.setItem("allert_auth_token","malformed");assert.equal(auth.isAuthenticated(),false);auth.logout();});
+test("parallel requests share one refresh and persist the rotated token",async()=>{auth.storeSession(session("test-a",1));let count=0;globalThis.fetch=async()=>{count++;return {ok:true,json:async()=>({...session(),refresh_token:"rotated"})};};const tokens=await Promise.all([auth.getValidAuthToken(),auth.getValidAuthToken()]);assert.equal(count,1);assert.equal(tokens[0],tokens[1]);assert.equal(localStorage.getItem("allert_refresh_token"),"rotated");});
+test("revoked refresh signs out",async()=>{auth.storeSession(session("test-a",1));globalThis.fetch=async()=>({ok:false,status:400,json:async()=>({})});await assert.rejects(auth.getValidAuthToken());assert.equal(auth.isAuthenticated(),false);});
+test("network outage preserves refresh credentials for a later retry",async()=>{auth.storeSession(session("test-a",1));globalThis.fetch=async()=>{throw Error("offline");};await assert.rejects(auth.getValidAuthToken());assert.equal(localStorage.getItem("allert_refresh_token"),"refresh-test-a");auth.logout();});
+test("late refresh cannot restore a logged-out session",async()=>{auth.storeSession(session("test-a",1));let finish;globalThis.fetch=()=>new Promise(r=>finish=r);const pending=auth.getValidAuthToken();auth.logout();finish({ok:true,json:async()=>session()});assert.equal(await pending,null);assert.equal(auth.getAuthToken(),null);});

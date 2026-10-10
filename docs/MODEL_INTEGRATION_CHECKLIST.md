@@ -31,7 +31,7 @@ py -3.12 -m venv .venv
 .\.venv\Scripts\python.exe -m pytest tests -q -p no:cacheprovider --basetemp=outputs/pytest
 ```
 
-- [x] All 12 replay windows passed; maximum difference 0.0001481175422668457 Âµg/mÂ³. Local evidence saved.
+- [x] All 12 replay windows passed; maximum difference 0.0001481175422668457 µg/m³. Local evidence saved.
 - [x] All 27 partner runtime/API regression tests passed.
 
 ## Next: staging vertical slice
@@ -65,9 +65,9 @@ The bridge stores a single latest snapshot per mode in the existing KV store. It
 | Worker | Implement outbound polling with leases, retry identities and chronological per-node processing. Compute current indicators every valid block, forecasts initially every 15 minutes; cache model once. |
 | Worker/backend | Commit detector state/version + events + outbox + job completion atomically. Restore persisted state on restart. Prove spike/plateau/recovery/retry/restart behavior, including gaps and missing readings. |
 | Worker/backend | Retain all six forecast outputs and origin/model/input hashes with each run. Implement warming-up, insufficient-history, invalid-input, stale and worker-unavailable reasons. Reject future/imputed/cross-node history. Node 2 transfer remains disabled. |
-| Frontend | Connect bounded measurement history, real node status/selection and persistent observed-event notices. DeviceConnection, Settings and Admin screens still contain prototype behavior and must be migrated before presenting them as live. |
-| Auth/frontend | Implement refresh/expiry handling and account-scoped cache cleanup; verify logout and account switching. |
-| Research/diary | Resolve VAS versus integer NRS with the partner. Preserve individual symptoms, actual observation time and missingness; use real node/time-matched records for associations. |
+| Frontend | Connect bounded measurement history, real node status/selection and persistent observed-event notices. DeviceConnection now shows the pending hardware state, Settings uses verified model metadata, and Admin screens are explicitly labeled design previews. Live device/admin features remain pending. |
+| Auth/frontend | Refresh/expiry handling and account-scoped cleanup now have regression tests. Complete cross-browser and offline UI acceptance checks. |
+| Research/diary | Resolve VAS versus integer NRS with the partner. Individual symptoms and observation times are now preserved. Resolve missingness and use real node/time-matched records for associations. |
 | Push | Add consent, subscriptions, service worker, sender, expiration and delivery/error records. A detector decision is not a delivered notification. |
 | Team | Run extracted `04_ACCEPTANCE.md`, record payload IDs, timestamps, rule/model hashes and measured delays. Validate offline/stale/recovery and browser-closed operation. Do not retrain or recalibrate from incoming telemetry. |
 
