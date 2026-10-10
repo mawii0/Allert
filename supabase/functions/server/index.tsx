@@ -3,6 +3,7 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import * as kv from "./kv_store.tsx";
+import { validSnapshot } from "./environment-validation.mjs";
 
 const app = new Hono();
 
@@ -270,6 +271,40 @@ app.get("/make-server-a473accf/health-logs", async (c) => {
     console.log("Health logs fetch error:", error);
     return c.json({ error: error.message || "Health logs fetch failed" }, 500);
   }
+});
+
+// Initial single-node staging bridge. Replace this cache with reviewed durable
+// telemetry/jobs/run tables before operating continuous live analytics.
+app.post("/make-server-a473accf/environment/publish", async (c) => {
+  const expected = Deno.env.get("ALLERT_WORKER_TOKEN");
+  const actual = c.req.header("X-Allert-Worker-Token");
+  if (!expected || !actual) return c.json({ error: "Unauthorized" }, 401);
+  const digest = async (value: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
+  const a = await digest(actual), b = await digest(expected);
+  let different = 0;
+  for (let i = 0; i < a.length; i++) different |= a[i] ^ b[i];
+  if (different) return c.json({ error: "Unauthorized" }, 401);
+  let snapshot;
+  try { snapshot = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  if (!validSnapshot(snapshot)) return c.json({ error: "Invalid model snapshot" }, 400);
+  await kv.set(`environment:v1:${snapshot.mode}`, snapshot);
+  return c.json({ status: "stored", mode: snapshot.mode });
+});
+
+app.get("/make-server-a473accf/environment", async (c) => {
+  const token = c.req.header("Authorization")?.split(" ")[1];
+  if (!token) return c.json({ error: "Unauthorized" }, 401);
+  const { data: { user }, error } = await getSupabaseClient().auth.getUser(token);
+  if (error || !user) return c.json({ error: "Unauthorized" }, 401);
+  const allowed = (Deno.env.get("ALLERT_NODE1_USER_IDS") || "").split(",").map(value => value.trim());
+  if (!allowed.includes(user.id)) return c.json({ error: "Node access has not been assigned" }, 403);
+  const mode = Deno.env.get("ALLERT_DISPLAY_REPLAY") === "true" ? "historical_fixture" : "live";
+  const snapshot = await kv.get(`environment:v1:${mode}`);
+  if (!snapshot) return c.json({ availability: "unavailable", snapshot: null });
+  if (!validSnapshot(snapshot)) return c.json({ error: "Stored model data is invalid" }, 503);
+  const stale = Date.now() - Date.parse(snapshot.current.block_end) > 15 * 60000;
+  c.header("Cache-Control", "no-store");
+  return c.json({ availability: mode === "historical_fixture" ? "historical_replay" : stale ? "stale" : "ready", snapshot });
 });
 
 Deno.serve(app.fetch);

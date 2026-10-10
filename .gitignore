@@ -1,1 +1,12 @@
 node_modules
+.vercel/
+.npm-integration-cache/
+.env
+.env.*
+!.env.example
+!worker.env.example
+__pycache__/
+integration/test-output*/
+.venv/
+
+.vercel

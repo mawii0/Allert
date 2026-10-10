@@ -1,0 +1,5 @@
+project_id = "allert"
+
+[functions.make-server-a473accf]
+entrypoint = "./functions/server/index.tsx"
+verify_jwt = true
