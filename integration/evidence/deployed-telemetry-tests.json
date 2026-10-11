@@ -154,6 +154,134 @@
       "passed": true
     },
     {
+      "check": "risk monitor requires authentication",
+      "passed": true
+    },
+    {
+      "check": "reactivate own synthetic sensor for risk tests",
+      "passed": true
+    },
+    {
+      "check": "clear only synthetic readings 1",
+      "passed": true
+    },
+    {
+      "check": "insert complete synthetic five-minute blocks 1",
+      "passed": true
+    },
+    {
+      "check": "partial median risk response 1",
+      "passed": true
+    },
+    {
+      "check": "current uses latest observed block 1",
+      "passed": true
+    },
+    {
+      "check": "all horizons return labeled estimates and risk 1",
+      "passed": true
+    },
+    {
+      "check": "risk remains account isolated 1",
+      "passed": true
+    },
+    {
+      "check": "clear only synthetic readings 4",
+      "passed": true
+    },
+    {
+      "check": "insert complete synthetic five-minute blocks 4",
+      "passed": true
+    },
+    {
+      "check": "partial median risk response 4",
+      "passed": true
+    },
+    {
+      "check": "current uses latest observed block 4",
+      "passed": true
+    },
+    {
+      "check": "all horizons return labeled estimates and risk 4",
+      "passed": true
+    },
+    {
+      "check": "risk remains account isolated 4",
+      "passed": true
+    },
+    {
+      "check": "clear only synthetic readings 6",
+      "passed": true
+    },
+    {
+      "check": "insert complete synthetic five-minute blocks 6",
+      "passed": true
+    },
+    {
+      "check": "partial median risk response 6",
+      "passed": true
+    },
+    {
+      "check": "current uses latest observed block 6",
+      "passed": true
+    },
+    {
+      "check": "all horizons return labeled estimates and risk 6",
+      "passed": true
+    },
+    {
+      "check": "risk remains account isolated 6",
+      "passed": true
+    },
+    {
+      "check": "clear only synthetic readings 9",
+      "passed": true
+    },
+    {
+      "check": "insert complete synthetic five-minute blocks 9",
+      "passed": true
+    },
+    {
+      "check": "partial median risk response 9",
+      "passed": true
+    },
+    {
+      "check": "current uses latest observed block 9",
+      "passed": true
+    },
+    {
+      "check": "all horizons return labeled estimates and risk 9",
+      "passed": true
+    },
+    {
+      "check": "risk remains account isolated 9",
+      "passed": true
+    },
+    {
+      "check": "clear only synthetic readings 12",
+      "passed": true
+    },
+    {
+      "check": "insert complete synthetic five-minute blocks 12",
+      "passed": true
+    },
+    {
+      "check": "partial median risk response 12",
+      "passed": true
+    },
+    {
+      "check": "current uses latest observed block 12",
+      "passed": true
+    },
+    {
+      "check": "all horizons return labeled estimates and risk 12",
+      "passed": true
+    },
+    {
+      "check": "risk remains account isolated 12",
+      "passed": true
+    },
+    {
       "check": "synthetic sensor_readings removed",
       "passed": true
     },

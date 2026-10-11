@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "risk_cases": 4,
+  "population_comparisons": 8,
+  "maximum_score_difference": 3.552713678800501e-15,
+  "prepared_model_features_identical": true,
+  "model_median_anchor_identical": true
+}

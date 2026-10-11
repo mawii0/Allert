@@ -1,3 +1,4 @@
+import { buildMonitor, modelPayload, validModelForecast, median } from "./risk-monitor.mjs";
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
@@ -436,6 +437,60 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
       { error: "Unable to load sensor readings." },
       500,
     );
+  }
+});
+// Calculate the current indicator and partial-hour estimates from authorized telemetry.
+app.get("/make-server-a473accf/risk-monitor", async (c) => {
+  c.header("Cache-Control", "no-store");
+  try {
+    const response = await app.request("https://internal/make-server-a473accf/sensor-telemetry", {
+      headers: { Authorization: c.req.header("Authorization") ?? "" },
+    });
+    const telemetry = await response.json();
+    if (!response.ok) return c.json(telemetry, response.status);
+    const now = Date.now();
+    let model = null, modelStatus = "warming_up";
+    const current = buildMonitor(telemetry, null, now);
+    const configuredSensor = Deno.env.get("ALLERT_FORECAST_SENSOR_ID");
+    if (current.availability === "ready" && telemetry.device.device_id === configuredSensor) {
+      const origin = Math.floor(Date.parse(telemetry.latest.timestamp) / 900000) * 900000;
+      if (now - origin <= 600000) {
+        const cacheKey = `sensor-model:v1:${configuredSensor}`;
+        const cached = await kv.get(cacheKey);
+        if (validModelForecast(cached, configuredSensor, now) && Date.parse(cached.forecast_origin) === origin) model = cached;
+        else {
+          const since = new Date(origin - 54 * 3600000).toISOString();
+          const { data: rows, error } = await getSupabaseClient().from("sensor_readings")
+            .select("device_id,timestamp,pm2_5,pm10,temperature,humidity,sample_count,expected_samples,data_quality_status,created_at")
+            .eq("device_id", configuredSensor).gt("timestamp", since).lte("timestamp", new Date(origin + 299999).toISOString())
+            .order("timestamp", { ascending: true }).limit(4096);
+          if (error) throw error;
+          const payload = modelPayload(rows ?? [], origin, now);
+          if (payload) {
+            modelStatus = "unavailable";
+            const base = Deno.env.get("ALLERT_MODEL_BASE_URL"), token = Deno.env.get("ALLERT_MODEL_API_TOKEN");
+            if (base?.startsWith("https://") && token) {
+              try {
+                const reply = await fetch(base.replace(/\/$/, "") + "/v1/forecast", {
+                  method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+                  body: JSON.stringify(payload), signal: AbortSignal.timeout(20000),
+                });
+                const forecast = await reply.json();
+                forecast.sensor_device_id = configuredSensor;
+                if (reply.ok && validModelForecast(forecast, configuredSensor, now)) {
+                  const last = payload.history.slice(-12);
+                  forecast.input_baseline = {pm2_5:median(last.map(r=>r.pm2_5)),pm10:median(last.map(r=>r.pm10)),temperature:median(last.map(r=>r.temperature_c)),humidity:median(last.map(r=>r.humidity_percent)),reading_count:12,expected_readings:12,available_minutes:60,window_start:new Date(origin-3600000).toISOString(),window_end:new Date(origin).toISOString()};
+                  model = forecast; await kv.set(cacheKey, forecast);
+                }
+              } catch { /* Preserve the explicit median estimate while cloud inference retries. */ }
+            }
+          }
+        }
+      } else modelStatus = "waiting_for_model_grid";
+    } else if (current.availability === "ready") modelStatus = "sensor_not_enabled_for_model";
+    return c.json(buildMonitor(telemetry, model, now, modelStatus));
+  } catch {
+    return c.json({ error: "Unable to load risk monitor readings." }, 503);
   }
 });
 Deno.serve(app.fetch);

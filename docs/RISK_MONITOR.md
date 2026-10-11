@@ -1,0 +1,15 @@
+# Sensor-based Risk Monitor
+
+Now uses the latest completed, valid five-minute sensor record. All four measurements enter the unchanged partner environmental-indicator rule; adult/pediatric score and tier follow the saved demographic. Invalid, missing or future readings are unavailable. Readings older than 10 minutes are visibly stale.
+
+The last-hour baseline is calculated from valid records in the hour ending at the latest block, counting each five-minute slot once. It never substitutes the last twelve records across a longer gap. Available 1, 4, 6, 9 or 12 blocks are sufficient for a median-only estimate. Six blocks represent 30 minutes of measurements, even if gaps make their elapsed span longer. The interface shows the actual count out of 12. Missing values and uncompleted/invalid-quality blocks are excluded, not padded.
+
+During warm-up, +6/+12/+24 return the same median PM baseline, explicitly labeled median-only without neural adjustment. Their score/tier uses estimated PM and available last-hour median temperature/humidity. The weather assumption is visible; weather is not forecast by this model. These are environmental indicator points, not personal allergy probabilities.
+
+The frozen model still requires 648 genuine five-minute blocks (54 continuous hours, 48 hours of sequence plus 6 hours for rolling features). An incomplete last hour does not remove that requirement. When the approved sensor has sufficient valid history, the backend calls the private model on its original 15-minute forecast grid, validates model/checkpoint identity and six outputs, and caches the latest result for that device. The model's actual input median and weather baseline are displayed for model-adjusted horizons. No training, weight, scaler or shrinkage changes were made. Gaps, duplicates, invalid quality, absent server receipt timestamps, cloud failure and stale data retain the explicit median fallback. Device timestamps are assigned to their completed five-minute slot; server-created timestamps provide measurement availability.
+
+The authorized `/risk-monitor` route reuses owned/shared sensor authorization. Its response is private and uncached in browsers. Inference is requested by monitor reads; this does not implement a continuous background job or alert delivery.
+
+Private Supabase configuration uses `ALLERT_MODEL_BASE_URL`, `ALLERT_MODEL_API_TOKEN`, and `ALLERT_FORECAST_SENSOR_ID`. Never put the API token in frontend environment variables. Only the configured sensor is mapped to the partner's validated Node 1 model; other sensors get labeled median estimates.
+
+Validation: 120 app tests; 80 deployed telemetry/risk checks, including synthetic 1/4/6/9/12-block medians and account isolation. Four independent risk-rule cases (eight population comparisons) matched Python within 3.56e-15 points. A complete partner history mapped to identical model feature tensors and median anchors. Production Now and +6h were inspected; actual neural processing of the live sensor remains in warm-up until its required contiguous history is available.

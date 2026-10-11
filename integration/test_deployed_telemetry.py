@@ -68,6 +68,20 @@ try:
  check('deactivate shared sensor',db('sensor_devices',b={'is_active':False},m='PATCH',q={'device_id':'eq.'+devices[1]})[0] in [200,204])
  status,d=read(h);check('inactive shared sensor is not exposed',status==200 and d['device'] is None)
 
+ risk_path='/functions/v1/make-server-a473accf/risk-monitor'
+ check('risk monitor requires authentication',call(risk_path,{'apikey':c['anon_key']})[0]==401)
+ check('reactivate own synthetic sensor for risk tests',db('sensor_devices',b={'is_active':True},m='PATCH',q={'device_id':'eq.'+devices[0]})[0] in [200,204])
+ for count in [1,4,6,9,12]:
+  check('clear only synthetic readings '+str(count),db('sensor_readings',m='DELETE',q={'device_id':'eq.'+devices[0]})[0] in [200,204])
+  stamp=datetime.now(timezone.utc)
+  risk_rows=[{'id':secrets.randbits(48),'device_id':devices[0],'timestamp':(stamp-timedelta(minutes=5*i)).isoformat(),'pm2_5':10+i,'pm10':20+i,'temperature':25,'humidity':60,'sample_count':30,'expected_samples':30,'data_quality_status':'VALID'} for i in range(count)]
+  check('insert complete synthetic five-minute blocks '+str(count),db('sensor_readings',b=risk_rows,m='POST')[0] in [200,201])
+  status,data=call(risk_path,h)
+  check('partial median risk response '+str(count),status==200 and data['availability']=='ready' and data['baseline']['reading_count']==count and data['baseline']['pm2_5']==10+(count-1)/2)
+  check('current uses latest observed block '+str(count),data['current']['pm2_5']==10 and data['current']['risk']['adult']['tier'] in ['low','moderate','high','very_high'])
+  check('all horizons return labeled estimates and risk '+str(count),len(data['forecasts'])==3 and all(f['method']=='median_only' and f['pm2_5']==data['baseline']['pm2_5'] and 0<=f['risk']['adult']['score_0_100']<=100 for f in data['forecasts']))
+  status,other_data=call(risk_path,other);check('risk remains account isolated '+str(count),status==200 and other_data['current'] is None)
+
 finally:
  for device in devices:
   for t in ['sensor_readings','sensor_devices']:

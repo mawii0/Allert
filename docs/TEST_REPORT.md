@@ -16,17 +16,23 @@ History validation now rejects wrong nodes, duplicate/out-of-order/future blocks
 
 ## Shared sensor authorization - 12 October 2026
 
-Added server-owned, account-scoped shared sensor assignments without changing the sensor's original owner. The telemetry route merges owned and explicitly shared active devices, deduplicates them, and rejects ambiguous multiple-device assignments. Revoked, malformed and inactive shares fail closed. The approved existing account was verified and assigned the existing sensor; production Environment displayed sensor measurements rather than replay. Risk Monitor still uses the separately published historical model snapshot until live model processing is configured.
+Added server-owned, account-scoped shared sensor assignments without changing the sensor's original owner. The telemetry route merges owned and explicitly shared active devices, deduplicates them, and rejects ambiguous multiple-device assignments. Revoked, malformed and inactive shares fail closed. The approved existing account was verified and assigned the existing sensor; production Environment displayed sensor measurements rather than replay. The subsequent Risk Monitor update is documented below and in `RISK_MONITOR.md`.
 
 Seven additional access tests passed (96 JavaScript checks total). All 48 deployed telemetry acceptance checks passed, including shared-account reads, original owner reads/ownership preservation, client provisioning denial, revocation and inactive sensors. Only disposable test records were removed. See `NODE_ACCESS.md` for assignment and revocation details.
+
+## Sensor Risk Monitor and partial medians - 12 October 2026
+
+Now reads the approved sensor's latest valid completed block and calculates its score/tier. Forecast tabs calculate separate scores from their selected horizon's PM values. Partial-hour medians use available unique valid five-minute slots, explicitly labeled median-only until neural inputs are complete. The frozen model still needs 54 continuous hours; the original weights, scaling and calibration were preserved. The private model connection is configured server-side for the approved sensor; inference is on demand and retains median fallback on warm-up or failure.
+
+All 120 app checks and 80 deployed telemetry/risk checks passed. Four Python parity cases produced a maximum score difference of 3.552713678800501e-15 across adult/pediatric rules; complete model features and median anchors were identical. Production Now and +6h showed sensor data and different observed/estimated scores. The actual live neural path is not yet exercised with this sensor because it lacks its required history. See `RISK_MONITOR.md`.
 
 ## Results
 
 | Check | Result | Evidence |
 |---|---|---|
-| App session, account validation and model snapshot regression tests | 96 passed | `npm test` |
+| App session, account validation and model snapshot regression tests | 120 passed | `npm test` |
 | Deployed account API acceptance checks | 54 passed | `integration/evidence/deployed-account-tests.json` |
-| Deployed sensor telemetry ownership, empty and stale history checks | 48 passed | `integration/evidence/deployed-telemetry-tests.json` |
+| Deployed sensor telemetry ownership, empty and stale history checks | 80 passed | `integration/evidence/deployed-telemetry-tests.json` |
 | Persistent deployed node authorization and repeated-login checks | 59 passed | `integration/evidence/deployed-node-access-tests.json` |
 | Frozen runtime, cloud adapter and hosted startup tests | 32 passed | Python pytest suite; one dependency deprecation warning |
 | Cloud model reference cases | All 12 passed; maximum error 0.0001481 Âµg/mÂ³, below 0.02 tolerance | `integration/evidence/cloud-model-verification.json` |
