@@ -26,11 +26,15 @@ Now reads the approved sensor's latest valid completed block and calculates its 
 
 All 120 app checks and 80 deployed telemetry/risk checks passed. Four Python parity cases produced a maximum score difference of 3.552713678800501e-15 across adult/pediatric rules; complete model features and median anchors were identical. Production Now and +6h showed sensor data and different observed/estimated scores. The actual live neural path is not yet exercised with this sensor because it lacks its required history. See `RISK_MONITOR.md`.
 
+## Environment startup source race - 12 October 2026
+
+Fixed a flash of historical replay when its request completed before the sensor request. A null telemetry result now means the sensor check has not succeeded, rather than hardware being absent. Replay is eligible only after a successful sensor response confirms no readings are available. Pending or failed initial requests do not show replay. Existing readings remain visible during background refreshes and retain the existing connection-error warning when a refresh fails. Four request-order/failure regression checks passed (124 app tests total), and the production build passed. No database or sensor assignment changes were required.
+
 ## Results
 
 | Check | Result | Evidence |
 |---|---|---|
-| App session, account validation and model snapshot regression tests | 120 passed | `npm test` |
+| App session, account validation and model snapshot regression tests | 124 passed | `npm test` |
 | Deployed account API acceptance checks | 54 passed | `integration/evidence/deployed-account-tests.json` |
 | Deployed sensor telemetry ownership, empty and stale history checks | 80 passed | `integration/evidence/deployed-telemetry-tests.json` |
 | Persistent deployed node authorization and repeated-login checks | 59 passed | `integration/evidence/deployed-node-access-tests.json` |

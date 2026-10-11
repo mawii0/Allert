@@ -1,5 +1,8 @@
 // Prefer actual sensor readings; replay is a separate, explicitly labeled source.
 export function selectEnvironmentSource(telemetry, snapshot, status) {
+  // Null means the sensor request has not succeeded yet, not that hardware is absent.
+  // Never let a faster replay request replace the pending sensor source.
+  if (!telemetry) return { source: "unavailable", device: null, latest: null, history: [] };
   if (telemetry?.device && telemetry?.latest) {
     return { source: "sensor", device: telemetry.device, latest: telemetry.latest, history: telemetry.history ?? [] };
   }

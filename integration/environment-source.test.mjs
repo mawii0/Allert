@@ -14,3 +14,18 @@ for(const patch of [{pm2_5:NaN},{humidity_percent:undefined},{block_end:"bad"},{
 test("recorded time and quality remain exact, with no invented samples",()=>{const v=selectEnvironmentSource(empty,snapshot,"historical_replay");assert.equal(v.latest.timestamp,snapshot.current.block_end);assert.equal(v.latest.data_quality_status,"ORIGINAL");assert.equal(v.latest.sample_count,null);});
 
 test("replay maps recorded history into chart measurements",()=>{const v=selectEnvironmentSource(empty,{...snapshot,history:[snapshot.current]},"historical_replay");assert.equal(v.history.length,1);assert.equal(v.history[0].temperature,27.4);assert.equal(v.history[0].timestamp,snapshot.current.block_end);});
+
+test("replay arriving before sensor response never flashes recorded values",()=>{
+  const pending=selectEnvironmentSource(null,snapshot,"historical_replay");assert.equal(pending.latest,null);assert.notEqual(pending.source,"historical_replay");
+  const sensor={device:{device_id:"real-node"},latest:{device_id:"real-node",pm2_5:7.8},history:[]};
+  assert.equal(selectEnvironmentSource(sensor,snapshot,"historical_replay").latest.pm2_5,7.8);
+});
+test("sensor arriving before replay retains sensor measurements",()=>{
+ const sensor={device:{device_id:"real-node"},latest:{device_id:"real-node",pm2_5:7.8},history:[]};
+ assert.deepEqual(selectEnvironmentSource(sensor,null,"loading"),selectEnvironmentSource(sensor,snapshot,"historical_replay"));
+});
+test("failed initial sensor check cannot imply no hardware or expose replay",()=>assert.equal(selectEnvironmentSource(null,snapshot,"historical_replay").latest,null));
+test("replay fallback requires a completed empty sensor response",()=>{
+ assert.equal(selectEnvironmentSource(null,snapshot,"historical_replay").source,"unavailable");
+ assert.equal(selectEnvironmentSource(empty,snapshot,"historical_replay").source,"historical_replay");
+});
