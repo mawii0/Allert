@@ -7,6 +7,7 @@ export interface EnvironmentSnapshot {
   node_id: string;
   mode: "live" | "historical_fixture";
   current: HistoryBlock;
+  history?: HistoryBlock[];
   risk: RiskResponse;
   forecast: ForecastResponse;
 }

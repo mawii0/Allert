@@ -32,3 +32,19 @@ def test_plain_http_is_rejected(monkeypatch):
     monkeypatch.setenv('ALLERT_MODEL_BASE_URL', 'http://example.invalid')
     with pytest.raises(ValueError, match='HTTPS'):
         adapter.compute({})
+
+def test_chart_history_uses_last_24_hours_and_preserves_values():
+    from integration.replay_history import measured_history
+    from datetime import datetime,timedelta,timezone
+    end=datetime(2026,9,13,tzinfo=timezone.utc)
+    rows=[{'block_end':(end-timedelta(minutes=5*i)).isoformat(),'pm2_5':i} for i in range(648)]
+    result=measured_history({'history':rows},rows[0])['history']
+    assert len(result)==288
+    assert result[-1]==rows[0]
+    assert result[0]==rows[287]
+    assert rows[0]['pm2_5']==0
+
+def test_one_block_does_not_invent_history():
+    from integration.replay_history import measured_history
+    row={'block_end':'2026-09-13T00:00:00+00:00'}
+    assert measured_history({'history':[row]},row)=={}

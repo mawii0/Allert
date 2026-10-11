@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Wind, Thermometer, Droplets } from "lucide-react";
+import { Wind, Thermometer, Droplets, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
   getSensorTelemetry,
   type SensorTelemetry,
@@ -10,11 +10,13 @@ import { useEnvironment, displayTime } from "../utils/environment";
 import { selectEnvironmentSource } from "../utils/environment-source.mjs";
 import { EnvironmentNotice } from "./EnvironmentNotice";
 
+import { summarizeHistory, metricTrend } from "../utils/telemetry-analysis.mjs";
+
 const metrics = [
-  { key: "pm2_5", label: "PM2.5", unit: "μg/m³", icon: Wind },
-  { key: "pm10", label: "PM10", unit: "μg/m³", icon: Wind },
-  { key: "temperature", label: "Temperature", unit: "°C", icon: Thermometer },
-  { key: "humidity", label: "Humidity", unit: "%", icon: Droplets },
+  { key: "pm2_5", label: "PM2.5", unit: "μg/m³", icon: Wind, color: "#ff9800" },
+  { key: "pm10", label: "PM10", unit: "μg/m³", icon: Wind, color: "#ff9800" },
+  { key: "temperature", label: "Temperature", unit: "°C", icon: Thermometer, color: "#60a5fa" },
+  { key: "humidity", label: "Humidity", unit: "%", icon: Droplets, color: "#22d3ee" },
 ] as const;
 
 // Uses actual timestamps; long gaps break the chart line.
@@ -22,10 +24,12 @@ function ReadingChart({
   readings,
   field,
   now,
+  color,
 }: {
   readings: SensorReading[];
   field: (typeof metrics)[number]["key"];
   now: number;
+  color: string;
 }) {
   const start = now - 24 * 60 * 60 * 1000;
   const points = readings.flatMap((reading) => {
@@ -60,7 +64,8 @@ function ReadingChart({
   return (
     <svg
       viewBox="0 0 300 65"
-      className="w-full h-20 text-cyan-400"
+      className="w-full h-20"
+      style={{ color }}
       role="img"
       aria-label={`${field} readings over the last 24 hours`}
     >
@@ -141,135 +146,66 @@ export function EnvironmentalScreen() {
   const age = latest ? now - Date.parse(latest.timestamp) : null;
   const recent = age !== null && age >= 0 && age <= 10 * 60 * 1000;
 
+  const chartEnd = replay && latest ? Date.parse(latest.timestamp) : now;
+  const summary = summarizeHistory(view.history, chartEnd);
+  const hourLabel = (hour: number) => `${hour % 12 || 12}${hour < 12 ? "AM" : "PM"}`;
   return (
-    <div className="min-h-screen bg-zinc-950 px-6 py-8">
-      <div className="mb-6">
-        <p className="text-sm text-zinc-400">Environmental Analytics</p>
-        <h1 className="text-2xl font-bold">Sensor Telemetry</h1>
-        <p className="text-sm text-zinc-400 mt-2">
-          {replay ? "Historical air quality replay" : "Five-minute averaged readings - Refreshes every 30 seconds"}
-        </p>
-      </div>
-
-      {loading && !replay && <p className="text-zinc-400">Loading sensor readings…</p>}
-
-      {error && (
-        <p role="alert" className="mb-4 rounded-xl bg-red-950 p-4 text-red-200">
-          {error} {view.source === "sensor" ? "Previously fetched sensor data is shown below." : replay ? "Verified historical replay is shown below." : ""}
-          <button className="block mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-white" onClick={retryAll}>Retry Sensor Connection</button>
-        </p>
-      )}
-
-      {replay && (
-        <section className="mb-5 rounded-2xl border border-emerald-800 bg-emerald-950/40 p-4" role="status">
-          <h2 className="font-semibold text-emerald-300">Historical Replay</h2>
-          <p className="mt-2 text-sm text-zinc-300">Verified recorded measurements from the model dataset. These are not current conditions. Live hardware is not connected yet.</p>
-          <p className="mt-2 text-xs text-zinc-400">Recorded block ended {displayTime(latest.timestamp)} (Manila).</p>
-        </section>
-      )}
-      {!loading && !latest && (
-        <section className="mb-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-zinc-300">{view.device ? "Waiting for the first hardware reading." : "Live hardware is not connected yet."}</p>
-          <p className="mt-2 text-sm text-zinc-400">Verified model measurements will appear here when available.</p>
-          <EnvironmentNotice status={status} retry={retryAll} />
-        </section>
-      )}
-
-      {view.device && !replay && (
-        <div className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <p className="font-semibold">{view.device.device_id}</p>
-          <p className="text-sm text-zinc-400">
-            {view.device.location_label || "Home"}
-          </p>
-          <p className="mt-2 text-sm">
-            {error
-              ? "Connection check failed"
-              : latest
-                ? recent ? "Recent data" : "No recent data"
-                : "Waiting for the first reading"}
-          </p>
-          {latest && (
-            <p className="text-sm text-zinc-400 mt-1">
-              Last reading: {new Date(latest.timestamp).toLocaleString("en-PH", {
-                timeZone: "Asia/Manila",
-              })} (Philippine time)
-            </p>
-          )}
-        </div>
-      )}
-
-      {latest && (
-        <>
-          <div className="space-y-4">
-            {metrics.map(({ key, label, unit, icon: Icon }) => (
-              <div
-                key={key}
-                className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5"
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className="h-5 w-5 text-cyan-400" />
-                  <div>
-                    <p className="text-sm text-zinc-400">{label}</p>
-                    <p className="text-2xl font-bold">
-                      {latest[key]?.toFixed(2) ?? "—"}{" "}
-                      <span className="text-sm font-normal text-zinc-500">{unit}</span>
-                    </p>
-                  </div>
+    <div className="min-h-screen bg-zinc-950 px-5 py-6 pb-24">
+      <header className="mb-5">
+        <p className="text-xs text-zinc-400">Environmental Analytics</p>
+        <h1 className="text-xl font-bold mt-1">Sensor Telemetry</h1>
+        <p className="text-xs text-zinc-400 mt-1">{replay ? "Recorded air quality monitoring" : "Real-time air quality monitoring"}</p>
+      </header>
+      {loading && !replay && <p className="text-sm text-zinc-400 mb-4">Loading sensor readings...</p>}
+      {error && <section role="alert" className="mb-4 rounded-xl border border-red-900 bg-red-950/40 p-3 text-xs text-red-200">
+        <p>{error} {latest ? "Previously verified readings are shown below." : ""}</p>
+        <button className="mt-2 rounded-lg bg-emerald-700 px-3 py-2 text-white" onClick={retryAll}>Retry Sensor Connection</button>
+      </section>}
+      {replay && <section role="status" className="mb-4 rounded-xl border border-emerald-800 bg-emerald-950/30 px-3 py-3">
+        <h2 className="text-sm font-semibold text-emerald-300">Historical Replay</h2>
+        <p className="mt-1 text-xs text-zinc-400">Recorded measurements, not current conditions. Hardware is not connected yet.</p>
+      </section>}
+      {!loading && !latest && <section className="mb-4 rounded-xl border border-zinc-800 bg-zinc-900 p-3">
+        <p className="text-sm text-zinc-300">{view.device ? "Waiting for the first hardware reading." : "Live hardware is not connected yet."}</p>
+        <EnvironmentNotice status={status} retry={retryAll} />
+      </section>}
+      {view.device && !replay && <section className="mb-4 text-xs text-zinc-400">
+        {view.device.location_label || view.device.device_id} - {error ? "Connection check failed" : latest ? recent ? "Recent data" : "No recent data" : "Waiting for readings"}
+      </section>}
+      {latest && <>
+        <div className="space-y-3">
+          {metrics.map(({key,label,unit,icon:Icon,color}) => {
+            const trend=metricTrend(view.history,key);
+            const TrendIcon=trend==="Rising" ? TrendingUp : trend==="Falling" ? TrendingDown : Minus;
+            return <section key={key} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="rounded-full bg-zinc-800 p-2"><Icon className="h-4 w-4" style={{color}} /></div>
+                <div className="flex-1">
+                  <h2 className="text-xs text-zinc-400">{label}</h2>
+                  <p className="text-lg font-bold leading-tight">{latest[key]?.toFixed(1) ?? "—"}<span className="ml-1 text-xs font-normal text-zinc-500">{unit}</span></p>
                 </div>
-                {replay ? <p className="mt-4 text-xs text-emerald-400">Replay - Recorded five-minute block</p> : <p className="mt-4 text-xs text-zinc-500">Last 24 hours - Philippine time</p>}
-                {replay ? <p className="mt-2 text-sm text-zinc-500">24-hour history is not available for this replay snapshot.</p> : <>
-                <ReadingChart
-                  readings={view.history}
-                  field={key}
-                  now={now}
-                />
-                <div className="flex justify-between text-xs text-zinc-500">
-                  <span>24 hours ago</span>
-                  <span>Now</span>
-                </div>
-                </>}
+                <span className="flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-1 text-[10px]" style={{color:trend==="Stable" ? "#a1a1aa" : color}}>
+                  <TrendIcon className="h-3 w-3" />{trend}
+                </span>
               </div>
-            ))}
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
-  <h2 className="font-semibold mb-4">
-    Pollutant Accumulation Patterns
-  </h2>
-
-  <dl>
-    <div className="flex justify-between gap-4 py-3 border-b border-zinc-800">
-      <dt className="text-sm text-zinc-400">Peak Hours</dt>
-      <dd className="text-sm">Awaiting history analysis</dd>
-    </div>
-
-    <div className="flex justify-between gap-4 py-3 border-b border-zinc-800">
-      <dt className="text-sm text-zinc-400">Average Daily PM2.5</dt>
-      <dd className="text-sm">Awaiting history analysis</dd>
-    </div>
-
-    <div className="flex justify-between gap-4 py-3">
-      <dt className="text-sm text-zinc-400">Data Quality</dt>
-      <dd className="text-sm">
-        {latest.data_quality_status ?? "Unavailable"}
-      </dd>
-    </div>
-  </dl>
-
-  {!replay && <p className="text-xs text-zinc-500 mt-2">
-    Samples: {latest.sample_count ?? "—"} /{" "}
-    {latest.expected_samples ?? "—"}
-  </p>}
-</div>
-
-<p className="mt-4 text-xs text-zinc-400">
-  {latest.device_id} · Block ended{" "}
-  {new Date(latest.timestamp).toLocaleString("en-PH", {
-    timeZone: "Asia/Manila",
-  })} (Manila).
-</p>
-        </>
-      )}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-2">
+                <p className="text-[10px] text-zinc-500 mb-1">24-Hour Trend{replay ? " - Recorded" : ""}</p>
+                <ReadingChart readings={view.history} field={key} now={chartEnd} color={color} />
+              </div>
+            </section>;
+          })}
+        </div>
+        <section className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-4">
+          <h2 className="text-sm font-semibold mb-2">Pollutant Accumulation Patterns</h2>
+          <dl className="text-xs">
+            <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">Peak Hours</dt><dd>{summary.coverage >= 95 ? summary.peaks.map(hourLabel).join(", ") : "Awaiting full history"}</dd></div>
+            <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">{summary.coverage >= 95 ? "Average Daily PM2.5" : "Available History PM2.5"}</dt><dd>{summary.average === null ? "Unavailable" : `${summary.average.toFixed(1)} μg/m³`}</dd></div>
+            <div className="flex justify-between gap-3 pt-3"><dt className="text-zinc-400">History Coverage</dt><dd className="text-emerald-400">{summary.coverage.toFixed(1)}%</dd></div>
+          </dl>
+          <p className="mt-3 text-[10px] text-zinc-500">Peak hours use recorded hourly averages (Manila). Coverage is available five-minute blocks out of 288.</p>
+        </section>
+        <p className="mt-3 text-[10px] text-zinc-500">{latest.device_id} - {replay ? "Recorded window ended" : "Last reading"} {displayTime(latest.timestamp)} (Manila).</p>
+      </>}
     </div>
   );
 }

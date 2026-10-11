@@ -24,5 +24,19 @@ export function validSnapshot(s) {
     if (Date.parse(v.target_block_end) !== Date.parse(f.forecast_origin) + v.horizon_hours * 3600000 || Date.parse(v.target_block_end) - Date.parse(v.target_block_start) !== 300000) return false;
     keys.add(`${v.pollutant}:${v.horizon_hours}`);
   }
+  if (s.history !== undefined) {
+    if (!Array.isArray(s.history) || s.history.length < 2 || s.history.length > 288) return false;
+    let previous = -Infinity;
+    for (const b of s.history) {
+      if (!b || b.node_id !== s.node_id || !time(b.block_start) || !time(b.block_end) ||
+          Date.parse(b.block_end) - Date.parse(b.block_start) !== 300000 || Date.parse(b.block_end) % 300000 !== 0 ||
+          ![b.pm2_5,b.pm10,b.temperature_c,b.humidity_percent].every(finite) || b.pm2_5 < 0 || b.pm10 < 0 || b.humidity_percent < 0 || b.humidity_percent > 100 ||
+          !["ok","OK","ORIGINAL"].includes(b.quality) || Date.parse(b.block_end) <= previous ||
+          Date.parse(b.block_end) <= Date.parse(c.block_end) - 86400000 || Date.parse(b.block_end) > Date.parse(c.block_end)) return false;
+      previous = Date.parse(b.block_end);
+    }
+    const last = s.history[s.history.length - 1];
+    if (["block_end","pm2_5","pm10","temperature_c","humidity_percent","quality"].some(key => last[key] !== c[key])) return false;
+  }
   return keys.size === 6;
 }

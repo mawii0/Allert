@@ -1,0 +1,12 @@
+import {test} from "node:test";
+import assert from "node:assert/strict";
+import {summarizeHistory,metricTrend} from "../src/app/utils/telemetry-analysis.mjs";
+const now=Date.parse("2026-09-13T00:00:00Z");
+const history=Array.from({length:288},(_,i)=>({timestamp:new Date(now-(287-i)*300000).toISOString(),pm2_5:20}));
+test("full five-minute history has exact daily mean and coverage",()=>{const s=summarizeHistory(history,now);assert.equal(s.average,20);assert.equal(s.coverage,100);assert.equal(s.peaks.length,2);});
+test("empty history never invents averages",()=>assert.deepEqual(summarizeHistory([],now),{average:null,peaks:[],coverage:0}));
+test("out of window and invalid readings excluded",()=>{const s=summarizeHistory([...history,{timestamp:new Date(now+1).toISOString(),pm2_5:999},{timestamp:"invalid",pm2_5:99}],now);assert.equal(s.average,20);});
+test("duplicates do not inflate coverage",()=>assert.equal(summarizeHistory([history[0],history[0]],now).coverage,100/288));
+test("constant values are stable",()=>assert.equal(metricTrend(history,"pm2_5"),"Stable"));
+test("rising and falling trends follow recorded measurements",()=>{assert.equal(metricTrend([{pm2_5:1},{pm2_5:10}],"pm2_5"),"Rising");assert.equal(metricTrend([{pm2_5:10},{pm2_5:1}],"pm2_5"),"Falling");});
+test("missing trend remains unavailable",()=>assert.equal(metricTrend([],"temperature"),"Unavailable"));

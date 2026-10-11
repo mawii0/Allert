@@ -8,11 +8,17 @@ The approved account had a valid persistent model assignment and a stored verifi
 
 Added 15 source-selection checks for hardware-free replay, active devices awaiting readings, sensor precedence, stale sensor data, missing/denied/malformed snapshots, source mode, exact timestamps and no invented samples. Telemetry polling now clears account-scoped state on session changes, ignores late results from previous sessions, refreshes on focus and prevents overlapping requests. The app suite has 72 passing checks. The deployed telemetry suite again passed 34 checks. The authorization suite is recorded separately below. The final production build passed after correcting an initial JSX fragment error during implementation.
 
+## Recorded graph design - 12 October 2026
+
+Restored compact sensor cards with orange PM graphs, blue temperature, cyan humidity and calculated trend badges. Published the final 288 five-minute blocks from the partner's forecast_case_01 dataset to the authorized replay snapshot. The last history block is checked against the existing verified current measurements; the six forecasts were unchanged. Graphs anchor to the recorded window end, not today's date. Historical labels remain visible. Peak hours, daily PM2.5 mean and block coverage are computed from measurements, without fabricated alerts or quality scores.
+
+History validation now rejects wrong nodes, duplicate/out-of-order/future blocks, malformed values, oversized history and a last block inconsistent with current measurements. Both one-shot publishers preserve the measured history for later replay publications. Added 17 JavaScript checks (89 total) and two Python publisher-history checks (5 adapter checks passed). The production build passed. Existing sensor ownership and authorization remain enforced.
+
 ## Results
 
 | Check | Result | Evidence |
 |---|---|---|
-| App session, account validation and model snapshot regression tests | 72 passed | `npm test` |
+| App session, account validation and model snapshot regression tests | 89 passed | `npm test` |
 | Deployed account API acceptance checks | 54 passed | `integration/evidence/deployed-account-tests.json` |
 | Deployed sensor telemetry ownership, empty and stale history checks | 34 passed | `integration/evidence/deployed-telemetry-tests.json` |
 | Persistent deployed node authorization and repeated-login checks | 59 passed | `integration/evidence/deployed-node-access-tests.json` |

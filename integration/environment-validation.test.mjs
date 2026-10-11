@@ -26,3 +26,18 @@ for (const [label, mutate] of [
   ["unaligned measurement", s => { s.current.block_start = "2026-09-12T20:40:01Z"; s.current.block_end = "2026-09-12T20:45:01Z"; }],
   ["future live forecast origin", s => { s.mode="live";s.forecast.mode="live";s.current.received_at=new Date().toISOString();s.forecast.forecast_origin=new Date(Date.now()+86400000).toISOString(); }],
 ]) test(`rejects ${label}`, () => { const s = fixture(); mutate(s); assert.equal(validSnapshot(s), false); });
+
+function historyFixture() {
+ const s=fixture();s.history=Array.from({length:288},(_,i)=>({...s.current,block_start:new Date(Date.parse(s.current.block_start)-(287-i)*300000).toISOString(),block_end:new Date(Date.parse(s.current.block_end)-(287-i)*300000).toISOString()}));s.history[287]={...s.current};return s;
+}
+test("accepts 24 hours of recorded measurement blocks",()=>assert.equal(validSnapshot(historyFixture()),true));
+for(const [label,mutate] of [
+ ["oversized history",s=>s.history.push(s.current)],
+ ["duplicate timestamp",s=>s.history[1]=s.history[0]],
+ ["wrong node",s=>s.history[0].node_id="node-2"],
+ ["invalid humidity",s=>s.history[0].humidity_percent=101],
+ ["future block",s=>s.history[0].block_end="2099-01-01T00:00:00Z"],
+ ["mismatched latest",s=>s.history[287].pm2_5=999],
+ ["nonfinite temperature",s=>s.history[0].temperature_c=NaN],
+ ["invalid quality",s=>s.history[0].quality="made-up"],
+]) test("rejects chart history: "+label,()=>{const s=historyFixture();mutate(s);assert.equal(validSnapshot(s),false);});

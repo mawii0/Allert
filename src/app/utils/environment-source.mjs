@@ -18,7 +18,11 @@ export function selectEnvironmentSource(telemetry, snapshot, status) {
         temperature: current.temperature_c, humidity: current.humidity_percent,
         data_quality_status: current.quality, sample_count: null, expected_samples: null,
       },
-      history: [], // A single verified block cannot establish a 24-hour trend.
+      history: (snapshot.history ?? []).map(block => ({
+        device_id: snapshot.node_id, timestamp: block.block_end,
+        pm2_5: block.pm2_5, pm10: block.pm10, temperature: block.temperature_c,
+        humidity: block.humidity_percent, data_quality_status: block.quality,
+      })),
     };
   }
   return { source: "unavailable", device: telemetry?.device ?? null, latest: null, history: [] };

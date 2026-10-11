@@ -4,6 +4,10 @@ This is a one-shot verification adapter, not a continuous telemetry worker.
 Secrets are process environment variables and are never printed.
 """
 import argparse
+try:
+    from .replay_history import measured_history
+except ImportError:
+    from replay_history import measured_history
 from datetime import datetime
 import json
 import os
@@ -44,7 +48,7 @@ def compute(payload):
     current = max(payload['history'], key=lambda row: datetime.fromisoformat(row['block_end']))
     risk = call(base + '/v1/risk', headers, current)
     return {'node_id': payload['node_id'], 'mode': payload['mode'],
-            'current': current, 'forecast': forecast, 'risk': risk}
+            'current': current, 'forecast': forecast, 'risk': risk, **measured_history(payload, current)}
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

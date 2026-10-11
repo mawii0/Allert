@@ -1,5 +1,9 @@
 """Publish one verified model result to the staging cache; no training or jobs."""
 import argparse
+try:
+    from .replay_history import measured_history
+except ImportError:
+    from replay_history import measured_history
 from datetime import datetime
 import json
 import os
@@ -21,7 +25,7 @@ def main():
     forecast = ModelRuntime("cpu").predict(payload)
     current = max(payload["history"], key=lambda row: datetime.fromisoformat(row["block_end"]))
     result = {"node_id": payload["node_id"], "mode": payload["mode"],
-              "current": current, "risk": risk(current), "forecast": forecast}
+              "current": current, "risk": risk(current), "forecast": forecast, **measured_history(payload, current)}
     if not args.publish:
         print(json.dumps(result, indent=2))
         return
