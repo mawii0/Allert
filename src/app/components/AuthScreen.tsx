@@ -15,6 +15,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { DeploymentCheck } from "./DeploymentCheck";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
+import { storeSession, getProfile } from "../utils/auth";
 // import logoImage from "../../imports/AllertLogoTransparent.png";
 import logoImage from "../../imports/AllertLogoTransparent1.png";
 
@@ -31,6 +32,7 @@ export function AuthScreen() {
   const [error, setError] = useState("");
 
   const handleAuth = async () => {
+    if (isLoading) return;
     setError("");
 
     if (!email || !password) {
@@ -56,7 +58,7 @@ export function AuthScreen() {
           Authorization: `Bearer ${publicAnonKey}`,
         },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           password,
           ...(mode === "register" && { name }),
         }),
@@ -72,15 +74,11 @@ export function AuthScreen() {
       }
 
       if (data.access_token) {
-        localStorage.setItem("allert_auth_token", data.access_token);
-        localStorage.setItem("allert_user_id", data.user.id);
-        localStorage.setItem("allert_user_email", data.user.email);
-        if (data.user.user_metadata?.name) {
-          localStorage.setItem("allert_user_name", data.user.user_metadata.name);
-        }
-
-        const onboardingComplete = localStorage.getItem("allert_onboarding_complete");
-        if (onboardingComplete === "true") {
+        storeSession(data);
+        const profile = await getProfile();
+        if (profile.success && profile.profile?.updatedAt) {
+          localStorage.setItem("allert_demographic", profile.profile.demographic);
+          localStorage.setItem("allert_onboarding_complete", "true");
           navigate("/app/dashboard");
         } else {
           navigate("/onboarding");
@@ -91,7 +89,7 @@ export function AuthScreen() {
     } catch (err: any) {
       if (err.message === "Failed to fetch" || err instanceof TypeError) {
         setError(
-          "Backend not deployed. See instructions above to deploy the edge function from Make settings.",
+          "Unable to reach the sign-in service. Check your connection and try again.",
         );
       } else {
         setError(err.message || "Authentication failed. Please try again.");

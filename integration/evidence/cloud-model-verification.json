@@ -1,0 +1,11 @@
+{
+  "status": "passed_cloud_model_checks",
+  "base_url": "https://allert-model.onrender.com",
+  "golden_cases": 12,
+  "max_abs_difference_ugm3": 0.0001480579376220703,
+  "unauthorized_readiness_denied": true,
+  "current_indicator_example_passed": true,
+  "model_id": "median-residual-single-v1",
+  "device": "cpu",
+  "live_sensor_pipeline": false
+}

@@ -1,0 +1,51 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "check": "no user token denied",
+      "passed": true
+    },
+    {
+      "check": "anon JWT denied as a user",
+      "passed": true
+    },
+    {
+      "check": "invalid worker secret denied",
+      "passed": true
+    },
+    {
+      "check": "invalid snapshot denied",
+      "passed": true
+    },
+    {
+      "check": "temporary test account created",
+      "passed": true
+    },
+    {
+      "check": "real user session issued",
+      "passed": true
+    },
+    {
+      "check": "unassigned user denied",
+      "passed": true
+    },
+    {
+      "check": "assigned user read succeeds",
+      "passed": true
+    },
+    {
+      "check": "stored six forecasts match Python output exactly and replay is labeled",
+      "passed": true
+    },
+    {
+      "check": "removed assignment denied immediately",
+      "passed": true
+    },
+    {
+      "check": "temporary test account removed",
+      "passed": true
+    }
+  ],
+  "existing_users_preserved": true,
+  "secrets_displayed": false
+}

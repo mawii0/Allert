@@ -191,12 +191,42 @@ export function EnvironmentalScreen() {
             ))}
           </div>
 
-          <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-            <p>Quality status: {latest.data_quality_status ?? "Unavailable"}</p>
-            <p className="text-sm text-zinc-400 mt-2">
-              Samples: {latest.sample_count ?? "—"} / {latest.expected_samples ?? "—"}
-            </p>
-          </div>
+          <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
+  <h2 className="font-semibold mb-4">
+    Pollutant Accumulation Patterns
+  </h2>
+
+  <dl>
+    <div className="flex justify-between gap-4 py-3 border-b border-zinc-800">
+      <dt className="text-sm text-zinc-400">Peak Hours</dt>
+      <dd className="text-sm">Awaiting history analysis</dd>
+    </div>
+
+    <div className="flex justify-between gap-4 py-3 border-b border-zinc-800">
+      <dt className="text-sm text-zinc-400">Average Daily PM2.5</dt>
+      <dd className="text-sm">Awaiting history analysis</dd>
+    </div>
+
+    <div className="flex justify-between gap-4 py-3">
+      <dt className="text-sm text-zinc-400">Data Quality</dt>
+      <dd className="text-sm">
+        {latest.data_quality_status ?? "Unavailable"}
+      </dd>
+    </div>
+  </dl>
+
+  <p className="text-xs text-zinc-500 mt-2">
+    Samples: {latest.sample_count ?? "—"} /{" "}
+    {latest.expected_samples ?? "—"}
+  </p>
+</div>
+
+<p className="mt-4 text-xs text-zinc-400">
+  {latest.device_id} · Block ended{" "}
+  {new Date(latest.timestamp).toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+  })} (Manila).
+</p>
         </>
       )}
     </div>

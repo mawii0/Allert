@@ -91,7 +91,7 @@ export function OnboardingScreen() {
           >
             <User className="w-6 h-6 mx-auto mb-2" />
             <div className="text-sm font-medium">Adult</div>
-            <div className="text-xs opacity-70">Baseline: 0.20</div>
+            <div className="text-xs opacity-70">Adult indicator profile</div>
           </button>
           <button
             onClick={() => setDemographic("pediatric")}
@@ -103,7 +103,7 @@ export function OnboardingScreen() {
           >
             <Users className="w-6 h-6 mx-auto mb-2" />
             <div className="text-sm font-medium">Pediatric</div>
-            <div className="text-xs opacity-70">Baseline: 0.22</div>
+            <div className="text-xs opacity-70">Pediatric indicator profile</div>
           </button>
         </div>
       </div>
@@ -121,12 +121,14 @@ export function OnboardingScreen() {
               <div>
                 <div className="text-sm font-medium text-[#ffffff]">Location Services</div>
                 <div className="text-xs text-zinc-500">
-                  Map to nearest sensor node
+                  Not connected yet
                 </div>
               </div>
             </div>
             <Switch
-              checked={locationEnabled}
+              disabled
+              aria-label="Location services unavailable"
+              checked={false}
               onCheckedChange={setLocationEnabled}
             />
           </div>
@@ -139,12 +141,14 @@ export function OnboardingScreen() {
               <div>
                 <div className="text-sm font-medium text-[#ffffff]">Push Notifications</div>
                 <div className="text-xs text-zinc-500">
-                  Anomaly alerts & warnings
+                  Not connected yet
                 </div>
               </div>
             </div>
             <Switch
-              checked={notificationsEnabled}
+              disabled
+              aria-label="Push notifications unavailable"
+              checked={false}
               onCheckedChange={setNotificationsEnabled}
             />
           </div>

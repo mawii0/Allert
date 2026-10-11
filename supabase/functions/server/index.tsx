@@ -3,6 +3,8 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import * as kv from "./kv_store.tsx";
+import { validSnapshot } from "./environment-validation.mjs";
+import { validProfile, validHealthLog, sameHealthLog } from "./account-validation.mjs";
 
 const app = new Hono();
 
@@ -29,12 +31,21 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization", "apikey"],
+    allowHeaders: ["Content-Type", "Authorization","apikey", "X-Allert-Worker-Token"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
   }),
 );
+
+// Reject malformed JSON consistently before any route can create records.
+app.use("/*", async (c, next) => {
+  c.header("Cache-Control", "no-store");
+  if (["POST", "PUT", "PATCH"].includes(c.req.method)) {
+    try { await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  }
+  await next();
+});
 
 // Health check endpoint
 app.get("/make-server-a473accf/health", (c) => {
@@ -46,7 +57,7 @@ app.post("/make-server-a473accf/signup", async (c) => {
   try {
     const { email, password, name } = await c.req.json();
 
-    if (!email || !password) {
+    if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || typeof password !== "string" || password.length < 6 || password.length > 200 || (name !== undefined && (typeof name !== "string" || name.length > 100))) {
       return c.json({ error: "Email and password are required" }, 400);
     }
 
@@ -91,6 +102,7 @@ app.post("/make-server-a473accf/signup", async (c) => {
     return c.json({
       user: data.user,
       access_token: sessionData.session.access_token,
+      refresh_token: sessionData.session.refresh_token,
     });
   } catch (error: any) {
     console.log("Signup error:", error);
@@ -103,7 +115,7 @@ app.post("/make-server-a473accf/login", async (c) => {
   try {
     const { email, password } = await c.req.json();
 
-    if (!email || !password) {
+    if (typeof email !== "string" || !email || typeof password !== "string" || !password) {
       return c.json({ error: "Email and password are required" }, 400);
     }
 
@@ -127,6 +139,7 @@ app.post("/make-server-a473accf/login", async (c) => {
     return c.json({
       user: data.user,
       access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
     });
   } catch (error: any) {
     console.log("Login error:", error);
@@ -150,7 +163,9 @@ app.post("/make-server-a473accf/profile", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const { demographic, name } = await c.req.json();
+    const body = await c.req.json();
+    if (!validProfile(body)) return c.json({ error: "Invalid profile" }, 400);
+    const { demographic, name } = body;
 
     // Update or create profile
     const existingProfile = await kv.get(`profile:${user.id}`);
@@ -158,7 +173,9 @@ app.post("/make-server-a473accf/profile", async (c) => {
       ...(existingProfile || {}),
       userId: user.id,
       email: user.email,
-      ...(name && { name }),
+      createdAt: existingProfile?.createdAt || new Date().toISOString(),
+      demographic: existingProfile?.demographic || "adult",
+      ...(name !== undefined && { name: name.trim() }),
       ...(demographic && { demographic }),
       updatedAt: new Date().toISOString(),
     };
@@ -217,30 +234,36 @@ app.post("/make-server-a473accf/health-logs", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const { vasScore, tnssScore, riskLevel, notes } = await c.req.json();
+    const body = await c.req.json();
+    if (!validHealthLog(body)) return c.json({ error: "Invalid symptom scores, observation time, or notes" }, 400);
+    const { vasScore, tnssScore, riskLevel, notes, symptomSeverities, observedAt, requestId } = body;
+    const id = requestId || crypto.randomUUID();
+    const key = `health-log:v2:${user.id}:${id}`;
+    const existing = await kv.get(key);
+    if (existing) {
+      const same = sameHealthLog(existing, body);
+      if (!same) return c.json({ error: "Request ID already belongs to a different entry" }, 409);
+      return c.json({ success: true, entry: existing });
+    }
 
     const logEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id,
       userId: user.id,
       date: new Date().toISOString(),
       vasScore,
       tnssScore,
       riskLevel,
       notes: notes || null,
+      ...(symptomSeverities && { symptomSeverities }),
+      ...(observedAt && { observedAt }),
+      scoreKind: "symptom_summary_not_environmental_probability",
     };
 
-    // Get existing logs
-    const existingLogs = await kv.get(`health-logs:${user.id}`) || [];
-
-    // Add new entry at the beginning (most recent first)
-    const updatedLogs = [logEntry, ...existingLogs];
-
-    // Keep only last 100 entries
-    const trimmedLogs = updatedLogs.slice(0, 100);
-
-    await kv.set(`health-logs:${user.id}`, trimmedLogs);
-
-    return c.json({ success: true, entry: logEntry });
+    // Independent keys prevent simultaneous diary submissions overwriting each other.
+    const saved = await kv.setIfAbsent(key, logEntry);
+    const same = sameHealthLog(saved, body);
+    if (!same) return c.json({ error: "Request ID already belongs to a different entry" }, 409);
+    return c.json({ success: true, entry: saved });
   } catch (error: any) {
     console.log("Health log save error:", error);
     return c.json({ error: error.message || "Health log save failed" }, 500);
@@ -263,7 +286,9 @@ app.get("/make-server-a473accf/health-logs", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const logs = await kv.get(`health-logs:${user.id}`) || [];
+    const legacyLogs = await kv.get(`health-logs:${user.id}`) || [];
+    const entries = await kv.getRecentByPrefix(`health-log:v2:${user.id}:`);
+    const logs = [...entries, ...legacyLogs].sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 100);
 
     return c.json({ logs });
   } catch (error: any) {
@@ -353,4 +378,39 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
     return c.json({ error: "Unable to load sensor readings." }, 500);
   }
 });
+
+// Initial single-node staging bridge. Replace this cache with reviewed durable
+// telemetry/jobs/run tables before operating continuous live analytics.
+app.post("/make-server-a473accf/environment/publish", async (c) => {
+  const expected = Deno.env.get("ALLERT_WORKER_TOKEN");
+  const actual = c.req.header("X-Allert-Worker-Token");
+  if (!expected || !actual) return c.json({ error: "Unauthorized" }, 401);
+  const digest = async (value: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
+  const a = await digest(actual), b = await digest(expected);
+  let different = 0;
+  for (let i = 0; i < a.length; i++) different |= a[i] ^ b[i];
+  if (different) return c.json({ error: "Unauthorized" }, 401);
+  let snapshot;
+  try { snapshot = await c.req.json(); } catch { return c.json({ error: "Invalid JSON" }, 400); }
+  if (!validSnapshot(snapshot)) return c.json({ error: "Invalid model snapshot" }, 400);
+  await kv.set(`environment:v1:${snapshot.mode}`, snapshot);
+  return c.json({ status: "stored", mode: snapshot.mode });
+});
+
+app.get("/make-server-a473accf/environment", async (c) => {
+  const token = c.req.header("Authorization")?.split(" ")[1];
+  if (!token) return c.json({ error: "Unauthorized" }, 401);
+  const { data: { user }, error } = await getSupabaseClient().auth.getUser(token);
+  if (error || !user) return c.json({ error: "Unauthorized" }, 401);
+  const allowed = (Deno.env.get("ALLERT_NODE1_USER_IDS") || "").split(",").map(value => value.trim());
+  if (!allowed.includes(user.id)) return c.json({ error: "Node access has not been assigned" }, 403);
+  const mode = Deno.env.get("ALLERT_DISPLAY_REPLAY") === "true" ? "historical_fixture" : "live";
+  const snapshot = await kv.get(`environment:v1:${mode}`);
+  if (!snapshot) return c.json({ availability: "unavailable", snapshot: null });
+  if (!validSnapshot(snapshot)) return c.json({ error: "Stored model data is invalid" }, 503);
+  const stale = Date.now() - Date.parse(snapshot.current.block_end) > 15 * 60000;
+  c.header("Cache-Control", "no-store");
+  return c.json({ availability: mode === "historical_fixture" ? "historical_replay" : stale ? "stale" : "ready", snapshot });
+});
+
 Deno.serve(app.fetch);

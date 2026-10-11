@@ -23,7 +23,7 @@ export function DeploymentCheck() {
 
       if (response.ok) {
         const data = await response.json();
-        setStatus("deployed");
+        setStatus(data.status === "ok" ? "deployed" : "not-deployed");
       } else {
         setStatus("not-deployed");
       }
@@ -61,18 +61,13 @@ export function DeploymentCheck() {
 
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-sm mb-1">
-              {status === "checking" ? "Checking backend status..." : "Backend not deployed"}
+              {status === "checking" ? "Checking backend status..." : "Sign-in service unavailable"}
             </h3>
             {status === "not-deployed" && (
               <>
                 <p className="text-xs text-zinc-300 mb-2">
-                  Authentication requires the backend to be deployed.
+                  Check your internet connection, then try again.
                 </p>
-                <div className="text-xs text-zinc-400 mb-3 space-y-1">
-                  <div>1. Click the <strong className="text-zinc-200">settings icon</strong> in Make</div>
-                  <div>2. Find <strong className="text-zinc-200">Supabase</strong> section</div>
-                  <div>3. Click <strong className="text-zinc-200">Deploy edge function</strong></div>
-                </div>
                 <button
                   onClick={checkDeployment}
                   disabled={isChecking}

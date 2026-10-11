@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Smile,
@@ -43,8 +43,9 @@ interface DiaryEntry {
 
 // Convert HealthLogEntry to DiaryEntry for display
 const convertHealthLogToDiaryEntry = (log: HealthLogEntry): DiaryEntry => {
-  const date = new Date(log.date);
+  const date = new Date(log.observedAt || log.date);
   const dateString = date.toLocaleDateString("en-US", {
+    timeZone: "Asia/Manila",
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -68,8 +69,17 @@ export function ClinicalScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const pendingEntry = useRef<{id: string; observedAt: string; payload: string} | null>(null);
+  const historyButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!showHistory) return;
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") setShowHistory(false); };
+    window.addEventListener("keydown", escape);
+    return () => { window.removeEventListener("keydown", escape); historyButton.current?.focus(); };
+  }, [showHistory]);
 
-  // TNSS: Symptom carousel and severity scores (0-4 for each)
+  // TNSS: Symptom carousel and severity scores (0-3 for each)
   const [currentSymptomIndex, setCurrentSymptomIndex] =
     useState(0);
   const [symptomSeverities, setSymptomSeverities] = useState<
@@ -101,10 +111,10 @@ export function ClinicalScreen() {
           const entries = result.logs.map(convertHealthLogToDiaryEntry);
           setDiaryEntries(entries);
         } else {
-          console.error("Failed to load health logs:", result.error);
+          setLoadError(result.error || "Unable to load saved entries.");
         }
       } catch (error) {
-        console.error("Error loading health logs:", error);
+        setLoadError("Unable to load saved entries. Check your connection.");
       } finally {
         setIsLoadingLogs(false);
       }
@@ -132,17 +142,6 @@ export function ClinicalScreen() {
     );
   };
 
-  // Mock correlation data for Spearman's graph
-  const correlationData = [
-    { day: "Mon", risk: 0.15, symptoms: 2, id: 1 },
-    { day: "Tue", risk: 0.22, symptoms: 3, id: 2 },
-    { day: "Wed", risk: 0.38, symptoms: 5, id: 3 },
-    { day: "Thu", risk: 0.52, symptoms: 6, id: 4 },
-    { day: "Fri", risk: 0.48, symptoms: 6, id: 5 },
-    { day: "Sat", risk: 0.35, symptoms: 4, id: 6 },
-    { day: "Sun", risk: 0.18, symptoms: 2, id: 7 },
-  ];
-
   const getVasEmoji = (score: number) => {
     if (score <= 3)
       return <Smile className="w-8 h-8 text-emerald-400" />;
@@ -163,7 +162,7 @@ export function ClinicalScreen() {
     return "Severe symptoms";
   };
 
-  // TNSS: Get color based on severity (0-4)
+  // TNSS: Get color based on severity (0-3)
   const getTnssColor = (severity: number) => {
     if (severity === 0) return "text-zinc-400";
     if (severity === 1) return "text-emerald-400";
@@ -211,6 +210,7 @@ export function ClinicalScreen() {
 
   // Save today's entry
   const handleSaveEntry = async () => {
+    if (isSaving) return;
     setSaveError("");
     setIsSaving(true);
 
@@ -221,11 +221,14 @@ export function ClinicalScreen() {
         50
       );
 
+      const payload = JSON.stringify({vas: vasScore[0], symptoms: symptomSeverities});
+      if (!pendingEntry.current || pendingEntry.current.payload !== payload) pendingEntry.current = {id: crypto.randomUUID(), observedAt: new Date().toISOString(), payload};
+      // Save individual symptoms and preserve retry identity.
       // Save to Supabase
       const result = await saveHealthLog(
         vasScore[0],
         totalTnssScore,
-        riskLevel
+        riskLevel, undefined, symptomSeverities, pendingEntry.current.observedAt, pendingEntry.current.id
       );
 
       if (!result.success) {
@@ -236,7 +239,8 @@ export function ClinicalScreen() {
       if (result.entry) {
         const newEntry = convertHealthLogToDiaryEntry(result.entry);
         // Add to beginning of array (most recent first)
-        setDiaryEntries((prev) => [newEntry, ...prev]);
+        setDiaryEntries((prev) => [newEntry, ...prev.filter(entry => entry.id !== newEntry.id)]);
+        pendingEntry.current = null;
       }
 
       // Show success feedback
@@ -272,6 +276,8 @@ export function ClinicalScreen() {
 
         {/* History/Diary Button */}
         <button
+          ref={historyButton}
+          aria-label="Open symptom history"
           onClick={() => setShowHistory(true)}
           className="w-12 h-12 rounded-full bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 flex items-center justify-center transition-all shadow-lg"
         >
@@ -301,6 +307,7 @@ export function ClinicalScreen() {
 
         <div className="mb-6">
           <Slider
+            aria-label="Overall symptom severity"
             value={vasScore}
             onValueChange={setVasScore}
             min={0}
@@ -350,6 +357,7 @@ export function ClinicalScreen() {
         <div className="bg-zinc-800/50 rounded-xl p-5 border border-zinc-700/50 mb-6">
           <div className="flex items-center justify-between mb-6">
             <button
+              aria-label="Previous symptom"
               onClick={handlePrevSymptom}
               className="w-10 h-10 rounded-full bg-zinc-700/50 hover:bg-zinc-600 border border-zinc-600 flex items-center justify-center transition-all"
             >
@@ -375,6 +383,7 @@ export function ClinicalScreen() {
             </AnimatePresence>
 
             <button
+              aria-label="Next symptom"
               onClick={handleNextSymptom}
               className="w-10 h-10 rounded-full bg-zinc-700/50 hover:bg-zinc-600 border border-zinc-600 flex items-center justify-center transition-all"
             >
@@ -382,9 +391,10 @@ export function ClinicalScreen() {
             </button>
           </div>
 
-          {/* Severity Slider (0-4) */}
+          {/* Severity Slider (0-3) */}
           <div className="mb-6">
             <Slider
+              aria-label={`${currentSymptom.label} severity`}
               value={[currentSeverity]}
               onValueChange={(value) =>
                 updateSymptomSeverity(
@@ -450,97 +460,18 @@ export function ClinicalScreen() {
         </div>
       </div>
 
-      {/* Spearman's Correlation Graph */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 border border-zinc-800 shadow-xl">
-        <h3 className="font-semibold mb-2">
-          Clinical Validation
-        </h3>
-        <p className="text-xs text-zinc-500 mb-4">
-          Correlation between predicted risk and reported
-          symptoms
-        </p>
-
-        <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700/50">
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart
-              data={correlationData}
-              margin={{
-                top: 5,
-                right: 30,
-                left: 20,
-                bottom: 5,
-              }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis
-                yAxisId="left"
-                domain={[0, 1]}
-                stroke="#3b82f6"
-                label={{
-                  value: "Risk Probability",
-                  angle: -90,
-                  position: "insideLeft",
-                }}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                domain={[0, 10]}
-                stroke="#eab308"
-                label={{
-                  value: "Symptom Score",
-                  angle: 90,
-                  position: "insideRight",
-                }}
-              />
-              <Tooltip />
-              <Legend />
-              <Line
-                key="correlation-risk-line"
-                type="monotone"
-                dataKey="risk"
-                stroke="#3b82f6"
-                strokeWidth={2}
-                name="Predicted Risk"
-                yAxisId="left"
-                dotRadius={4}
-              />
-              <Line
-                key="correlation-symptoms-line"
-                type="monotone"
-                dataKey="symptoms"
-                stroke="#eab308"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Symptom Score"
-                yAxisId="right"
-                dotRadius={4}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="mt-4 bg-zinc-800/50 rounded-lg p-3 border border-zinc-700/50">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-zinc-400">
-              Spearman's ρ
-            </span>
-            <span className="text-sm font-bold text-emerald-400">
-              0.87
-            </span>
-          </div>
-          <div className="text-xs text-zinc-500 mt-1">
-            Strong positive correlation (p &lt; 0.001)
-          </div>
-        </div>
+      <div className="bg-zinc-900/50 rounded-2xl p-6 border border-zinc-800">
+        <h3 className="font-semibold mb-2">Clinical Validation</h3>
+        <p className="text-xs text-zinc-400">Correlation analysis is awaiting matched environmental and symptom history. No clinical correlation has been calculated for your account.</p>
       </div>
+      {loadError && <p role="alert" className="text-sm text-amber-300 mt-4">{loadError}</p>}
+      {!isLoadingLogs && !loadError && diaryEntries.length === 0 && <p className="text-sm text-zinc-400 mt-4">No saved entries yet.</p>}
 
       {/* Historical Trend Chart */}
       <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 border border-zinc-800 shadow-xl">
         <h3 className="font-semibold mb-2">Historical Trend</h3>
         <p className="text-xs text-zinc-500 mb-4">
-          Risk level and symptom severity over the past 7 days
+          Saved symptom summary and severity
         </p>
 
         <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700/50">
@@ -561,7 +492,7 @@ export function ClinicalScreen() {
                 domain={[0, 50]}
                 stroke="#3b82f6"
                 label={{
-                  value: "Risk Level",
+                  value: "Symptom Summary",
                   angle: -90,
                   position: "insideLeft",
                 }}
@@ -585,9 +516,9 @@ export function ClinicalScreen() {
                 dataKey="risk"
                 stroke="#3b82f6"
                 strokeWidth={2}
-                name="Risk Level"
+                name="Symptom Summary"
                 yAxisId="left"
-                dotRadius={4}
+                dot={{ r: 4 }}
               />
               <Line
                 key="historical-severity-line"
@@ -598,7 +529,7 @@ export function ClinicalScreen() {
                 strokeDasharray="5 5"
                 name="Severity Score"
                 yAxisId="right"
-                dotRadius={4}
+                dot={{ r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -658,6 +589,16 @@ export function ClinicalScreen() {
 
             {/* Slide-Up Panel */}
             <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Symptom history"
+              onKeyDown={event => {
+                if (event.key !== "Tab") return;
+                const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex="0"]'));
+                const first = controls[0], last = controls[controls.length - 1];
+                if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+                else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+              }}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -692,6 +633,8 @@ export function ClinicalScreen() {
                   </p>
                 </div>
                 <button
+                  autoFocus
+                  aria-label="Close symptom history"
                   onClick={() => setShowHistory(false)}
                   className="w-10 h-10 rounded-full bg-zinc-800 hover:bg-zinc-700 flex items-center justify-center transition-colors"
                 >
@@ -704,7 +647,7 @@ export function ClinicalScreen() {
                 {/* Historical Trend Chart */}
                 <div className="bg-zinc-800/50 backdrop-blur-sm rounded-2xl p-5 mb-6 border border-zinc-700 shadow-xl">
                   <h3 className="font-semibold mb-3">
-                    7-Day Trend
+                    Saved Entries Trend
                   </h3>
                   <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-700/50">
                     <ResponsiveContainer
@@ -746,7 +689,7 @@ export function ClinicalScreen() {
                           dataKey="risk"
                           fill="#3b82f6"
                           radius={[6, 6, 0, 0]}
-                          name="Risk Level %"
+                          name="Symptom Summary"
                         />
                       </BarChart>
                     </ResponsiveContainer>
@@ -773,7 +716,7 @@ export function ClinicalScreen() {
                               {entry.date}
                             </div>
                             <div className="text-xs text-zinc-500 mt-0.5">
-                              TNSS: {entry.tnssScore}/16
+                              TNSS: {entry.tnssScore}/12
                             </div>
                           </div>
                           <div
@@ -787,7 +730,7 @@ export function ClinicalScreen() {
                                     : "bg-red-500/20 text-red-300"
                             }`}
                           >
-                            {entry.riskLevel}% Risk
+                            {entry.riskLevel}/50 Summary
                           </div>
                         </div>
 
@@ -814,7 +757,7 @@ export function ClinicalScreen() {
                             <div className="text-lg font-bold">
                               {entry.tnssScore}
                               <span className="text-xs text-zinc-500 font-normal">
-                                /16
+                                /12
                               </span>
                             </div>
                           </div>

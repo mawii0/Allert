@@ -10,6 +10,7 @@ import { DeviceConnectionScreen } from "./components/DeviceConnectionScreen";
 import { AdminOverviewScreen } from "./components/AdminOverviewScreen";
 import { AdminSensorDetailScreen } from "./components/AdminSensorDetailScreen";
 import { AdminAnomalyInvestigationScreen } from "./components/AdminAnomalyInvestigationScreen";
+import { AccessBoundary, AdminPreview } from "./components/AccessBoundary";
 
 export const router = createBrowserRouter([
   {
@@ -18,27 +19,27 @@ export const router = createBrowserRouter([
   },
   {
     path: "/onboarding",
-    Component: OnboardingScreen,
+    element: <AccessBoundary><OnboardingScreen /></AccessBoundary>,
   },
   {
     path: "/device-connection",
-    Component: DeviceConnectionScreen,
+    element: <AccessBoundary><DeviceConnectionScreen /></AccessBoundary>,
   },
   {
     path: "/admin/overview",
-    Component: AdminOverviewScreen,
+    element: <AdminPreview><AdminOverviewScreen /></AdminPreview>,
   },
   {
     path: "/admin/sensor-detail",
-    Component: AdminSensorDetailScreen,
+    element: <AdminPreview><AdminSensorDetailScreen /></AdminPreview>,
   },
   {
     path: "/admin/anomaly-investigation",
-    Component: AdminAnomalyInvestigationScreen,
+    element: <AdminPreview><AdminAnomalyInvestigationScreen /></AdminPreview>,
   },
   {
     path: "/app",
-    Component: Root,
+    element: <AccessBoundary><Root /></AccessBoundary>,
     children: [
       { index: true, Component: DashboardScreen },
       { path: "dashboard", Component: DashboardScreen },
