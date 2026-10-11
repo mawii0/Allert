@@ -6,14 +6,16 @@ Tested 11 October 2026. The hardware-free workflow is usable: authenticated prof
 
 | Check | Result | Evidence |
 |---|---|---|
-| App session, account validation and model snapshot regression tests | 43 passed | `npm test` |
+| App session, account validation and model snapshot regression tests | 52 passed | `npm test` |
 | Deployed account API acceptance checks | 54 passed | `integration/evidence/deployed-account-tests.json` |
-| Deployed model bridge authorization and exact stored replay checks | 11 passed | `integration/evidence/deployed-bridge-tests.json` |
+| Persistent deployed node authorization and repeated-login checks | 59 passed | `integration/evidence/deployed-node-access-tests.json` |
 | Frozen runtime, cloud adapter and hosted startup tests | 32 passed | Python pytest suite; one dependency deprecation warning |
 | Cloud model reference cases | All 12 passed; maximum error 0.0001481 µg/m³, below 0.02 tolerance | `integration/evidence/cloud-model-verification.json` |
 | Cloud negative cases | 20 passed | `integration/evidence/cloud-negative-tests.json` |
 | Vercel SPA route responses | 10 routes returned the app shell | HTTP checks, not proof of rendered feature behavior |
 | Production browser | Forecast tabs, actual stored replay values, symptom sliders, history open/close/Escape, symptom carousel, Settings, hardware-pending navigation and all three labeled admin previews checked | No console errors in these checked flows |
+
+The node-access regression also passed four fresh login/logout cycles, four token refreshes, distinct session identities and 20 concurrent reads without intermittent authorization failures. The production account's assignment is now persisted in the database. Its previous deployment-secret dependency was removed, and tests no longer replace production allowlists. An initial deployed regression failed before the final revision was verified; the final revision and full 59-case run passed. See `NODE_ACCESS.md`.
 
 The deployed account suite exercises synthetic signup/login, token refresh, invalid credentials, missing authentication, profile persistence, user-ID spoofing, account isolation, invalid scores/notes/timestamps, all four symptom values, observation time, repeat requests, concurrent writes, conflicting concurrent retries, legacy diary compatibility and the latest 100 records. Disposable accounts and their own records were removed. Existing account records were not changed.
 
@@ -22,6 +24,7 @@ Cloud negative tests exercise private endpoint authentication, malformed JSON, o
 ## Corrections made
 
 - Renew expiring sessions using rotated refresh tokens. Parallel requests share one refresh. Logout and account switching clear account-scoped browser state; late refreshes cannot restore a logged-out session. Old sessions without a refresh token require signing in again.
+- Persist node assignments under stable Auth UUIDs. Read authorization independently of deployment secrets and deny self-assignment from ordinary authenticated clients.
 - Load demographic selection from the saved profile after login. Protect onboarding, device setup and sample admin routes from unsigned-in navigation. Model authorization remains enforced by the backend.
 - Validate profile and diary inputs; return HTTP 400 for malformed JSON. Keep private responses out of caches.
 - Store each diary submission under an independent account-scoped key. Insert-once retry IDs prevent duplicate records and conflicting overwrites, including concurrent retries. Existing diary arrays remain readable.

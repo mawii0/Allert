@@ -15,6 +15,8 @@ export function useEnvironment() {
   const [status, setStatus] = useState("loading");
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
+    setStatus("loading");
+    setSnapshot(null);
     let active = true;
     let pending = false;
     let revision = 0;

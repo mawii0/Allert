@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as kv from "./kv_store.tsx";
 import { validSnapshot } from "./environment-validation.mjs";
 import { validProfile, validHealthLog, sameHealthLog } from "./account-validation.mjs";
+import { assignmentKey, hasNodeAccess } from "./node-access.mjs";
 
 const app = new Hono();
 
@@ -49,7 +50,7 @@ app.use("/*", async (c, next) => {
 
 // Health check endpoint
 app.get("/make-server-a473accf/health", (c) => {
-  return c.json({ status: "ok" });
+  return c.json({ status: "ok", revision: "persistent-node-assignment-v1" });
 });
 
 // User Registration
@@ -320,8 +321,8 @@ app.get("/make-server-a473accf/environment", async (c) => {
   if (!token) return c.json({ error: "Unauthorized" }, 401);
   const { data: { user }, error } = await getSupabaseClient().auth.getUser(token);
   if (error || !user) return c.json({ error: "Unauthorized" }, 401);
-  const allowed = (Deno.env.get("ALLERT_NODE1_USER_IDS") || "").split(",").map(value => value.trim());
-  if (!allowed.includes(user.id)) return c.json({ error: "Node access has not been assigned" }, 403);
+  const assignment = await kv.get(assignmentKey(user.id));
+  if (!hasNodeAccess(assignment, user.id)) return c.json({ error: "Node access has not been assigned", code: assignment ? "node_assignment_invalid" : "node_assignment_missing" }, 403);
   const mode = Deno.env.get("ALLERT_DISPLAY_REPLAY") === "true" ? "historical_fixture" : "live";
   const snapshot = await kv.get(`environment:v1:${mode}`);
   if (!snapshot) return c.json({ availability: "unavailable", snapshot: null });

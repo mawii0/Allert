@@ -1,0 +1,244 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "check": "deployed authorization revision is current",
+      "passed": true
+    },
+    {
+      "check": "publication without worker credential denied",
+      "passed": true
+    },
+    {
+      "check": "publication with incorrect worker credential denied",
+      "passed": true
+    },
+    {
+      "check": "synthetic account created 3",
+      "passed": true
+    },
+    {
+      "check": "synthetic account created 4",
+      "passed": true
+    },
+    {
+      "check": "fresh login succeeds 5",
+      "passed": true
+    },
+    {
+      "check": "fresh login succeeds 6",
+      "passed": true
+    },
+    {
+      "check": "unassigned real session denied",
+      "passed": true
+    },
+    {
+      "check": "browser cannot self-assign through database",
+      "passed": true
+    },
+    {
+      "check": "server assignment persisted 9",
+      "passed": true
+    },
+    {
+      "check": "anonymous cannot read private assignment rows",
+      "passed": true
+    },
+    {
+      "check": "authenticated cannot read private assignment rows",
+      "passed": true
+    },
+    {
+      "check": "authenticated direct database access cannot bypass model authorization",
+      "passed": true
+    },
+    {
+      "check": "fresh login succeeds 13",
+      "passed": true
+    },
+    {
+      "check": "assignment survives login cycle 1",
+      "passed": true
+    },
+    {
+      "check": "forecast values stable on login cycle 1",
+      "passed": true
+    },
+    {
+      "check": "refresh succeeds cycle 1",
+      "passed": true
+    },
+    {
+      "check": "assignment survives token refresh cycle 1",
+      "passed": true
+    },
+    {
+      "check": "synthetic logout succeeds cycle 1",
+      "passed": true
+    },
+    {
+      "check": "fresh login succeeds 19",
+      "passed": true
+    },
+    {
+      "check": "assignment survives login cycle 2",
+      "passed": true
+    },
+    {
+      "check": "forecast values stable on login cycle 2",
+      "passed": true
+    },
+    {
+      "check": "refresh succeeds cycle 2",
+      "passed": true
+    },
+    {
+      "check": "assignment survives token refresh cycle 2",
+      "passed": true
+    },
+    {
+      "check": "synthetic logout succeeds cycle 2",
+      "passed": true
+    },
+    {
+      "check": "fresh login succeeds 25",
+      "passed": true
+    },
+    {
+      "check": "assignment survives login cycle 3",
+      "passed": true
+    },
+    {
+      "check": "forecast values stable on login cycle 3",
+      "passed": true
+    },
+    {
+      "check": "refresh succeeds cycle 3",
+      "passed": true
+    },
+    {
+      "check": "assignment survives token refresh cycle 3",
+      "passed": true
+    },
+    {
+      "check": "synthetic logout succeeds cycle 3",
+      "passed": true
+    },
+    {
+      "check": "fresh login succeeds 31",
+      "passed": true
+    },
+    {
+      "check": "assignment survives login cycle 4",
+      "passed": true
+    },
+    {
+      "check": "forecast values stable on login cycle 4",
+      "passed": true
+    },
+    {
+      "check": "refresh succeeds cycle 4",
+      "passed": true
+    },
+    {
+      "check": "assignment survives token refresh cycle 4",
+      "passed": true
+    },
+    {
+      "check": "synthetic logout succeeds cycle 4",
+      "passed": true
+    },
+    {
+      "check": "cycles used distinct sessions rather than one cached token",
+      "passed": true
+    },
+    {
+      "check": "fresh login succeeds 38",
+      "passed": true
+    },
+    {
+      "check": "other account remains denied",
+      "passed": true
+    },
+    {
+      "check": "profile update succeeds without changing assignment",
+      "passed": true
+    },
+    {
+      "check": "20 concurrent reads have no intermittent access denials",
+      "passed": true
+    },
+    {
+      "check": "server assignment persisted 42",
+      "passed": true
+    },
+    {
+      "check": "revoked assignment fails closed",
+      "passed": true
+    },
+    {
+      "check": "server assignment persisted 44",
+      "passed": true
+    },
+    {
+      "check": "wrong account assignment fails closed",
+      "passed": true
+    },
+    {
+      "check": "server assignment persisted 46",
+      "passed": true
+    },
+    {
+      "check": "wrong node assignment fails closed",
+      "passed": true
+    },
+    {
+      "check": "server assignment persisted 48",
+      "passed": true
+    },
+    {
+      "check": "unknown version assignment fails closed",
+      "passed": true
+    },
+    {
+      "check": "server assignment persisted 50",
+      "passed": true
+    },
+    {
+      "check": "reinstated assignment works without re-login",
+      "passed": true
+    },
+    {
+      "check": "logins and profile changes preserve the stored assignment",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows removed 53",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows removed 54",
+      "passed": true
+    },
+    {
+      "check": "synthetic account removed 55",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows removed 56",
+      "passed": true
+    },
+    {
+      "check": "synthetic rows removed 57",
+      "passed": true
+    },
+    {
+      "check": "synthetic account removed 58",
+      "passed": true
+    }
+  ],
+  "existing_assignments_modified": false,
+  "deployment_secrets_modified": false,
+  "synthetic_accounts_removed": 2
+}

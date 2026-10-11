@@ -39,7 +39,7 @@ py -3.12 -m venv .venv
 The updated Edge function and Vercel frontend are now deployed. Existing Auth/profile/diary storage is preserved. Eleven deployed bridge checks passed, including real assigned/unassigned test-user sessions and exact forecast persistence. The temporary test account was removed. The active display mode is historical replay; real-device and durable-worker integration remain pending.
 
 1. Deploy the updated `supabase/functions/server` through the existing project's deployment workflow.
-2. Configure `ALLERT_WORKER_TOKEN` as a long random server secret and `ALLERT_NODE1_USER_IDS` as the permitted Auth user UUIDs. The read route denies unassigned users. Configure the same worker token in the Python process only.
+2. Configure `ALLERT_WORKER_TOKEN` as a long random server secret and create server-owned persistent node assignments for permitted Auth user UUIDs (see `NODE_ACCESS.md`). The old `ALLERT_NODE1_USER_IDS` secret is ignored. The read route denies unassigned users. Configure the same worker token in the Python process only.
 3. For the first fixture demonstration set the Edge secret `ALLERT_DISPLAY_REPLAY=true`. Live is the default. Replay and live are stored separately.
 4. In the worker terminal export `ALLERT_EDGE_BASE_URL`, `ALLERT_GATEWAY_KEY` (the project's gateway-compatible legacy anon JWT), and `ALLERT_WORKER_TOKEN`. See `integration/worker.env.example`. Do not paste secrets into source control or Vite variables. Do not disable user JWT checks to make publishing work. If the project's gateway does not accept this authentication configuration, resolve it in staging before continuing.
 5. From the **outer** Allert-main folder, after the model tests pass:

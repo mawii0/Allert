@@ -98,7 +98,7 @@ In Supabase Dashboard → Edge Functions → Secrets, set:
 | Secret | Value |
 |---|---|
 | ALLERT_WORKER_TOKEN | Long random secret shared only by the publishing process and Edge function |
-| ALLERT_NODE1_USER_IDS | Comma-separated UUIDs of permitted users from Supabase Auth |
+| Persistent node assignment | Server-owned database record keyed by Auth UUID; see [NODE_ACCESS.md](NODE_ACCESS.md). The former `ALLERT_NODE1_USER_IDS` secret is ignored. |
 | ALLERT_DISPLAY_REPLAY | `true` for the first historical demonstration |
 
 Supabase normally supplies `SUPABASE_URL` and legacy keys to Edge Functions; confirm the keys used by this project's existing handlers are available. Verify the existing `kv_store_a473accf` table exists. A new project needs this existing app schema and deny-by-default client access to the KV table; deploying a function does not create database tables or migrate user/profile/diary data. See [Edge environment variables](https://supabase.com/docs/guides/functions/secrets).
@@ -216,7 +216,7 @@ The current staging read route marks live snapshot observations stale after 15 m
 |---|---|
 | Vercel loads but dashboard unavailable | Was the Edge function deployed? Did publishing succeed? Is replay mode configured consistently? |
 | 401 | Missing/expired user JWT, wrong worker token, wrong legacy gateway key or incompatible gateway/signing configuration |
-| 403 | Logged-in user's Auth UUID is absent from ALLERT_NODE1_USER_IDS |
+| 403 | The account's persistent Node 1 assignment is missing, revoked or invalid; see NODE_ACCESS.md |
 | 404 on API | Wrong project or deployed function name; frontend expects make-server-a473accf |
 | 404 refreshing /app/dashboard | Missing Vercel SPA rewrite |
 | 400 publishing | Inspect snapshot identity, six unique outputs, risk/checkpoint hashes, node-1, quality and timestamp contract |
