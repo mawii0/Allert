@@ -1,0 +1,142 @@
+{
+  "status": "passed",
+  "checks": [
+    {
+      "check": "missing authentication rejected",
+      "passed": true
+    },
+    {
+      "check": "invalid session rejected",
+      "passed": true
+    },
+    {
+      "check": "synthetic account created",
+      "passed": true
+    },
+    {
+      "check": "synthetic login succeeds",
+      "passed": true
+    },
+    {
+      "check": "synthetic account created",
+      "passed": true
+    },
+    {
+      "check": "synthetic login succeeds",
+      "passed": true
+    },
+    {
+      "check": "no hardware returns truthful empty state",
+      "passed": true
+    },
+    {
+      "check": "server creates isolated device",
+      "passed": true
+    },
+    {
+      "check": "server creates isolated device",
+      "passed": true
+    },
+    {
+      "check": "server creates isolated device",
+      "passed": true
+    },
+    {
+      "check": "assigned device without readings returns empty history",
+      "passed": true
+    },
+    {
+      "check": "server inserts synthetic readings",
+      "passed": true
+    },
+    {
+      "check": "latest reading matches assigned device",
+      "passed": true
+    },
+    {
+      "check": "24 hour history excludes old and other device readings",
+      "passed": true
+    },
+    {
+      "check": "other account sees only its own readings",
+      "passed": true
+    },
+    {
+      "check": "anonymous cannot directly read another device sensor_devices",
+      "passed": true
+    },
+    {
+      "check": "anonymous cannot directly read another device sensor_readings",
+      "passed": true
+    },
+    {
+      "check": "other account cannot directly read another device sensor_devices",
+      "passed": true
+    },
+    {
+      "check": "other account cannot directly read another device sensor_readings",
+      "passed": true
+    },
+    {
+      "check": "browser cannot reassign device ownership",
+      "passed": true
+    },
+    {
+      "check": "ownership remains unchanged after client attempt",
+      "passed": true
+    },
+    {
+      "check": "activate second isolated device",
+      "passed": true
+    },
+    {
+      "check": "multiple active devices rejected",
+      "passed": true
+    },
+    {
+      "check": "deactivate second isolated device",
+      "passed": true
+    },
+    {
+      "check": "remove recent synthetic readings",
+      "passed": true
+    },
+    {
+      "check": "old reading remains available with empty recent history",
+      "passed": true
+    },
+    {
+      "check": "synthetic sensor_readings removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic sensor_devices removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic sensor_readings removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic sensor_devices removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic sensor_readings removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic sensor_devices removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic account removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic account removed",
+      "passed": true
+    }
+  ],
+  "existing_records_modified": false
+}

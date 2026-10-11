@@ -6,16 +6,19 @@ Tested 11 October 2026. The hardware-free workflow is usable: authenticated prof
 
 | Check | Result | Evidence |
 |---|---|---|
-| App session, account validation and model snapshot regression tests | 52 passed | `npm test` |
+| App session, account validation and model snapshot regression tests | 57 passed | `npm test` |
 | Deployed account API acceptance checks | 54 passed | `integration/evidence/deployed-account-tests.json` |
+| Deployed sensor telemetry ownership, empty and stale history checks | 34 passed | `integration/evidence/deployed-telemetry-tests.json` |
 | Persistent deployed node authorization and repeated-login checks | 59 passed | `integration/evidence/deployed-node-access-tests.json` |
 | Frozen runtime, cloud adapter and hosted startup tests | 32 passed | Python pytest suite; one dependency deprecation warning |
-| Cloud model reference cases | All 12 passed; maximum error 0.0001481 µg/m³, below 0.02 tolerance | `integration/evidence/cloud-model-verification.json` |
+| Cloud model reference cases | All 12 passed; maximum error 0.0001481 Âµg/mÂ³, below 0.02 tolerance | `integration/evidence/cloud-model-verification.json` |
 | Cloud negative cases | 20 passed | `integration/evidence/cloud-negative-tests.json` |
 | Vercel SPA route responses | 10 routes returned the app shell | HTTP checks, not proof of rendered feature behavior |
 | Production browser | Forecast tabs, actual stored replay values, symptom sliders, history open/close/Escape, symptom carousel, Settings, hardware-pending navigation and all three labeled admin previews checked | No console errors in these checked flows |
 
 The node-access regression also passed four fresh login/logout cycles, four token refreshes, distinct session identities and 20 concurrent reads without intermittent authorization failures. The production account's assignment is now persisted in the database. Its previous deployment-secret dependency was removed, and tests no longer replace production allowlists. An initial deployed regression failed before the final revision was verified; the final revision and full 59-case run passed. See `NODE_ACCESS.md`.
+
+The team telemetry changes were merged and tested. Duplicate server routes were consolidated; telemetry requests now renew expired tokens, enforce a 15-second timeout, and sign out revoked sessions. The telemetry suite created disposable devices/readings and verified no-hardware state, 24-hour history filtering, old latest readings, multi-device rejection, ownership isolation and blocked ownership changes. An initial telemetry test fixture had inconsistent batch columns; the corrected fixture passed all 34 checks and cleanup.
 
 The deployed account suite exercises synthetic signup/login, token refresh, invalid credentials, missing authentication, profile persistence, user-ID spoofing, account isolation, invalid scores/notes/timestamps, all four symptom values, observation time, repeat requests, concurrent writes, conflicting concurrent retries, legacy diary compatibility and the latest 100 records. Disposable accounts and their own records were removed. Existing account records were not changed.
 
@@ -28,7 +31,7 @@ Cloud negative tests exercise private endpoint authentication, malformed JSON, o
 - Load demographic selection from the saved profile after login. Protect onboarding, device setup and sample admin routes from unsigned-in navigation. Model authorization remains enforced by the backend.
 - Validate profile and diary inputs; return HTTP 400 for malformed JSON. Keep private responses out of caches.
 - Store each diary submission under an independent account-scoped key. Insert-once retry IDs prevent duplicate records and conflicting overwrites, including concurrent retries. Existing diary arrays remain readable.
-- Preserve individual symptom scores and actual observation time. Correct TNSS labels to the existing four 0–3 sliders' total of 12. Label the legacy derived score as a symptom summary, not environmental risk or a probability.
+- Preserve individual symptom scores and actual observation time. Correct TNSS labels to the existing four 0â€“3 sliders' total of 12. Label the legacy derived score as a symptom summary, not environmental risk or a probability.
 - Remove invented Clinical correlations and Settings uptime/accuracy statistics. Show real model metadata and explicit unavailable states.
 - Remove simulated Bluetooth/Wi-Fi pairing and random connection success. Device setup clearly shows the pending hardware integration and links to replay results.
 - Disable unsupported push/location switches. Keep sample admin designs visibly labeled as previews.
@@ -41,7 +44,7 @@ Cloud negative tests exercise private endpoint authentication, malformed JSON, o
 |---|---|
 | Historical replay and six PM forecast outputs | Working and verified |
 | User profiles and persistent symptom diaries | Working and tested with synthetic accounts |
-| Live telemetry, hardware pairing and device credentials | Pending firmware/protocol and ingestion implementation |
+| Sensor read API and charts | Tested with synthetic readings; real device ingestion and credentials remain pending |
 | Continuous cloud worker, durable forecast history and observed-event pipeline | Pending implementation; the current bridge retains one snapshot per mode |
 | 24-hour environmental charts and accumulation statistics | Awaiting measurement history; no fabricated curves |
 | Push delivery and location mapping | Pending implementation; controls disabled |

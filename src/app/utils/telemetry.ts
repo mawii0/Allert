@@ -1,5 +1,5 @@
 import { projectId, publicAnonKey } from "/utils/supabase/info";
-import { getAuthToken } from "./auth";
+import { getValidAuthToken, logout } from "./auth";
 
 export interface SensorReading {
   id: number;
@@ -28,7 +28,7 @@ export interface SensorTelemetry {
 export async function getSensorTelemetry(
   signal?: AbortSignal,
 ): Promise<SensorTelemetry> {
-  const token = getAuthToken();
+  const token = await getValidAuthToken();
 
   if (!token) throw new Error("Please sign in.");
 
@@ -40,10 +40,11 @@ export async function getSensorTelemetry(
         apikey: publicAnonKey,
       },
       cache: "no-store",
-      signal,
+      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
     },
   );
 
+  if (response.status === 401) logout();
   const data = await response.json();
 
   if (!response.ok) {
