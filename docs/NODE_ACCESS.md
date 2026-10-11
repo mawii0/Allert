@@ -48,3 +48,7 @@ py -3.13 integration/test_deployed_node_access.py --credentials PRIVATE_CREDENTI
 ```
 
 Keep credentials and actual account UUIDs out of Git commits and browser bundles. See `TEST_REPORT.md` for the separate hardware, live-worker, push, browser and operational acceptance boundaries.
+
+## Shared sensor read access
+
+A sensor retains its original `sensor_devices.user_id`. To authorize an additional account, the server reads a private KV record `sensor-share:v1:<AUTH_UUID>` with `{schema_version:1,user_id:<AUTH_UUID>,device_id:<EXISTING_DEVICE_ID>,active:true}`. Ordinary clients cannot provision this record. The telemetry endpoint merges the account's owned active sensors with the explicitly shared active sensor, deduplicates the same sensor, and refuses ambiguous multiple active devices. Revoking `active` stops shared reads without requiring logout. The assignment does not grant direct database write access or alter model-node permissions. Provision records only after the project owner approves the specific sensor/account relationship.

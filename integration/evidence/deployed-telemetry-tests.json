@@ -106,6 +106,54 @@
       "passed": true
     },
     {
+      "check": "server creates scoped shared access",
+      "passed": true
+    },
+    {
+      "check": "owned plus shared active devices are not ambiguously selected",
+      "passed": true
+    },
+    {
+      "check": "deactivate own synthetic sensor",
+      "passed": true
+    },
+    {
+      "check": "authorized shared account reads selected sensor",
+      "passed": true
+    },
+    {
+      "check": "sharing preserves original owner access",
+      "passed": true
+    },
+    {
+      "check": "sharing preserves original owner in database",
+      "passed": true
+    },
+    {
+      "check": "browser cannot provision shared access",
+      "passed": true
+    },
+    {
+      "check": "server revokes share",
+      "passed": true
+    },
+    {
+      "check": "revoked share stops access without relogin",
+      "passed": true
+    },
+    {
+      "check": "server restores share",
+      "passed": true
+    },
+    {
+      "check": "deactivate shared sensor",
+      "passed": true
+    },
+    {
+      "check": "inactive shared sensor is not exposed",
+      "passed": true
+    },
+    {
       "check": "synthetic sensor_readings removed",
       "passed": true
     },
@@ -127,10 +175,18 @@
     },
     {
       "check": "synthetic sensor_devices removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic share removed",
       "passed": true
     },
     {
       "check": "synthetic account removed",
+      "passed": true
+    },
+    {
+      "check": "synthetic share removed",
       "passed": true
     },
     {

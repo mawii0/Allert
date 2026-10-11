@@ -52,11 +52,28 @@ try:
  check('deactivate second isolated device',db('sensor_devices',b={'is_active':False},m='PATCH',q={'device_id':'eq.'+devices[2]})[0] in [200,204])
  check('remove recent synthetic readings',db('sensor_readings',m='DELETE',q={'device_id':'eq.'+devices[0],'timestamp':'gte.'+(now-timedelta(hours=24)).isoformat()})[0] in [200,204])
  status,d=read(h);check('old reading remains available with empty recent history',status==200 and d['latest']['pm2_5']==11 and d['history']==[])
+ share_key='sensor-share:v1:'+users[0]
+ share={'schema_version':1,'user_id':users[0],'device_id':devices[1],'active':True}
+ def save_share(record):return db('kv_store_a473accf',b={'key':share_key,'value':record},m='POST')[0]
+ check('server creates scoped shared access',save_share(share) in [200,201])
+ check('owned plus shared active devices are not ambiguously selected',read(h)[0]==409)
+ check('deactivate own synthetic sensor',db('sensor_devices',b={'is_active':False},m='PATCH',q={'device_id':'eq.'+devices[0]})[0] in [200,204])
+ status,d=read(h);check('authorized shared account reads selected sensor',status==200 and d['latest']['pm2_5']==999 and d['device']['device_id']==devices[1])
+ status,d=read(other);check('sharing preserves original owner access',status==200 and d['latest']['pm2_5']==999)
+ status,rows=db('sensor_devices',q={'device_id':'eq.'+devices[1],'select':'user_id'});check('sharing preserves original owner in database',status==200 and rows[0]['user_id']==users[1])
+ check('browser cannot provision shared access',db('kv_store_a473accf',h=h,b={'key':share_key,'value':share},m='POST')[0] in [401,403])
+ check('server revokes share',db('kv_store_a473accf',b={'value':{**share,'active':False}},m='PATCH',q={'key':'eq.'+share_key})[0] in [200,204])
+ status,d=read(h);check('revoked share stops access without relogin',status==200 and d['device'] is None)
+ check('server restores share',db('kv_store_a473accf',b={'value':share},m='PATCH',q={'key':'eq.'+share_key})[0] in [200,204])
+ check('deactivate shared sensor',db('sensor_devices',b={'is_active':False},m='PATCH',q={'device_id':'eq.'+devices[1]})[0] in [200,204])
+ status,d=read(h);check('inactive shared sensor is not exposed',status==200 and d['device'] is None)
+
 finally:
  for device in devices:
   for t in ['sensor_readings','sensor_devices']:
    status,_=db(t,m='DELETE',q={'device_id':'eq.'+device});checks.append({'check':'synthetic '+t+' removed','passed':status in [200,204]})
  for u in users:
+  status,_=db("kv_store_a473accf",m="DELETE",q={"key":"eq.sensor-share:v1:"+u});checks.append({"check":"synthetic share removed","passed":status in [200,204]})
   status,_=call('/auth/v1/admin/users/'+u,admin,method='DELETE');checks.append({'check':'synthetic account removed','passed':status==200})
  Path(a.report).write_text(json.dumps({'status':'passed' if all(x['passed'] for x in checks) else 'failed','checks':checks,'existing_records_modified':False},indent=2)+'\n')
 print(json.dumps({'passed':sum(x['passed'] for x in checks),'total':len(checks)}))

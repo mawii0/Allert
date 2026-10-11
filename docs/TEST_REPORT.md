@@ -14,13 +14,19 @@ Restored compact sensor cards with orange PM graphs, blue temperature, cyan humi
 
 History validation now rejects wrong nodes, duplicate/out-of-order/future blocks, malformed values, oversized history and a last block inconsistent with current measurements. Both one-shot publishers preserve the measured history for later replay publications. Added 17 JavaScript checks (89 total) and two Python publisher-history checks (5 adapter checks passed). The production build passed. Existing sensor ownership and authorization remain enforced.
 
+## Shared sensor authorization - 12 October 2026
+
+Added server-owned, account-scoped shared sensor assignments without changing the sensor's original owner. The telemetry route merges owned and explicitly shared active devices, deduplicates them, and rejects ambiguous multiple-device assignments. Revoked, malformed and inactive shares fail closed. The approved existing account was verified and assigned the existing sensor; production Environment displayed sensor measurements rather than replay. Risk Monitor still uses the separately published historical model snapshot until live model processing is configured.
+
+Seven additional access tests passed (96 JavaScript checks total). All 48 deployed telemetry acceptance checks passed, including shared-account reads, original owner reads/ownership preservation, client provisioning denial, revocation and inactive sensors. Only disposable test records were removed. See `NODE_ACCESS.md` for assignment and revocation details.
+
 ## Results
 
 | Check | Result | Evidence |
 |---|---|---|
-| App session, account validation and model snapshot regression tests | 89 passed | `npm test` |
+| App session, account validation and model snapshot regression tests | 96 passed | `npm test` |
 | Deployed account API acceptance checks | 54 passed | `integration/evidence/deployed-account-tests.json` |
-| Deployed sensor telemetry ownership, empty and stale history checks | 34 passed | `integration/evidence/deployed-telemetry-tests.json` |
+| Deployed sensor telemetry ownership, empty and stale history checks | 48 passed | `integration/evidence/deployed-telemetry-tests.json` |
 | Persistent deployed node authorization and repeated-login checks | 59 passed | `integration/evidence/deployed-node-access-tests.json` |
 | Frozen runtime, cloud adapter and hosted startup tests | 32 passed | Python pytest suite; one dependency deprecation warning |
 | Cloud model reference cases | All 12 passed; maximum error 0.0001481 Âµg/mÂ³, below 0.02 tolerance | `integration/evidence/cloud-model-verification.json` |

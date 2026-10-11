@@ -5,7 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import * as kv from "./kv_store.tsx";
 import { validSnapshot } from "./environment-validation.mjs";
 import { validProfile, validHealthLog, sameHealthLog } from "./account-validation.mjs";
-import { assignmentKey, hasNodeAccess } from "./node-access.mjs";
+import { assignmentKey, hasNodeAccess, sensorShareKey, sharedSensorId } from "./node-access.mjs";
 
 const app = new Hono();
 
@@ -356,7 +356,7 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
       );
     }
 
-    const { data: devices, error: deviceError } = await supabase
+    const { data: ownedDevices, error: deviceError } = await supabase
       .from("sensor_devices")
       .select("device_id, location_label, is_active")
       .eq("user_id", user.id)
@@ -364,6 +364,16 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
       .limit(2);
 
     if (deviceError) throw deviceError;
+    // Shared access is provisioned server-side, without changing the original owner.
+    const sharedId = sharedSensorId(await kv.get(sensorShareKey(user.id)), user.id);
+    const devices = [...(ownedDevices ?? [])];
+    if (sharedId && !devices.some(device => device.device_id === sharedId)) {
+      const { data: sharedDevices, error: sharedError } = await supabase
+        .from("sensor_devices").select("device_id, location_label, is_active")
+        .eq("device_id", sharedId).eq("is_active", true).limit(1);
+      if (sharedError) throw sharedError;
+      devices.push(...(sharedDevices ?? []));
+    }
 
     if (!devices?.length) {
       return c.json({

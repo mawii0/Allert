@@ -13,3 +13,9 @@ for(const [label,value,user,node] of [
   ["unknown version",{...assignment,schema_version:2},"account-a","node-1"],
   ["forged browser data",{email:"approved@example.invalid",nodeConnected:true},"account-a","node-1"],
 ])test(`denies ${label}`,()=>assert.equal(hasNodeAccess(value,user,node),false));
+
+import { sensorShareKey, sharedSensorId } from "../supabase/functions/server/node-access.mjs";
+const share={schema_version:1,user_id:"user-a",device_id:"shared-device",active:true};
+test("shared sensor access is account scoped and preserves owner identity",()=>{assert.equal(sensorShareKey("user-a"),"sensor-share:v1:user-a");assert.equal(sharedSensorId(share,"user-a"),"shared-device");});
+for(const patch of [{user_id:"other"},{active:false},{schema_version:2},{device_id:""},{device_id:123}])test("invalid sensor share fails closed: "+Object.keys(patch)[0],()=>assert.equal(sharedSensorId({...share,...patch},"user-a"),null));
+test("missing sensor share fails closed",()=>assert.equal(sharedSensorId(null,"user-a"),null));
