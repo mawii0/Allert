@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Shield } from "lucide-react";
+import { EnvironmentNotice } from "./EnvironmentNotice";
 import { displayTime, useEnvironment } from "../utils/environment";
 import "../../styles/model-screens.css";
 
 export function DashboardScreen() {
   const [horizon, setHorizon] = useState(0);
-  const { snapshot, status } = useEnvironment();
+  const { snapshot, status, retry } = useEnvironment();
   const population = localStorage.getItem("allert_demographic") === "pediatric" ? "pediatric" : "adult";
   const indicator = snapshot?.risk[population];
   const values = snapshot?.forecast.forecasts.filter(value => value.horizon_hours === horizon) || [];
@@ -14,6 +15,7 @@ export function DashboardScreen() {
   const replay = snapshot?.mode === "historical_fixture";
   return <div className="model-screen model-home">
     <header><p className="eyebrow">Predictive Dashboard</p><h1>Risk Monitor</h1><p className="subtitle">{snapshot ? `Iloilo ${snapshot.node_id} · ${replay ? "Historical replay" : status.replaceAll("_", " ")}` : status === "loading" ? "Loading measurements…" : "Measurements unavailable"}</p></header>
+    {!snapshot && <EnvironmentNotice status={status} retry={retry} />}
     <div className="model-gauge" aria-label="Current environmental indicator">
       <svg viewBox="0 0 256 256" aria-hidden="true"><circle cx="128" cy="128" r="110" fill="none" stroke="#090d0c" strokeWidth="12"/><circle cx="128" cy="128" r="110" fill="none" stroke={color} strokeWidth="12" strokeLinecap="round" strokeDasharray={2 * Math.PI * 110} strokeDashoffset={2 * Math.PI * 110 * (1 - (indicator?.score_0_100 || 0) / 100)} transform="rotate(-90 128 128)"/></svg>
       <div className="gauge-center"><strong style={{ color }}>{indicator ? indicator.score_0_100.toFixed(1) : "—"}<small> /100</small></strong><span>{indicator ? tier.replaceAll("_", " ") : "Unavailable"}</span><p>Environmental indicator · Now</p></div>
