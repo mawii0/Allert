@@ -29,7 +29,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "apikey"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -271,5 +271,86 @@ app.get("/make-server-a473accf/health-logs", async (c) => {
     return c.json({ error: error.message || "Health logs fetch failed" }, 500);
   }
 });
+// Get the authenticated user's sensor and readings
+app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
+  try {
+    const authorization = c.req.header("Authorization");
+    const accessToken = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
 
+    if (!accessToken) {
+      return c.json({ error: "Please sign in." }, 401);
+    }
+
+    const supabase = getSupabaseClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(accessToken);
+
+    if (authError || !user) {
+      return c.json({ error: "Session expired. Please sign in again." }, 401);
+    }
+
+    // Ownership comes from the verified user, never from the browser.
+    const { data: devices, error: deviceError } = await supabase
+      .from("sensor_devices")
+      .select("device_id, location_label, is_active")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .limit(2);
+
+    if (deviceError) throw deviceError;
+
+    if (!devices?.length) {
+      return c.json({ device: null, latest: null, history: [] });
+    }
+
+    if (devices.length > 1) {
+      return c.json({
+        error: "More than one active node is assigned to this account.",
+      }, 409);
+    }
+
+    const device = devices[0];
+    const columns =
+      "id,device_id,timestamp,pm2_5,pm10,temperature,humidity," +
+      "sample_count,expected_samples,pm25_stddev,data_quality_status";
+
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    // Fetch latest separately so old readings remain visible when offline.
+    const [latestResult, historyResult] = await Promise.all([
+      supabase
+        .from("sensor_readings")
+        .select(columns)
+        .eq("device_id", device.device_id)
+        .order("timestamp", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(1),
+      supabase
+        .from("sensor_readings")
+        .select(columns)
+        .eq("device_id", device.device_id)
+        .gte("timestamp", since)
+        .lte("timestamp", new Date().toISOString())
+        .order("timestamp", { ascending: true })
+        .order("id", { ascending: true })
+        .limit(1000),
+    ]);
+
+    if (latestResult.error) throw latestResult.error;
+    if (historyResult.error) throw historyResult.error;
+
+    c.header("Cache-Control", "no-store");
+
+    return c.json({
+      device,
+      latest: latestResult.data?.[0] ?? null,
+      history: historyResult.data ?? [],
+    });
+  } catch (error) {
+    console.error("Sensor telemetry error:", error);
+    return c.json({ error: "Unable to load sensor readings." }, 500);
+  }
+});
 Deno.serve(app.fetch);
