@@ -6,6 +6,10 @@ import {
   type SensorReading,
 } from "../utils/telemetry";
 
+import { useEnvironment, displayTime } from "../utils/environment";
+import { selectEnvironmentSource } from "../utils/environment-source.mjs";
+import { EnvironmentNotice } from "./EnvironmentNotice";
+
 const metrics = [
   { key: "pm2_5", label: "PM2.5", unit: "μg/m³", icon: Wind },
   { key: "pm10", label: "PM10", unit: "μg/m³", icon: Wind },
@@ -72,6 +76,8 @@ function ReadingChart({
 }
 
 export function EnvironmentalScreen() {
+  const { snapshot, status, retry } = useEnvironment();
+  const [attempt, setAttempt] = useState(0);
   const [telemetry, setTelemetry] = useState<SensorTelemetry | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -80,21 +86,32 @@ export function EnvironmentalScreen() {
   useEffect(() => {
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
+    let revision = 0;
+    let pending = false;
+    setTelemetry(null);
+    setLoading(true);
+    setError("");
 
     async function refresh() {
+      if (pending || controller.signal.aborted) return;
+      pending = true;
+      const requestRevision = revision;
+      clearTimeout(timer);
       try {
         const result = await getSensorTelemetry(controller.signal);
 
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && revision === requestRevision) {
           setTelemetry(result);
           setError("");
         }
       } catch (err) {
-        if (!controller.signal.aborted) {
+        if (!controller.signal.aborted && revision === requestRevision) {
           setError(err instanceof Error ? err.message : "Unable to load readings.");
         }
       } finally {
-        if (!controller.signal.aborted) {
+        pending = false;
+        if (!controller.signal.aborted && revision !== requestRevision) { void refresh(); }
+        else if (!controller.signal.aborted) {
           setLoading(false);
           setNow(Date.now());
           timer = setTimeout(refresh, 30_000);
@@ -102,15 +119,25 @@ export function EnvironmentalScreen() {
       }
     }
 
+    const reset = () => { revision++; setTelemetry(null); setError(""); setLoading(true); void refresh(); };
+    window.addEventListener("storage", reset);
+    window.addEventListener("allert-session-changed", reset);
+    window.addEventListener("focus", refresh);
     void refresh();
 
     return () => {
       controller.abort();
       clearTimeout(timer);
+      window.removeEventListener("storage", reset);
+      window.removeEventListener("allert-session-changed", reset);
+      window.removeEventListener("focus", refresh);
     };
-  }, []);
+  }, [attempt]);
 
-  const latest = telemetry?.latest;
+  const view = selectEnvironmentSource(telemetry, snapshot, status);
+  const replay = view.source === "historical_replay";
+  const latest = view.latest;
+  const retryAll = () => { retry(); setAttempt(value => value + 1); };
   const age = latest ? now - Date.parse(latest.timestamp) : null;
   const recent = age !== null && age >= 0 && age <= 10 * 60 * 1000;
 
@@ -120,27 +147,39 @@ export function EnvironmentalScreen() {
         <p className="text-sm text-zinc-400">Environmental Analytics</p>
         <h1 className="text-2xl font-bold">Sensor Telemetry</h1>
         <p className="text-sm text-zinc-400 mt-2">
-          Five-minute averaged readings · Refreshes every 30 seconds
+          {replay ? "Historical air quality replay" : "Five-minute averaged readings - Refreshes every 30 seconds"}
         </p>
       </div>
 
-      {loading && <p className="text-zinc-400">Loading sensor readings…</p>}
+      {loading && !replay && <p className="text-zinc-400">Loading sensor readings…</p>}
 
       {error && (
         <p role="alert" className="mb-4 rounded-xl bg-red-950 p-4 text-red-200">
-          {error} {telemetry ? "Previously fetched data is shown below." : ""}
+          {error} {view.source === "sensor" ? "Previously fetched sensor data is shown below." : replay ? "Verified historical replay is shown below." : ""}
+          <button className="block mt-3 rounded-lg bg-emerald-700 px-4 py-2 text-white" onClick={retryAll}>Retry Sensor Connection</button>
         </p>
       )}
 
-      {telemetry && !telemetry.device && (
-        <p className="text-zinc-400">No active sensor node is assigned to your account.</p>
+      {replay && (
+        <section className="mb-5 rounded-2xl border border-emerald-800 bg-emerald-950/40 p-4" role="status">
+          <h2 className="font-semibold text-emerald-300">Historical Replay</h2>
+          <p className="mt-2 text-sm text-zinc-300">Verified recorded measurements from the model dataset. These are not current conditions. Live hardware is not connected yet.</p>
+          <p className="mt-2 text-xs text-zinc-400">Recorded block ended {displayTime(latest.timestamp)} (Manila).</p>
+        </section>
+      )}
+      {!loading && !latest && (
+        <section className="mb-5 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+          <p className="text-zinc-300">{view.device ? "Waiting for the first hardware reading." : "Live hardware is not connected yet."}</p>
+          <p className="mt-2 text-sm text-zinc-400">Verified model measurements will appear here when available.</p>
+          <EnvironmentNotice status={status} retry={retryAll} />
+        </section>
       )}
 
-      {telemetry?.device && (
+      {view.device && !replay && (
         <div className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <p className="font-semibold">{telemetry.device.device_id}</p>
+          <p className="font-semibold">{view.device.device_id}</p>
           <p className="text-sm text-zinc-400">
-            {telemetry.device.location_label || "Home"}
+            {view.device.location_label || "Home"}
           </p>
           <p className="mt-2 text-sm">
             {error
@@ -177,9 +216,10 @@ export function EnvironmentalScreen() {
                     </p>
                   </div>
                 </div>
-                <p className="mt-4 text-xs text-zinc-500">Last 24 hours · Philippine time</p>
+                {replay ? <p className="mt-4 text-xs text-emerald-400">Replay - Recorded five-minute block</p> : <p className="mt-4 text-xs text-zinc-500">Last 24 hours - Philippine time</p>}
+                {replay ? <p className="mt-2 text-sm text-zinc-500">24-hour history is not available for this replay snapshot.</p> : <>
                 <ReadingChart
-                  readings={telemetry?.history ?? []}
+                  readings={view.history}
                   field={key}
                   now={now}
                 />
@@ -187,6 +227,7 @@ export function EnvironmentalScreen() {
                   <span>24 hours ago</span>
                   <span>Now</span>
                 </div>
+                </>}
               </div>
             ))}
           </div>
@@ -215,10 +256,10 @@ export function EnvironmentalScreen() {
     </div>
   </dl>
 
-  <p className="text-xs text-zinc-500 mt-2">
+  {!replay && <p className="text-xs text-zinc-500 mt-2">
     Samples: {latest.sample_count ?? "—"} /{" "}
     {latest.expected_samples ?? "—"}
-  </p>
+  </p>}
 </div>
 
 <p className="mt-4 text-xs text-zinc-400">

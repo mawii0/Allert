@@ -2,11 +2,17 @@
 
 Tested 11 October 2026. The hardware-free workflow is usable: authenticated profiles, symptom diaries, cloud inference and stored historical model results. This report does **not** certify a complete live sensor or notification system.
 
+## Environment screen correction - 12 October 2026
+
+The approved account had a valid persistent model assignment and a stored verified replay, but zero active hardware devices. The sensor-only screen incorrectly made the available model measurements inaccessible. Environment now uses the same authorized replay as Home when actual sensor readings are absent. Recorded values, timestamps and quality are preserved; replay never populates the hardware tables or invents a 24-hour history. Actual sensor readings take precedence, including stale readings with their existing warning. Empty, denied and network-error states retain retry controls.
+
+Added 15 source-selection checks for hardware-free replay, active devices awaiting readings, sensor precedence, stale sensor data, missing/denied/malformed snapshots, source mode, exact timestamps and no invented samples. Telemetry polling now clears account-scoped state on session changes, ignores late results from previous sessions, refreshes on focus and prevents overlapping requests. The app suite has 72 passing checks. The deployed telemetry suite again passed 34 checks. The authorization suite is recorded separately below. The final production build passed after correcting an initial JSX fragment error during implementation.
+
 ## Results
 
 | Check | Result | Evidence |
 |---|---|---|
-| App session, account validation and model snapshot regression tests | 57 passed | `npm test` |
+| App session, account validation and model snapshot regression tests | 72 passed | `npm test` |
 | Deployed account API acceptance checks | 54 passed | `integration/evidence/deployed-account-tests.json` |
 | Deployed sensor telemetry ownership, empty and stale history checks | 34 passed | `integration/evidence/deployed-telemetry-tests.json` |
 | Persistent deployed node authorization and repeated-login checks | 59 passed | `integration/evidence/deployed-node-access-tests.json` |
