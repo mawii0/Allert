@@ -13,6 +13,7 @@ export interface EnvironmentSnapshot {
 export function useEnvironment() {
   const [snapshot, setSnapshot] = useState<EnvironmentSnapshot | null>(null);
   const [status, setStatus] = useState("loading");
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
     let pending = false;
@@ -43,7 +44,7 @@ export function useEnvironment() {
     const timer = window.setInterval(refresh, 60000);
     window.addEventListener("focus", refresh);
     return () => { active = false; controller.abort(); window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("storage", reset); window.removeEventListener("allert-session-changed", reset); };
-  }, []);
-  return { snapshot, status };
+  }, [attempt]);
+  return { snapshot, status, retry: () => setAttempt(value => value + 1) };
 }
 export const displayTime = (value: string) => new Date(value).toLocaleString("en-PH", { timeZone: "Asia/Manila" });
