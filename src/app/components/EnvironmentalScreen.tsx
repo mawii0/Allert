@@ -12,7 +12,7 @@ import { EnvironmentNotice } from "./EnvironmentNotice";
 
 import { summarizeHistory, metricTrend } from "../utils/telemetry-analysis.mjs";
 
-import { SampleHistoryTable } from "./SampleHistoryTable";
+import { HistoryExplorer as SampleHistoryTable } from "./HistoryExplorer";
 import { formatMeasurement } from "../utils/sample-history.mjs";
 
 const metrics = [
@@ -213,3 +213,4 @@ export function EnvironmentalScreen() {
     </div>
   );
 }
+
