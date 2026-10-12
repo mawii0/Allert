@@ -149,6 +149,20 @@ export function EnvironmentalScreen() {
   const chartEnd = replay && latest ? Date.parse(latest.timestamp) : now;
   const summary = summarizeHistory(view.history, chartEnd);
   const hourLabel = (hour: number) => `${hour % 12 || 12}${hour < 12 ? "AM" : "PM"}`;
+  const historyRows = view.history
+    .filter((reading) => {
+      const timestamp = Date.parse(reading.timestamp);
+      return timestamp >= chartEnd - 24 * 60 * 60 * 1000 && timestamp <= chartEnd;
+    })
+    .sort((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
+  const sampleTime = (timestamp: string) => new Date(timestamp).toLocaleString("en-PH", {
+    timeZone: "Asia/Manila",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
   return (
     <div className="min-h-screen bg-zinc-950 px-5 py-6 pb-24">
       <header className="mb-5">
@@ -195,6 +209,62 @@ export function EnvironmentalScreen() {
             </section>;
           })}
         </div>
+        <section className="history-table-card mt-3 overflow-hidden rounded-xl border border-emerald-900/60 bg-gradient-to-br from-emerald-950/40 via-zinc-900/90 to-zinc-900/70">
+          <div className="border-b border-emerald-900/50 px-4 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                  <Wind className="h-4 w-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-zinc-100">24-Hour Sample History</h2>
+                  <p className="mt-0.5 text-[10px] text-zinc-400">Five-minute environmental samples</p>
+                </div>
+              </div>
+              <span className="rounded-full border border-emerald-800/70 bg-emerald-500/10 px-2 py-1 text-[10px] font-medium text-emerald-300">
+                {historyRows.length} samples
+              </span>
+            </div>
+          </div>
+          <div className="px-3 pb-3 pt-3">
+            <div className="history-table-scroll max-h-80 overflow-auto rounded-lg border border-zinc-800/80 bg-zinc-950/40">
+              {historyRows.length ? (
+                <table className="min-w-[620px] w-full text-left text-[11px]" aria-label="Environmental samples from the last 24 hours">
+                  <thead className="sticky top-0 z-10 bg-zinc-800/95 text-zinc-400 backdrop-blur-sm">
+                    <tr>
+                      <th scope="col" className="px-3 py-2.5 font-medium">Time <span className="font-normal text-zinc-600">· Manila</span></th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-medium">PM2.5 <span className="font-normal text-zinc-600">μg/m³</span></th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-medium">PM10 <span className="font-normal text-zinc-600">μg/m³</span></th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-medium">Temp.</th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-medium">Humidity</th>
+                      <th scope="col" className="px-3 py-2.5 text-right font-medium">Quality</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/80">
+                    {historyRows.map((reading) => (
+                      <tr key={`${reading.timestamp}-${reading.id}`} className="text-zinc-300 transition-colors hover:bg-emerald-950/30">
+                        <th scope="row" className="whitespace-nowrap px-3 py-2.5 font-normal text-zinc-400">{sampleTime(reading.timestamp)}</th>
+                        <td className="px-3 py-2.5 text-right font-medium text-zinc-200">{reading.pm2_5?.toFixed(1) ?? "—"}</td>
+                        <td className="px-3 py-2.5 text-right">{reading.pm10?.toFixed(1) ?? "—"}</td>
+                        <td className="px-3 py-2.5 text-right">{reading.temperature?.toFixed(1) ?? "—"}°C</td>
+                        <td className="px-3 py-2.5 text-right">{reading.humidity?.toFixed(1) ?? "—"}%</td>
+                        <td className="px-3 py-2.5 text-right">
+                          <span className="inline-block rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] text-emerald-300">
+                            {reading.data_quality_status ?? "—"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="px-3 py-8 text-center text-xs text-zinc-500">
+                  No five-minute samples are available for this 24-hour window.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
         <section className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-4">
           <h2 className="text-sm font-semibold mb-2">Pollutant Accumulation Patterns</h2>
           <dl className="text-xs">
