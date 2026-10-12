@@ -3,10 +3,6 @@
 @import './theme.css';
 
 .history-table-scroll {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.history-table-scroll::-webkit-scrollbar {
-  display: none;
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 #18181b;
 }
