@@ -1,0 +1,1 @@
+{"id":"environmental-indicator-adult-22p5-30-37p5-20261014","score_units":"indicator_points_0_100","classification":"unrounded; equality enters higher category","adult":[22.5,30,37.5],"pediatric":[13,23,38],"coefficients":{"pm2_5":0.0104,"pm10":0.0026,"temperature":0.012,"humidity":-0.004},"reference":{"temperature_c":25,"humidity_percent":60,"adult_p0":0.2,"pediatric_p0":0.22}}

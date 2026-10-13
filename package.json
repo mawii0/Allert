@@ -6,7 +6,7 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "node --test integration/account-validation.test.mjs integration/environment-validation.test.mjs integration/auth-session.test.mjs integration/node-access.test.mjs integration/telemetry-session.test.mjs integration/environment-source.test.mjs integration/telemetry-analysis.test.mjs integration/risk-monitor.test.mjs"
+    "test": "node --test integration/environment-policy.test.mjs integration/account-validation.test.mjs integration/environment-validation.test.mjs integration/auth-session.test.mjs integration/node-access.test.mjs integration/telemetry-session.test.mjs integration/environment-source.test.mjs integration/telemetry-analysis.test.mjs integration/risk-monitor.test.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
