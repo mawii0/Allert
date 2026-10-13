@@ -1,3 +1,4 @@
+import { useNodeTelemetry } from "../utils/useNodeTelemetry";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import {
@@ -27,20 +28,28 @@ export function SettingsScreen() {
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [nodeConnected, setNodeConnected] = useState(false);
-  const [nodeId, setNodeId] = useState("");
-  const [nodeNetwork, setNodeNetwork] = useState("");
+  const {
+  device,
+  latest,
+  loading: nodeLoading,
+  error: nodeError,
+  nodeStatus,
+  lastReading,
+  retry,
+} = useNodeTelemetry();
 
   const { snapshot, status } = useEnvironment();
   // Only display verified model metadata; device health is unavailable without telemetry.
   const systemData = {
-    nodeId: snapshot?.node_id || "Unassigned",
-    uptime: "Not available",
-    lastSync: snapshot ? displayTime(snapshot.forecast.generated_at) : "Not available",
-    algorithmVersion: snapshot?.forecast.model_id || "Not available",
-    modelAccuracy: "See model validation report",
-    dataPoints: "Not available",
-  };
+  nodeId: device?.device_id || "Unassigned",
+  uptime: "Not available",
+  lastSync: lastReading,
+  algorithmVersion: snapshot?.forecast.model_id || "Not available",
+  modelAccuracy: "See model validation report",
+  dataPoints: latest
+    ? `${latest.sample_count ?? "—"} / ${latest.expected_samples ?? "—"} samples in latest block`
+    : "No readings yet",
+};
 
   // Load user profile from Supabase
   useEffect(() => {
@@ -74,7 +83,6 @@ export function SettingsScreen() {
     loadProfile();
 
     // Browser flags cannot establish a hardware connection.
-    setNodeConnected(false);
   }, []);
 
   const handleLogout = () => {
@@ -87,16 +95,6 @@ export function SettingsScreen() {
     return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
-  const handleDisconnectNode = () => {
-    if (confirm("Are you sure you want to disconnect your Node device?")) {
-      localStorage.removeItem("allert_node_connected");
-      localStorage.removeItem("allert_node_id");
-      localStorage.removeItem("allert_node_network");
-      setNodeConnected(false);
-      setNodeId("");
-      setNodeNetwork("");
-    }
-  };
 
   return (
     <div className="min-h-screen bg-zinc-950 px-6 py-8">
@@ -147,72 +145,80 @@ export function SettingsScreen() {
         )}
       </div>
 
-      {/* Node Device Connection */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
+       {/* Node Device Connection */}
+      <div className="bg-zinc-900/50 rounded-2xl p-6 mb-6 border border-zinc-800">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-purple-400" />
-          </div>
-          <div className="flex-1">
+          <Zap className="w-5 h-5 text-purple-400" />
+          <div>
             <h3 className="font-semibold">Node Device</h3>
-            <p className="text-xs text-zinc-500">Connect your sensor node</p>
+            <p className="text-xs text-zinc-500">
+              Sensor assigned to your account
+            </p>
           </div>
         </div>
 
-        {nodeConnected ? (
-          <div className="space-y-4">
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <span className="text-sm font-medium text-emerald-400">Connected</span>
-                </div>
-                <span className="text-xs text-zinc-500">Just now</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">Node ID</span>
-                  <span className="font-mono">{nodeId}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">Network</span>
-                  <div className="flex items-center gap-1">
-                    <Wifi className="w-3 h-3 text-purple-400" />
-                    <span>{nodeNetwork}</span>
-                  </div>
-                </div>
-              </div>
+        <p className="text-sm mb-4">{nodeStatus}</p>
+
+        {nodeError && (
+          <p role="alert" className="text-sm text-red-400 mb-4">
+            {nodeError}
+            {device ? " Previously fetched device details are shown below." : ""}
+          </p>
+        )}
+
+        {device && (
+          <dl className="space-y-3 mb-5 text-sm">
+            <div className="flex justify-between gap-4">
+              <dt className="text-zinc-400">Node ID</dt>
+              <dd className="font-mono">{device.device_id}</dd>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => navigate("/app/dashboard")}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
-              >
-                View Live Data
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button
-                onClick={handleDisconnectNode}
-                variant="outline"
-                className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-              >
-                Disconnect
-              </Button>
+            <div className="flex justify-between gap-4">
+              <dt className="text-zinc-400">Location</dt>
+              <dd>{device.location_label || "Home"}</dd>
             </div>
-          </div>
-        ) : (
-          <div className="text-center py-6">
-            <p className="text-sm text-zinc-400 mb-4">
-              No device connected. Connect your Node to start monitoring.
-            </p>
+            <div className="flex justify-between gap-4">
+              <dt className="text-zinc-400">Last reading</dt>
+              <dd className="text-right">{lastReading} (Manila)</dd>
+            </div>
+          </dl>
+        )}
+
+        {!device && !nodeLoading && !nodeError && (
+          <p className="text-sm text-zinc-400 mb-4">
+            No active node is assigned to this account.
+          </p>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={retry}
+            disabled={nodeLoading}
+            variant="outline"
+          >
+            {nodeLoading ? "Checking…" : "Check Node"}
+          </Button>
+
+          {device ? (
+            <Button
+              onClick={() => navigate("/app/environmental")}
+              className="bg-emerald-600"
+            >
+              View Sensor Readings
+            </Button>
+          ) : (
             <Button
               onClick={() => navigate("/device-connection")}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              className="bg-purple-600"
             >
-              <Zap className="w-4 h-4 mr-2" />
-              Connect Node Device
+              Node Setup
             </Button>
-          </div>
+          )}
+        </div>
+        {device && (
+          <Button onClick={() => navigate("/device-connection")}
+            variant="outline" className="w-full mt-4">
+            Node Setup & Wi-Fi Instructions
+          </Button>
         )}
       </div>
 
@@ -224,7 +230,7 @@ export function SettingsScreen() {
           </div>
           <div>
             <h3 className="font-semibold">Sensor Node Status</h3>
-            <p className="text-xs text-zinc-500">Hardware not connected · stored model results</p>
+            <p className="text-xs text-zinc-500">{nodeStatus}</p>
           </div>
         </div>
 
@@ -253,7 +259,6 @@ export function SettingsScreen() {
               <span className="text-sm text-zinc-400">Last Sync</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-sm font-medium">{systemData.lastSync}</span>
             </div>
           </div>
