@@ -47,7 +47,7 @@ export interface IndicatorValue {
 }
 export interface RiskResponse {
   status: 'calculation_only';
-  rule_id: 'environmental-indicator-v1';
+  rule_id: 'environmental-indicator-v1' | 'environmental-indicator-adult-22p5-30-37p5-20261014';
   rule_sha256: string;
   adult: IndicatorValue;
   pediatric: IndicatorValue;

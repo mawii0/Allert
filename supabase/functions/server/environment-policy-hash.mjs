@@ -1,0 +1,1 @@
+export const POLICY_HASH = "e6dd0b1683ce5786d9e405697bfb9e98d04b0b7dc655cd1344b5f1237201d555";
