@@ -12,6 +12,9 @@ import { EnvironmentNotice } from "./EnvironmentNotice";
 
 import { summarizeHistory, metricTrend } from "../utils/telemetry-analysis.mjs";
 
+import { HistoryExplorer as SampleHistoryTable } from "./HistoryExplorer";
+import { formatMeasurement } from "../utils/sample-history.mjs";
+
 const metrics = [
   { key: "pm2_5", label: "PM2.5", unit: "μg/m³", icon: Wind, color: "#ff9800" },
   { key: "pm10", label: "PM10", unit: "μg/m³", icon: Wind, color: "#ff9800" },
@@ -182,7 +185,7 @@ export function EnvironmentalScreen() {
                 <div className="rounded-full bg-zinc-800 p-2"><Icon className="h-4 w-4" style={{color}} /></div>
                 <div className="flex-1">
                   <h2 className="text-xs text-zinc-400">{label}</h2>
-                  <p className="text-lg font-bold leading-tight">{latest[key]?.toFixed(1) ?? "—"}<span className="ml-1 text-xs font-normal text-zinc-500">{unit}</span></p>
+                  <p className="text-lg font-bold leading-tight">{formatMeasurement(latest[key])}<span className="ml-1 text-xs font-normal text-zinc-500">{unit}</span></p>
                 </div>
                 <span className="flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-1 text-[10px]" style={{color:trend==="Stable" ? "#a1a1aa" : color}}>
                   <TrendIcon className="h-3 w-3" />{trend}
@@ -195,6 +198,7 @@ export function EnvironmentalScreen() {
             </section>;
           })}
         </div>
+        <SampleHistoryTable readings={view.history} end={chartEnd} deviceId={latest.device_id} replay={replay} />
         <section className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-4">
           <h2 className="text-sm font-semibold mb-2">Pollutant Accumulation Patterns</h2>
           <dl className="text-xs">
@@ -209,3 +213,4 @@ export function EnvironmentalScreen() {
     </div>
   );
 }
+
