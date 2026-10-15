@@ -7,6 +7,7 @@ import { validSnapshot } from "./environment-validation.mjs";
 import { validProfile, validHealthLog, sameHealthLog } from "./account-validation.mjs";
 import { assignmentKey, hasNodeAccess } from "./node-access.mjs";
 import { readingTableFor } from "./sensor-routing.mjs";
+import { validEntryId, symptomSummary, visibleHealthLogs } from "./health-log-tools.mjs";
 
 import { normalizeNodeClaim } from "./node-link-validation.mjs";
 import {
@@ -252,6 +253,7 @@ app.post("/make-server-a473accf/health-logs", async (c) => {
     const key = `health-log:v2:${user.id}:${id}`;
     const existing = await kv.get(key);
     if (existing) {
+      if (existing.deletedAt) return c.json({ error: "This entry was deleted. Start a new entry to log again." }, 410);
       const same = sameHealthLog(existing, body);
       if (!same) return c.json({ error: "Request ID already belongs to a different entry" }, 409);
       return c.json({ success: true, entry: existing });
@@ -268,10 +270,12 @@ app.post("/make-server-a473accf/health-logs", async (c) => {
       ...(symptomSeverities && { symptomSeverities }),
       ...(observedAt && { observedAt }),
       scoreKind: "symptom_summary_not_environmental_probability",
+      revision: 1,
     };
 
     // Independent keys prevent simultaneous diary submissions overwriting each other.
     const saved = await kv.setIfAbsent(key, logEntry);
+    if (saved?.deletedAt) return c.json({ error: "This entry was deleted. Start a new entry to log again." }, 410);
     const same = sameHealthLog(saved, body);
     if (!same) return c.json({ error: "Request ID already belongs to a different entry" }, 409);
     return c.json({ success: true, entry: saved });
@@ -298,15 +302,53 @@ app.get("/make-server-a473accf/health-logs", async (c) => {
     }
 
     const legacyLogs = await kv.get(`health-logs:${user.id}`) || [];
-    const entries = await kv.getRecentByPrefix(`health-log:v2:${user.id}:`);
-    const logs = [...entries, ...legacyLogs].sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 100);
+    const entries = await kv.getRecentByPrefix(`health-log:v2:${user.id}:`, 500);
+    const legacyIds = (Array.isArray(legacyLogs) ? legacyLogs : []).slice(0, 500).filter(entry => validEntryId(entry?.id));
+    const overrides = legacyIds.length ? await kv.mget(legacyIds.map(entry => `health-log:v2:${user.id}:${entry.id}`)) : [];
+    const logs = visibleHealthLogs([...entries, ...overrides], legacyLogs, 500);
 
-    return c.json({ logs });
+    return c.json({ logs, history_limit: 500, truncated: entries.length >= 500 });
   } catch (error: any) {
     console.log("Health logs fetch error:", error);
     return c.json({ error: error.message || "Health logs fetch failed" }, 500);
   }
 });
+
+// Corrections use a stored revision so simultaneous edits cannot overwrite each other.
+async function manageHealthLog(c: any, action: "update" | "delete") {
+  try {
+    const token = c.req.header("Authorization")?.split(" ")[1];
+    if (!token) return c.json({ error: "Please sign in." }, 401);
+    const client = getSupabaseClient();
+    const { data: { user }, error: authError } = await client.auth.getUser(token);
+    if (authError || !user?.id) return c.json({ error: "Session expired. Please sign in again." }, 401);
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    if (!validEntryId(id) || !Number.isInteger(body?.revision) || body.revision < 1 || body.revision > 1000000000) {
+      return c.json({ error: "Invalid entry ID or revision." }, 400);
+    }
+    let payload = null;
+    if (action === "update") {
+      if (!validHealthLog(body)) return c.json({ error: "Invalid scores, observation time, or notes." }, 400);
+      payload = {
+        vasScore: body.vasScore, tnssScore: body.tnssScore,
+        riskLevel: symptomSummary(body.vasScore, body.tnssScore),
+        notes: body.notes?.trim() || null,
+        ...(body.symptomSeverities && { symptomSeverities: body.symptomSeverities }),
+        ...(body.observedAt && { observedAt: body.observedAt }),
+        scoreKind: "symptom_summary_not_environmental_probability",
+      };
+    }
+    const { data, error } = await client.rpc("manage_allert_health_log", {
+      p_user_id: user.id, p_entry_id: id, p_expected_revision: body.revision, p_action: action, p_payload: payload,
+    });
+    if (error) return c.json({ error: "Unable to change entry. Check the diary migration and retry." }, 503);
+    if (!data?.ok) return c.json({ error: data?.error || "Unable to change entry." }, [400,404,409,410].includes(data?.status) ? data.status : 503);
+    return c.json({ success: true, entry: data.entry, deleted: data.deleted });
+  } catch { return c.json({ error: "Unable to change entry. Try again later." }, 503); }
+}
+app.put("/make-server-a473accf/health-logs/:id", c => manageHealthLog(c, "update"));
+app.delete("/make-server-a473accf/health-logs/:id", c => manageHealthLog(c, "delete"));
 // Initial single-node staging bridge. Replace this cache with reviewed durable
 // telemetry/jobs/run tables before operating continuous live analytics.
 app.post("/make-server-a473accf/environment/publish", async (c) => {
