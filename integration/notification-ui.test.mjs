@@ -10,7 +10,7 @@ await build({entryPoints:['src/app/components/SettingsScreen.tsx','src/app/compo
   b.onResolve({filter:/risk-monitor$/},()=>({path:'monitor',namespace:'fixture'}));
   b.onResolve({filter:/ui\/switch$/},()=>({path:'switch',namespace:'fixture'}));
   b.onResolve({filter:/ui\/button$/},()=>({path:'button',namespace:'fixture'}));
-  b.onResolve({filter:/utils\/auth$/},()=>({path:'auth',namespace:'fixture'}));
+  b.onResolve({filter:/(?:^|\/)auth$/},()=>({path:'auth',namespace:'fixture'}));
   b.onResolve({filter:/^react-router$/},()=>({path:'router',namespace:'fixture'}));
   b.onResolve({filter:/\.png$/},()=>({path:'image',namespace:'fixture'}));
   const fixtures={
@@ -28,6 +28,7 @@ await build({entryPoints:['src/app/components/SettingsScreen.tsx','src/app/compo
 const {SettingsScreen}=await import('./test-output/notification-ui/SettingsScreen.js');
 const {OnboardingScreen}=await import('./test-output/notification-ui/OnboardingScreen.js');
 globalThis.localStorage={getItem:()=>null,setItem:()=>{}};
+globalThis.window=new EventTarget();
 const text=node=>typeof node==='string'?node:(node?.children||[]).map(text).join('');
 function fixture(overrides={}){globalThis.preferences={enabled:false,permission:'default',loading:false,saving:false,error:'',toggleDisabled:false,status:'Off for your account. Push delivery is not connected yet.',changeEnabled:async()=>true,retry:()=>{},...overrides};}
 test('the existing Settings notification switch calls the preference action',async()=>{

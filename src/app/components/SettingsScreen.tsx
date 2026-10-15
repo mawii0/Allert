@@ -1,5 +1,5 @@
 import { useNodeTelemetry } from "../utils/useNodeTelemetry";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Cpu,
@@ -18,14 +18,16 @@ import { Switch } from "./ui/switch";
 import { useNotificationPreferences } from "../utils/useNotificationPreferences";
 import { BrowserPushControls } from "./BrowserPushControls";
 import { Button } from "./ui/button";
-import { logout, getCurrentUser, getProfile, type UserProfile } from "../utils/auth";
+import { logout } from "../utils/auth";
+import { useProfileSettings } from "../utils/useProfileSettings";
+import { ProfileEditor } from "./ProfileEditor";
 
 export function SettingsScreen() {
   const navigate = useNavigate();
   const notifications = useNotificationPreferences();
   const [locationEnabled, setLocationEnabled] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const profileSettings = useProfileSettings();
+  const { profile: userProfile, loading: isLoadingProfile } = profileSettings;
   const {
   device,
   latest,
@@ -48,39 +50,6 @@ export function SettingsScreen() {
     ? `${latest.sample_count ?? "—"} / ${latest.expected_samples ?? "—"} samples in latest block`
     : "No readings yet",
 };
-
-  // Load user profile from Supabase
-  useEffect(() => {
-    const loadProfile = async () => {
-      setIsLoadingProfile(true);
-      try {
-        const result = await getProfile();
-        if (result.success && result.profile) {
-          setUserProfile(result.profile);
-        } else {
-          console.error("Failed to load profile:", result.error);
-          // Fallback to localStorage
-          const localUser = getCurrentUser();
-          if (localUser.id) {
-            setUserProfile({
-              userId: localUser.id,
-              email: localUser.email || "",
-              name: localUser.name || "",
-              demographic: (localStorage.getItem("allert_demographic") as "adult" | "pediatric") || "adult",
-              createdAt: "",
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error loading profile:", error);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-
-    loadProfile();
-
-  }, []);
 
   const handleLogout = () => {
     logout();
@@ -126,6 +95,8 @@ export function SettingsScreen() {
               </div>
             </div>
 
+            <ProfileEditor settings={profileSettings} />
+
             {/* Logout Button */}
             <button
               onClick={handleLogout}
@@ -137,7 +108,11 @@ export function SettingsScreen() {
           </>
         ) : (
           <div className="text-center py-8 text-zinc-400">
-            Failed to load profile
+            <p role="alert">{profileSettings.error || "Failed to load profile"}</p>
+            <button type="button" onClick={profileSettings.retry} className="text-sm text-emerald-400 underline mt-3">Retry profile</button>
+            <button type="button" onClick={handleLogout} className="w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 transition-colors">
+              <LogOut className="w-4 h-4" /><span className="text-sm font-medium">Logout</span>
+            </button>
           </div>
         )}
       </div>
