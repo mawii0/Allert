@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Root } from "./components/Root";
 import { AuthScreen } from "./components/AuthScreen";
+import { PasswordRecoveryScreen } from "./components/PasswordRecoveryScreen";
 import { OnboardingScreen } from "./components/OnboardingScreen";
 import { DashboardScreen } from "./components/DashboardScreen";
 import { EnvironmentalScreen } from "./components/EnvironmentalScreen";
@@ -16,6 +17,10 @@ export const router = createBrowserRouter([
   {
     path: "/",
     Component: AuthScreen,
+  },
+  {
+    path: "/forgot-password",
+    Component: PasswordRecoveryScreen,
   },
   {
     path: "/onboarding",

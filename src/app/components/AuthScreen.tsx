@@ -244,6 +244,8 @@ export function AuthScreen() {
                     </div>
                   </div>
 
+                  {mode === "login" && <button type="button" disabled={isLoading} onClick={() => navigate("/forgot-password", { state: { email: email.trim() } })} className="text-sm text-emerald-400 hover:text-emerald-300 underline disabled:opacity-50">Forgot password?</button>}
+
                   {/* Error Message */}
                   {error && (
                     <motion.div
