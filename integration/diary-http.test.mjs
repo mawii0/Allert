@@ -4,6 +4,8 @@ import { build } from 'esbuild';
 import { mkdir } from 'node:fs/promises';
 await mkdir('integration/test-output',{recursive:true});
 await build({entryPoints:['supabase/functions/server/index.tsx'],outfile:'integration/test-output/diary-http.mjs',bundle:true,format:'esm',platform:'node',plugins:[{name:'fixtures',setup(b){
+  b.onResolve({filter:/push-delivery\.mjs$/},()=>({path:'push-delivery',namespace:'push-fixture'}));
+  b.onLoad({filter:/.*/,namespace:'push-fixture'},()=>({contents:'export const deliverTestPush=()=>{throw Error("Unexpected push transport in this fixture");};'}));
   b.onResolve({filter:/^npm:hono$/},()=>({path:'hono',external:true}));b.onResolve({filter:/^npm:hono\/cors$/},()=>({path:'hono/cors',external:true}));b.onResolve({filter:/^npm:hono\/logger$/},()=>({path:'hono/logger',external:true}));
   b.onResolve({filter:/^npm:@supabase\/supabase-js@2$/},()=>({path:'supabase',namespace:'fixture'}));b.onResolve({filter:/kv_store\.tsx$/},()=>({path:'kv',namespace:'fixture'}));
   b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='supabase'?'export const createClient=()=>globalThis.client;':`

@@ -9,6 +9,8 @@ import { assignmentKey, hasNodeAccess } from "./node-access.mjs";
 import { readingTableFor } from "./sensor-routing.mjs";
 import { validEntryId, symptomSummary, visibleHealthLogs } from "./health-log-tools.mjs";
 import { notificationPreferenceKey, defaultNotificationPreferences, validNotificationPreferences, notificationPreferenceChange } from "./notification-preferences.mjs";
+import { installPushRoutes } from "./push-routes.mjs";
+import { deliverTestPush } from "./push-delivery.mjs";
 
 import { normalizeNodeClaim } from "./node-link-validation.mjs";
 import {
@@ -699,4 +701,5 @@ app.put("/make-server-a473accf/notification-preferences", async c => {
   } catch { return c.json({ error: "Unable to save notification preference." }, 503); }
 });
 
+installPushRoutes(app, notificationAccount, Deno.env, deliverTestPush);
 Deno.serve(app.fetch);

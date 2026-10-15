@@ -16,6 +16,7 @@ import {
 import { useRiskMonitor } from "../utils/risk-monitor";
 import { Switch } from "./ui/switch";
 import { useNotificationPreferences } from "../utils/useNotificationPreferences";
+import { BrowserPushControls } from "./BrowserPushControls";
 import { Button } from "./ui/button";
 import { logout, getCurrentUser, getProfile, type UserProfile } from "../utils/auth";
 
@@ -332,6 +333,7 @@ export function SettingsScreen() {
           {notifications.enabled && notifications.permission === "default" && <button type="button" disabled={notifications.loading || notifications.saving} onClick={() => { void notifications.changeEnabled(true); }} className="text-xs text-emerald-400 underline disabled:opacity-50">Allow in this browser</button>}
           {notifications.error && <p role="alert" className="text-xs text-red-300">{notifications.error}</p>}
           <button type="button" disabled={notifications.loading || notifications.saving} onClick={notifications.retry} className="text-xs text-zinc-400 underline disabled:opacity-50">Refresh notification settings</button>
+          <BrowserPushControls enabled={notifications.enabled && !notifications.loading && !notifications.saving} />
 
           <div className="h-px bg-zinc-800" />
 

@@ -16,11 +16,11 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 }
 
 export function notificationStatus(enabled: boolean, permission: BrowserNotificationPermission): string {
-  if (permission === "unsupported") return "Notifications are unavailable in this browser. Push delivery is not connected yet.";
-  if (permission === "insecure") return "Use HTTPS or localhost for browser permission. Push delivery is not connected yet.";
-  if (permission === "denied") return "Blocked in this browser. Change the site's browser permission to allow notifications. Push delivery is not connected yet.";
-  if (!enabled) return "Off for your account. Push delivery is not connected yet.";
+  if (permission === "unsupported") return "Notifications are unavailable in this browser.";
+  if (permission === "insecure") return "Use HTTPS or localhost for browser permission.";
+  if (permission === "denied") return "Blocked in this browser. Change the site's browser permission to allow notifications.";
+  if (!enabled) return "Off for your account.";
   return permission === "granted"
-    ? "Account preference on; browser permission granted. Push delivery is not connected yet."
-    : "Account preference on; permission is needed in this browser. Push delivery is not connected yet.";
+    ? "Account preference on; browser permission granted."
+    : "Account preference on; permission is needed in this browser.";
 }
