@@ -88,7 +88,7 @@ export function useNotificationPreferences() {
     enabled: preferences?.enabled ?? false, permission, loading, saving, error,
     toggleDisabled: loading || saving || !preferences || (!preferences.enabled && ["unsupported", "insecure"].includes(permission)),
     status: loading ? "Loading notification preference…" : saving ? "Saving notification preference…" :
-      !preferences ? "Notification settings unavailable. Push delivery is not connected yet." : notificationStatus(preferences.enabled, permission),
+      !preferences ? "Notification settings unavailable." : notificationStatus(preferences.enabled, permission),
     changeEnabled, retry: () => { if (!busy.current) setAttempt(value => value + 1); },
   };
 }

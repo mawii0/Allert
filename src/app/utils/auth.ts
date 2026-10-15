@@ -83,6 +83,7 @@ export const getCurrentUser = () => {
 
 // Logout user
 export const logout = () => {
+  window.dispatchEvent(new Event("allert-before-signout"));
   Object.keys(localStorage).filter(key => key.startsWith("allert_")).forEach(key => localStorage.removeItem(key));
   window.dispatchEvent(new Event("allert-session-changed"));
 };
