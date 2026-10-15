@@ -1,4 +1,6 @@
-import { CHECKPOINT, RULE_HASH } from "./environment-validation.mjs";
+import { POLICY, classifyFraction } from "./environment-policy.mjs";
+import { POLICY_HASH } from "./environment-policy-hash.mjs";
+import { CHECKPOINT } from "./environment-validation.mjs";
 const finite = value => typeof value === "number" && Number.isFinite(value);
 export function validReading(r) {
   return !!r && Number.isFinite(Date.parse(r.timestamp)) &&
@@ -16,13 +18,13 @@ export function median(values) {
 export function indicator(pm25,pm10,temperature,humidity) {
   if (![pm25,pm10,temperature,humidity].every(finite) || pm25<0 || pm10<0 || humidity<0 || humidity>100) return null;
   const contribution=pm25*.0104+pm10*.0026+(temperature-25)*.012+(humidity-60)*-.004;
-  const result={rule_id:"environmental-indicator-v1",rule_sha256:RULE_HASH,not_a_symptom_probability:true};
+  const result={rule_id:POLICY.id,rule_sha256:POLICY_HASH,not_a_symptom_probability:true};
   for (const population of ["adult","pediatric"]) {
     const baseline=population==="adult" ? .20 : .22;
     const logit=Math.log(baseline/(1-baseline))+contribution;
     const value=logit>=0 ? 1/(1+Math.exp(-logit)) : Math.exp(logit)/(1+Math.exp(logit));
-    const cuts=population==="adult" ? [.15,.25,.40] : [.13,.23,.38];
-    result[population]={score_0_100:value*100,indicator_0_1:value,tier:value>=cuts[2]?"very_high":value>=cuts[1]?"high":value>=cuts[0]?"moderate":"low"};
+
+    result[population]={score_0_100:value*100,indicator_0_1:value,tier:classifyFraction(value,population)};
   }
   return result;
 }
