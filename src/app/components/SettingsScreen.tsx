@@ -15,12 +15,13 @@ import {
 } from "lucide-react";
 import { useRiskMonitor } from "../utils/risk-monitor";
 import { Switch } from "./ui/switch";
+import { useNotificationPreferences } from "../utils/useNotificationPreferences";
 import { Button } from "./ui/button";
 import { logout, getCurrentUser, getProfile, type UserProfile } from "../utils/auth";
 
 export function SettingsScreen() {
   const navigate = useNavigate();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const notifications = useNotificationPreferences();
   const [locationEnabled, setLocationEnabled] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -319,15 +320,18 @@ export function SettingsScreen() {
           <div className="flex items-center justify-between py-2">
             <div>
               <div className="text-sm font-medium">Push Notifications</div>
-              <div className="text-xs text-zinc-500">Not connected yet</div>
+              <div className="text-xs text-zinc-500 max-w-[230px]">{notifications.status}</div>
             </div>
             <Switch
-              disabled
-              aria-label="Push notifications unavailable"
-              checked={false}
-              onCheckedChange={setNotificationsEnabled}
+              disabled={notifications.toggleDisabled}
+              aria-label="Push notifications"
+              checked={notifications.enabled}
+              onCheckedChange={value => { void notifications.changeEnabled(value); }}
             />
           </div>
+          {notifications.enabled && notifications.permission === "default" && <button type="button" disabled={notifications.loading || notifications.saving} onClick={() => { void notifications.changeEnabled(true); }} className="text-xs text-emerald-400 underline disabled:opacity-50">Allow in this browser</button>}
+          {notifications.error && <p role="alert" className="text-xs text-red-300">{notifications.error}</p>}
+          <button type="button" disabled={notifications.loading || notifications.saving} onClick={notifications.retry} className="text-xs text-zinc-400 underline disabled:opacity-50">Refresh notification settings</button>
 
           <div className="h-px bg-zinc-800" />
 

@@ -8,6 +8,7 @@ import { validProfile, validHealthLog, sameHealthLog } from "./account-validatio
 import { assignmentKey, hasNodeAccess } from "./node-access.mjs";
 import { readingTableFor } from "./sensor-routing.mjs";
 import { validEntryId, symptomSummary, visibleHealthLogs } from "./health-log-tools.mjs";
+import { notificationPreferenceKey, defaultNotificationPreferences, validNotificationPreferences, notificationPreferenceChange } from "./notification-preferences.mjs";
 
 import { normalizeNodeClaim } from "./node-link-validation.mjs";
 import {
@@ -661,6 +662,41 @@ app.post("/make-server-a473accf/nodes/unlink", async (c) => {
   if (error) return c.json({ error: "Unable to unlink node. Try again later." }, 503);
   if (!data?.ok) return c.json({ error: data?.error || "Unable to unlink node." }, data?.status === 401 ? 401 : 403);
   return c.json({ ok: true, device_id: data.device_id });
+});
+
+// Notification intent is account-scoped; browser permission and delivery are separate.
+async function notificationAccount(c: any) {
+  const token = c.req.header("Authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) return { response: c.json({ error: "Please sign in." }, 401) };
+  const client = getSupabaseClient();
+  const { data: { user }, error } = await client.auth.getUser(token);
+  if (error || !user?.id) return { response: c.json({ error: "Session expired. Please sign in again." }, 401) };
+  return { client, user };
+}
+app.get("/make-server-a473accf/notification-preferences", async c => {
+  try {
+    const verified = await notificationAccount(c);
+    if (verified.response) return verified.response;
+    const stored = await kv.get(notificationPreferenceKey(verified.user.id));
+    const preferences = stored === undefined || stored === null ? defaultNotificationPreferences() : stored;
+    if (!validNotificationPreferences(preferences)) return c.json({ error: "Stored notification settings are invalid." }, 503);
+    return c.json({ preferences, deliveryReady: false });
+  } catch { return c.json({ error: "Unable to load notification settings." }, 503); }
+});
+app.put("/make-server-a473accf/notification-preferences", async c => {
+  try {
+    const verified = await notificationAccount(c);
+    if (verified.response) return verified.response;
+    const change = notificationPreferenceChange(await c.req.json());
+    if (!change) return c.json({ error: "Invalid notification preference or revision." }, 400);
+    const { data, error } = await verified.client.rpc("set_allert_notification_preference", {
+      p_user_id: verified.user.id, p_enabled: change.enabled, p_expected_revision: change.revision,
+    });
+    if (error) return c.json({ error: "Unable to save notification preference. Check the notification database migration." }, 503);
+    if (!data?.ok) return c.json({ error: data?.error || "Unable to save notification preference." }, data?.status === 409 ? 409 : data?.status === 400 ? 400 : 503);
+    if (!validNotificationPreferences(data.preferences)) return c.json({ error: "Invalid saved notification settings." }, 503);
+    return c.json({ preferences: data.preferences, deliveryReady: false });
+  } catch { return c.json({ error: "Unable to save notification preference." }, 503); }
 });
 
 Deno.serve(app.fetch);
