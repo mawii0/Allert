@@ -1,3 +1,12 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+.history-table-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.history-table-scroll::-webkit-scrollbar {
+  display: none;
+}
