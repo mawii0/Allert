@@ -5,19 +5,15 @@ import {
   Cpu,
   Database,
   MapPin,
-  User,
   Bell,
-  Palette,
   Info,
-  ChevronRight,
   Activity,
   Clock,
   CheckCircle2,
   LogOut,
-  Wifi,
   Zap,
 } from "lucide-react";
-import { useEnvironment, displayTime } from "../utils/environment";
+import { useRiskMonitor } from "../utils/risk-monitor";
 import { Switch } from "./ui/switch";
 import { Button } from "./ui/button";
 import { logout, getCurrentUser, getProfile, type UserProfile } from "../utils/auth";
@@ -38,13 +34,13 @@ export function SettingsScreen() {
   retry,
 } = useNodeTelemetry();
 
-  const { snapshot, status } = useEnvironment();
+  const { data: monitor, status: monitorStatus } = useRiskMonitor();
   // Only display verified model metadata; device health is unavailable without telemetry.
   const systemData = {
   nodeId: device?.device_id || "Unassigned",
   uptime: "Not available",
   lastSync: lastReading,
-  algorithmVersion: snapshot?.forecast.model_id || "Not available",
+  algorithmVersion: monitor?.model_id || "No neural output available",
   modelAccuracy: "See model validation report",
   dataPoints: latest
     ? `${latest.sample_count ?? "—"} / ${latest.expected_samples ?? "—"} samples in latest block`
@@ -82,7 +78,6 @@ export function SettingsScreen() {
 
     loadProfile();
 
-    // Browser flags cannot establish a hardware connection.
   }, []);
 
   const handleLogout = () => {
@@ -178,7 +173,7 @@ export function SettingsScreen() {
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-zinc-400">Last reading</dt>
-              <dd className="text-right">{lastReading} (Manila)</dd>
+              <dd className="text-right">{lastReading} (Iloilo local time)</dd>
             </div>
           </dl>
         )}
@@ -256,7 +251,7 @@ export function SettingsScreen() {
           <div className="flex justify-between items-center py-2">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-zinc-500" />
-              <span className="text-sm text-zinc-400">Last Sync</span>
+              <span className="text-sm text-zinc-400">Last Reading</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-medium">{systemData.lastSync}</span>
@@ -356,9 +351,10 @@ export function SettingsScreen() {
         <div className="text-center text-sm text-zinc-500 space-y-1">
           <div className="flex items-center justify-center gap-2 mb-3">
             <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span className="font-medium text-emerald-400">{snapshot?.mode === "historical_fixture" ? "Historical Replay Available" : status === "ready" ? "Stored Measurements Available" : "Measurements Unavailable"}</span>
+            <span className="font-medium text-emerald-400">{nodeStatus}</span>
           </div>
-          <div>ALLERT System • Version 1.0.0</div>
+          <div>ALLERT System • Version 1.1.0</div>
+          <div>Model: {monitor?.model_status?.replaceAll("_", " ") || (monitorStatus === "loading" ? "Checking…" : "Unavailable")}</div>
           <div>Allergic Rhinitis Environmental Monitoring</div>
           <div className="text-xs pt-2">© 2026 Research Prototype</div>
         </div>

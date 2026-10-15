@@ -2,4 +2,9 @@ project_id = "allert"
 
 [functions.make-server-a473accf]
 entrypoint = "./functions/server/index.tsx"
-verify_jwt = true
+# Authentication is enforced in the handlers using Supabase Auth / worker tokens.
+verify_jwt = false
+
+[functions.sensor-ingest]
+entrypoint = "./functions/sensor-ingest/index.ts"
+verify_jwt = false

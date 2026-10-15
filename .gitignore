@@ -10,3 +10,8 @@ integration/test-output*/
 .venv/
 
 .vercel
+
+firmware/**/node_secrets.h
+firmware/**/tls_roots.h
+firmware/**/data/
+index-main-reference.txt

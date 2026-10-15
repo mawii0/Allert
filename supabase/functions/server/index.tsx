@@ -6,13 +6,15 @@ import * as kv from "./kv_store.tsx";
 import { validSnapshot } from "./environment-validation.mjs";
 import { validProfile, validHealthLog, sameHealthLog } from "./account-validation.mjs";
 import { assignmentKey, hasNodeAccess } from "./node-access.mjs";
+import { readingTableFor } from "./sensor-routing.mjs";
 
-import { normalizeNodeClaim } from "./node-claim-validation.mjs";
+import { normalizeNodeClaim } from "./node-link-validation.mjs";
 import {
   buildMonitor,
   modelPayload,
   validModelForecast,
   median,
+  modelInputStatus,
 } from "./risk-monitor.mjs";
 
 const app = new Hono();
@@ -366,7 +368,7 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
 
     const { data: devices, error: deviceError } = await supabase
       .from("sensor_devices")
-      .select("device_id, location_label, is_active")
+      .select("device_id, location_label, is_active, owner_since")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .limit(2);
@@ -389,6 +391,7 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
     }
 
     const device = devices[0];
+    const readingTable = await readingTableFor(supabase, device.device_id);
 
     const columns =
       "id,device_id,timestamp,pm2_5,pm10,temperature,humidity," +
@@ -401,18 +404,20 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
 
     const [latestResult, historyResult] = await Promise.all([
       supabase
-        .from("sensor_readings")
+        .from(readingTable)
         .select(columns)
         .eq("device_id", device.device_id)
+        .gte("timestamp", device.owner_since ?? "1970-01-01T00:00:00Z")
         .order("timestamp", { ascending: false })
         .order("id", { ascending: false })
         .limit(1),
 
       supabase
-        .from("sensor_readings")
+        .from(readingTable)
         .select(columns)
         .eq("device_id", device.device_id)
         .gte("timestamp", since)
+        .gte("timestamp", device.owner_since ?? "1970-01-01T00:00:00Z")
         .lte("timestamp", now.toISOString())
         .order("timestamp", { ascending: true })
         .order("id", { ascending: true })
@@ -447,7 +452,7 @@ app.post("/make-server-a473accf/nodes/claim", async (c) => {
   try { body = await c.req.json(); }
   catch { return c.json({ error: "Invalid JSON." }, 400); }
   const claim = normalizeNodeClaim(body);
-  if (!claim) return c.json({ error: "Enter ALLERT-NODE-001 and its 32-character setup code." }, 400);
+  if (!claim) return c.json({ error: "Enter your node ID and its 32-character setup code." }, 400);
   const { data, error } = await supabase.rpc("claim_allert_node", {
     p_user_id: user.id,
     p_device_id: claim.device_id,
@@ -462,7 +467,7 @@ app.post("/make-server-a473accf/nodes/claim", async (c) => {
     const status = code === 429 ? 429 : code === 409 ? 409 : code === 404 ? 404 : code === 401 ? 401 : 400;
     return c.json({ error: data?.error || "Unable to link node." }, status);
   }
-  return c.json({ ok: true, device_id: data.device_id });
+  return c.json({ ok: true, device_id: data.device_id, model_access_assigned: data.model_access_assigned === true });
 });
 // Build Risk Monitor results from the user's authorized telemetry.
 app.get("/make-server-a473accf/risk-monitor", async (c) => {
@@ -487,6 +492,7 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
     const now = Date.now();
     let model = null;
     let modelStatus = "warming_up";
+    let inputStatus = null;
 
     const current = buildMonitor(telemetry, null, now);
     const configuredSensor = Deno.env.get("ALLERT_FORECAST_SENSOR_ID");
@@ -511,12 +517,13 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
           const since = new Date(origin - 54 * 3600000).toISOString();
 
           const { data: rows, error } = await getSupabaseClient()
-            .from("sensor_readings")
+            .from(await readingTableFor(getSupabaseClient(), configuredSensor))
             .select(
               "device_id,timestamp,pm2_5,pm10,temperature,humidity," +
               "sample_count,expected_samples,data_quality_status,created_at",
             )
             .eq("device_id", configuredSensor)
+            .gte("timestamp", telemetry.device.owner_since ?? "1970-01-01T00:00:00Z")
             .gt("timestamp", since)
             .lte("timestamp", new Date(origin + 299999).toISOString())
             .order("timestamp", { ascending: true })
@@ -524,6 +531,8 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
 
           if (error) throw error;
 
+          inputStatus = modelInputStatus(rows ?? [], origin, now);
+          modelStatus = inputStatus.status;
           const payload = modelPayload(rows ?? [], origin, now);
 
           if (payload) {
@@ -548,7 +557,9 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
                 );
 
                 const forecast = await reply.json();
+                if (!forecast || typeof forecast !== "object" || Array.isArray(forecast)) throw new Error("Invalid model response");
                 forecast.sensor_device_id = configuredSensor;
+                modelStatus = reply.ok ? "model_output_unverified" : "model_service_error";
 
                 if (
                   reply.ok &&
@@ -574,7 +585,7 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
               } catch {
                 // Keep the median estimate while model inference retries.
               }
-            }
+            } else modelStatus = "model_not_configured";
           }
         }
       } else {
@@ -584,7 +595,7 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
       modelStatus = "sensor_not_enabled_for_model";
     }
 
-    return c.json(buildMonitor(telemetry, model, now, modelStatus));
+    return c.json({ ...buildMonitor(telemetry, model, now, modelStatus), model_input: inputStatus });
   } catch {
     return c.json(
       { error: "Unable to load risk monitor readings." },
@@ -592,4 +603,22 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
     );
   }
 });
+
+// Only the authenticated owner may relinquish ownership. Uploads and stored readings remain.
+app.post("/make-server-a473accf/nodes/unlink", async (c) => {
+  const token = c.req.header("Authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (!token) return c.json({ error: "Please sign in." }, 401);
+  const supabase = getSupabaseClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) return c.json({ error: "Session expired. Please sign in again." }, 401);
+  const body = await c.req.json();
+  if (typeof body?.device_id !== "string" || !/^ALLERT-NODE-\d{3}$/.test(body.device_id)) {
+    return c.json({ error: "Invalid node ID." }, 400);
+  }
+  const { data, error } = await supabase.rpc("unlink_allert_node", { p_user_id: user.id, p_device_id: body.device_id });
+  if (error) return c.json({ error: "Unable to unlink node. Try again later." }, 503);
+  if (!data?.ok) return c.json({ error: data?.error || "Unable to unlink node." }, data?.status === 401 ? 401 : 403);
+  return c.json({ ok: true, device_id: data.device_id });
+});
+
 Deno.serve(app.fetch);
