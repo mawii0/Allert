@@ -92,3 +92,23 @@ export function modelPayload(readings,origin,now) {
   }
   return {node_id:"node-1",mode:"live",forecast_origin:new Date(origin).toISOString(),history};
 }
+
+export function modelInputStatus(readings, origin, now) {
+  const slots = new Set();
+  let missingReceipts = 0, duplicateBlocks = 0;
+  for (const row of readings) {
+    if (!validReading(row)) continue;
+    const timestamp = Date.parse(row.timestamp);
+    const end = Math.floor(timestamp / 300000) * 300000;
+    if (timestamp > now || end > origin || end <= origin - 54 * 3600000) continue;
+    const received = Date.parse(row.created_at);
+    if (!Number.isFinite(received) || received > now) { missingReceipts++; continue; }
+    if (slots.has(end)) duplicateBlocks++;
+    slots.add(end);
+  }
+  return {
+    status: missingReceipts ? "missing_server_receipt_times" : duplicateBlocks ? "duplicate_blocks" : slots.size < 648 ? "warming_up" : "input_ready",
+    eligible_blocks: slots.size, required_blocks: 648,
+    missing_receipts: missingReceipts, duplicate_blocks: duplicateBlocks,
+  };
+}

@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {median,indicator,buildMonitor,modelPayload,validModelForecast} from "../supabase/functions/server/risk-monitor.mjs";
+import {median,indicator,buildMonitor,modelPayload,validModelForecast,modelInputStatus} from "../supabase/functions/server/risk-monitor.mjs";
 import {CHECKPOINT} from "../supabase/functions/server/environment-validation.mjs";
 const now=Date.parse("2026-10-12T00:00:01Z");
 const row=(i=0)=>({device_id:"sensor-a",timestamp:new Date(now-i*300000).toISOString(),created_at:new Date(now-i*300000).toISOString(),pm2_5:10+i,pm10:20+i,temperature:25,humidity:60,sample_count:30,expected_samples:30,data_quality_status:"VALID"});
@@ -22,3 +22,11 @@ test("gaps, duplicates, wrong devices and missing receipt times prevent neural i
 const model=()=>({sensor_device_id:"sensor-a",model_id:"median-residual-single-v1",checkpoint_sha256:CHECKPOINT,status:"ok",mode:"live",node_id:"node-1",trained_or_recalibrated:false,is_future_allergy_probability:false,forecast_origin:new Date(now-1000).toISOString(),forecasts:[6,12,24].flatMap(h=>["pm2_5","pm10"].map(p=>({pollutant:p,horizon_hours:h,value:h*2,units:"ug/m3",target_block_end:new Date(now-1000+h*3600000).toISOString(),target_block_start:new Date(now-1000+h*3600000-300000).toISOString()})))});
 test("verified model values and horizon-specific scores replace median estimates",()=>{const m=buildMonitor(telemetry(12),model(),now);assert.ok(m.forecasts.every(f=>f.method==="model_adjusted"));assert.notEqual(m.forecasts[0].risk.adult.score_0_100,m.forecasts[2].risk.adult.score_0_100);assert.deepEqual(m.current.risk,indicator(10,20,25,60));});
 test("other sensor, historical, stale or invalid model outputs cannot masquerade as live",()=>{for(const patch of [{sensor_device_id:"other"},{mode:"historical_fixture"},{checkpoint_sha256:"bad"},{forecast_origin:"2000-01-01T00:00:00Z"},{forecasts:[]}])assert.equal(validModelForecast({...model(),...patch},"sensor-a",now),false);});
+
+test("model warm-up diagnostics expose missing receipt provenance and duplicate slots",()=>{
+  const rows=Array.from({length:648},(_,i)=>row(647-i));
+  assert.equal(modelInputStatus(rows,now-1000,now).status,"input_ready");
+  assert.equal(modelInputStatus(rows.slice(1),now-1000,now).eligible_blocks,647);
+  assert.equal(modelInputStatus(rows.map(r=>({...r,created_at:null})),now-1000,now).missing_receipts,648);
+  assert.equal(modelInputStatus([...rows,rows[0]],now-1000,now).status,"duplicate_blocks");
+});

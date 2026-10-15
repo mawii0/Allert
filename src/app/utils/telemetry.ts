@@ -45,11 +45,20 @@ export async function getSensorTelemetry(
   );
 
   if (response.status === 401) logout();
-  const data = await response.json();
+  const raw = await response.text();
+  let data;
+  try { data = JSON.parse(raw); }
+  catch { throw new Error(`Sensor endpoint returned HTTP ${response.status}. Check its deployment.`); }
 
   if (!response.ok) {
     throw new Error(data.error || "Unable to load sensor readings.");
   }
 
+  if (!data || typeof data !== "object" || !Array.isArray(data.history) || data.history.length > 1000 ||
+      !("latest" in data) || !("device" in data) ||
+      (data.device !== null && (typeof data.device !== "object" || typeof data.device.device_id !== "string")) ||
+      (data.latest !== null && (typeof data.latest !== "object" || typeof data.latest.timestamp !== "string"))) {
+    throw new Error("Unexpected sensor response. Check that the deployed telemetry route matches the app.");
+  }
   return data;
 }
