@@ -5,13 +5,14 @@ import { EnvironmentNotice } from "./EnvironmentNotice";
 import { displayTime } from "../utils/environment";
 import "../../styles/model-screens.css";
 import { useRiskMonitor } from "../utils/risk-monitor";
+import { useProfilePopulation } from "../utils/useProfileSettings";
 
 export function DashboardScreen() {
   const [horizon, setHorizon] = useState(0);
   const { data, status, retry } = useRiskMonitor();
   const current = data?.current;
   const selected = data?.forecasts.find(value => value.horizon_hours === horizon);
-  const population = localStorage.getItem("allert_demographic") === "pediatric" ? "pediatric" : "adult";
+  const population = useProfilePopulation();
   const indicator = horizon === 0 ? current?.risk[population] : selected?.risk[population];
   const values = selected ? [{pollutant:"pm2_5",value:selected.pm2_5},{pollutant:"pm10",value:selected.pm10}] : [];
   const tier = indicator?.tier || "low";

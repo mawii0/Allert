@@ -46,7 +46,9 @@ export function storeSession(data: any) {
   if (data.refresh_token) localStorage.setItem("allert_refresh_token", data.refresh_token);
   localStorage.setItem("allert_user_id", data.user.id);
   localStorage.setItem("allert_user_email", data.user.email || "");
-  localStorage.setItem("allert_user_name", data.user.user_metadata?.name || "");
+  // Token renewal must not overwrite a newer display name from the saved profile.
+  if (previousUser !== data.user.id || localStorage.getItem("allert_user_name") === null)
+    localStorage.setItem("allert_user_name", data.user.user_metadata?.name || "");
 }
 
 let refreshing: Promise<string | null> | null = null;
@@ -61,7 +63,7 @@ export async function getValidAuthToken(): Promise<string | null> {
       body: JSON.stringify({ refresh_token: refreshToken }), signal: AbortSignal.timeout(15000),
     });
     const data = await response.json();
-    if (!response.ok) { if (response.status < 500) logout(); throw new Error("Session could not be renewed. Please sign in again."); }
+    if (!response.ok) { if (response.status < 500 && localStorage.getItem("allert_refresh_token") === refreshToken) logout(); throw new Error("Session could not be renewed. Please sign in again."); }
     // A late refresh must never restore a session after logout or account switching.
     if (localStorage.getItem("allert_refresh_token") !== refreshToken) return null;
     storeSession(data);
@@ -85,80 +87,71 @@ export const logout = () => {
   window.dispatchEvent(new Event("allert-session-changed"));
 };
 
-// Save patient profile to Supabase
-export const saveProfile = async (
-  demographic: "adult" | "pediatric",
-  name?: string
-): Promise<{ success: boolean; error?: string }> => {
+interface ProfileOptions { signal?: AbortSignal; }
+interface ProfileResult { success: boolean; profile?: UserProfile; error?: string; }
+let profileWriteRevision = 0;
+
+async function profileRequest(body: { demographic: UserProfile["demographic"]; name?: string } | undefined, options: ProfileOptions): Promise<ProfileResult> {
+  const account = getCurrentUser().id;
+  const writeRevision = body ? ++profileWriteRevision : profileWriteRevision;
+  let invalidated = false;
+  const invalidate = () => { invalidated = true; };
+  const storage = (event: StorageEvent) => {
+    if (event.key === null || event.key === "allert_user_id" || (event.key === "allert_auth_token" && !event.newValue) ||
+        (!body && ["allert_user_name", "allert_demographic"].includes(event.key))) invalidate();
+  };
+  const checkAccount = () => {
+    if (invalidated || !account || account !== getCurrentUser().id) throw Error("Account changed. Please reload your profile.");
+    if (options.signal?.aborted) throw Error("Profile request cancelled.");
+  };
+  window.addEventListener("allert-session-changed", invalidate);
+  window.addEventListener("storage", storage);
   try {
     const token = await getValidAuthToken();
-    if (!token) {
-      return { success: false, error: "Not authenticated" };
-    }
-
-    const response = await fetch(
-      `https://${projectId}.supabase.co/functions/v1/make-server-a473accf/profile`,
-      {
-        signal: AbortSignal.timeout(15000),
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ demographic, name }),
-      }
-    );
-
-    const data = await response.json();
-    if (response.status === 401) logout();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to save profile");
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("Profile save error:", error);
-    return { success: false, error: error.message };
+    checkAccount();
+    if (!token) throw Error("Please sign in.");
+    const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-a473accf/profile`, {
+      method: body ? "POST" : "GET", cache: "no-store",
+      headers: { Authorization: `Bearer ${token}`, apikey: publicAnonKey, ...(body && { "Content-Type": "application/json" }) },
+      ...(body && { body: JSON.stringify(body) }),
+      signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
+    });
+    const raw = await response.text();
+    checkAccount();
+    // An old request must not sign out a newer session, including a renewed token.
+    if (response.status === 401 && getAuthToken() === token) logout();
+    let data;
+    try { data = JSON.parse(raw); } catch { throw Error(`Profile endpoint returned HTTP ${response.status}. Check the backend deployment.`); }
+    if (!response.ok) throw Error(typeof data?.error === "string" ? data.error : `Profile request failed (HTTP ${response.status}).`);
+    const profile = data?.profile;
+    if (!profile || profile.userId !== account || typeof profile.name !== "string" || profile.name.length > 100 ||
+        typeof profile.email !== "string" || !["adult", "pediatric"].includes(profile.demographic) ||
+        typeof profile.createdAt !== "string" || !Number.isFinite(Date.parse(profile.createdAt)))
+      throw Error("Invalid profile response. Refresh and check the backend deployment.");
+    checkAccount();
+    if (!body && writeRevision !== profileWriteRevision) throw Error("Profile changed while loading. Please refresh your profile.");
+    const changed = localStorage.getItem("allert_user_name") !== profile.name || localStorage.getItem("allert_demographic") !== profile.demographic;
+    if (body) profileWriteRevision++;
+    localStorage.setItem("allert_user_name", profile.name);
+    localStorage.setItem("allert_demographic", profile.demographic);
+    if (changed) window.dispatchEvent(new Event("allert-profile-changed"));
+    return { success: true, profile };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "The profile request could not be confirmed. Refresh and check your profile." };
+  } finally {
+    window.removeEventListener("allert-session-changed", invalidate);
+    window.removeEventListener("storage", storage);
   }
+}
+
+// Existing onboarding/login callers retain the same API; editing can also use the saved profile.
+export const saveProfile = (demographic: UserProfile["demographic"], name?: string, options: ProfileOptions = {}): Promise<ProfileResult> => {
+  if (!["adult", "pediatric"].includes(demographic) || (name !== undefined && (typeof name !== "string" || name.trim().length > 100)))
+    return Promise.resolve({ success: false, error: "Enter a valid name (at most 100 characters) and patient category." });
+  return profileRequest({ demographic, ...(name !== undefined && { name: name.trim() }) }, options);
 };
 
-// Get patient profile from Supabase
-export const getProfile = async (): Promise<{
-  success: boolean;
-  profile?: UserProfile;
-  error?: string;
-}> => {
-  try {
-    const token = await getValidAuthToken();
-    if (!token) {
-      return { success: false, error: "Not authenticated" };
-    }
-
-    const response = await fetch(
-      `https://${projectId}.supabase.co/functions/v1/make-server-a473accf/profile`,
-      {
-        signal: AbortSignal.timeout(15000),
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    const data = await response.json();
-    if (response.status === 401) logout();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to fetch profile");
-    }
-
-    return { success: true, profile: data.profile };
-  } catch (error: any) {
-    console.error("Profile fetch error:", error);
-    return { success: false, error: error.message };
-  }
-};
+export const getProfile = (options: ProfileOptions = {}): Promise<ProfileResult> => profileRequest(undefined, options);
 
 // Save health log entry to Supabase
 export const saveHealthLog = async (
