@@ -26,7 +26,7 @@ beforeEach(()=>{
 afterEach(async()=>{if(tree){await act(async()=>tree.unmount());tree=null;}});
 async function mount(){function Harness(){state=useNotificationPreferences();return null;}await act(async()=>{tree=TestRenderer.create(React.createElement(Harness));});}
 test('loading preferences never requests browser permission automatically',async()=>{
-  await mount();assert.equal(prompts,0);assert.equal(state.enabled,false);assert.equal(state.loading,false);assert.match(state.status,/not connected/);
+  await mount();assert.equal(prompts,0);assert.equal(state.enabled,false);assert.equal(state.loading,false);assert.match(state.status,/Off for your account/);
 });
 test('a user enable action requests permission before issuing the save request',async()=>{
   await mount();const order=[];window.Notification.requestPermission=()=>{order.push('permission');window.Notification.permission='granted';return Promise.resolve('granted');};
@@ -87,7 +87,7 @@ test('a delayed previous-account load cannot replace the new account settings',a
   await act(async()=>pending[0].resolve(response({enabled:true,revision:2,updatedAt:new Date().toISOString()})));
   assert.equal(state.enabled,false);assert.equal(signedOut,false);
 });
-test('a saved preference survives remount and delivery remains explicitly disconnected',async()=>{
+test('a saved preference survives remount without claiming delivery',async()=>{
   window.Notification.permission='granted';await mount();await act(async()=>{await state.changeEnabled(true);});
-  await act(async()=>tree.unmount());tree=null;await mount();assert.equal(state.enabled,true);assert.match(state.status,/delivery is not connected/);
+  await act(async()=>tree.unmount());tree=null;await mount();assert.equal(state.enabled,true);assert.match(state.status,/browser permission granted/);assert.doesNotMatch(state.status,/connected|working/);
 });

@@ -47,6 +47,7 @@ export function storeSession(data: any) {
   localStorage.setItem("allert_user_id", data.user.id);
   localStorage.setItem("allert_user_email", data.user.email || "");
   localStorage.setItem("allert_user_name", data.user.user_metadata?.name || "");
+  if (previousUser !== data.user.id) window.dispatchEvent(new Event("allert-session-changed"));
 }
 
 let refreshing: Promise<string | null> | null = null;
@@ -81,6 +82,7 @@ export const getCurrentUser = () => {
 
 // Logout user
 export const logout = () => {
+  window.dispatchEvent(new Event("allert-before-signout"));
   Object.keys(localStorage).filter(key => key.startsWith("allert_")).forEach(key => localStorage.removeItem(key));
   window.dispatchEvent(new Event("allert-session-changed"));
 };

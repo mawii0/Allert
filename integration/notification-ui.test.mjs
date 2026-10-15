@@ -4,6 +4,7 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { build } from 'esbuild';
 await build({entryPoints:['src/app/components/SettingsScreen.tsx','src/app/components/OnboardingScreen.tsx'],outdir:'integration/test-output/notification-ui',bundle:true,format:'esm',platform:'node',jsx:'automatic',external:['react','react/jsx-runtime','lucide-react'],plugins:[{name:'fixtures',setup(b){
+  b.onResolve({filter:/BrowserPushControls$/},()=>({path:'push-controls',namespace:'fixture'}));
   b.onResolve({filter:/useNotificationPreferences$/},()=>({path:'preferences',namespace:'fixture'}));
   b.onResolve({filter:/useNodeTelemetry$/},()=>({path:'telemetry',namespace:'fixture'}));
   b.onResolve({filter:/risk-monitor$/},()=>({path:'monitor',namespace:'fixture'}));
@@ -13,6 +14,7 @@ await build({entryPoints:['src/app/components/SettingsScreen.tsx','src/app/compo
   b.onResolve({filter:/^react-router$/},()=>({path:'router',namespace:'fixture'}));
   b.onResolve({filter:/\.png$/},()=>({path:'image',namespace:'fixture'}));
   const fixtures={
+    'push-controls':'export const BrowserPushControls=()=>null;',
     preferences:'export const useNotificationPreferences=()=>globalThis.preferences;',
     telemetry:'export const useNodeTelemetry=()=>({device:null,latest:null,loading:false,error:null,nodeStatus:"No node",lastReading:"Unknown",retry:()=>{}});',
     monitor:'export const useRiskMonitor=()=>({data:null,status:"unavailable"});',
