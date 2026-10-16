@@ -23,6 +23,26 @@ int main() {
   assert(allertBackoff(120000)==240000);
   assert(allertBackoff(240000)==300000);
   assert(allertBackoff(300000)==300000);
+  assert(allertDeviceTokenValid("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"));
+  assert(!allertDeviceTokenValid(nullptr));
+  assert(!allertDeviceTokenValid(""));
+  assert(!allertDeviceTokenValid("REPLACE_WITH_64_CHARACTER_UPLOAD_TOKEN"));
+  assert(!allertDeviceTokenValid("abcdef0123456789abcdef0123456789abcdef0123456789abcdef012345678"));
+  assert(!allertDeviceTokenValid("abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789a"));
+  assert(!allertDeviceTokenValid("gbcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"));
+  assert(allertHttpsUploadUrlValid("https://allert-api.onrender.com/api/sensor-data"));
+  assert(allertHttpsUploadUrlValid("https://fugziwuyiecvdopdnkmn.supabase.co/functions/v1/sensor-ingest"));
+  assert(!allertHttpsUploadUrlValid(nullptr));
+  assert(!allertHttpsUploadUrlValid(""));
+  assert(!allertHttpsUploadUrlValid("https:/"));
+  assert(!allertHttpsUploadUrlValid("https:///api/sensor-data"));
+  assert(!allertHttpsUploadUrlValid("http://allert-api.onrender.com/api/sensor-data"));
+  assert(!allertHttpsUploadUrlValid("https://user:password@allert-api.onrender.com/api/sensor-data"));
+  assert(!allertHttpsUploadUrlValid("https://allert-api.onrender.com/api/sensor-data?token=secret"));
+  assert(!allertHttpsUploadUrlValid("https://allert-api.onrender.com/api/sensor-data#token"));
+  assert(!allertHttpsUploadUrlValid("https://allert-api.onrender.com/api/sensor-data "));
+  assert(allertHttpSuccess(200)); assert(allertHttpSuccess(299));
+  assert(!allertHttpSuccess(-1)); assert(!allertHttpSuccess(302)); assert(!allertHttpSuccess(503));
 }
 '''
 with tempfile.TemporaryDirectory() as temp:
@@ -30,4 +50,4 @@ with tempfile.TemporaryDirectory() as temp:
     executable=folder/'test'
     subprocess.run([compiler,'-std=c++11','-I',str(root/'firmware/Allert_node_code'),str(folder/'test.cpp'),'-o',str(executable)],check=True)
     subprocess.run([str(executable)],check=True)
-print('Firmware queue paths, UTC boundary, rollover and bounded retry checks passed.')
+print('Firmware queue paths, UTC boundary, rollover, bounded retry, device credentials and HTTPS endpoint checks passed.')

@@ -11,7 +11,13 @@
 #include <WiFiManager.h>
 #include <LittleFS.h>
 #include "node_secrets.h"
-#if ALLERT_UPLOAD_MODE == 1
+#if ALLERT_UPLOAD_MODE < 0 || ALLERT_UPLOAD_MODE > 2
+#error "ALLERT_UPLOAD_MODE must be 0 (local FastAPI), 1 (Supabase), or 2 (hosted FastAPI)."
+#endif
+#if ALLERT_UPLOAD_MODE == 2 && !defined(ALLERT_HOSTED_API_URL)
+#error "Define ALLERT_HOSTED_API_URL in private node_secrets.h before selecting hosted FastAPI mode."
+#endif
+#if ALLERT_UPLOAD_MODE == 1 || ALLERT_UPLOAD_MODE == 2
 #include "tls_roots.h"
 #endif
 #include <time.h>
@@ -25,7 +31,7 @@
 //   - Sensor reading every 10 seconds
 //   - 5-minute block average
 //   - 30 expected samples
-//   - Completed blocks queued locally; FastAPI test mode or verified HTTPS Supabase uploads
+//   - Completed blocks queued locally; local FastAPI, HTTPS Supabase, or HTTPS hosted FastAPI
 // ============================================================
 
 
@@ -82,7 +88,7 @@ bool blockCollecting = false;
 uint32_t lastUploadAttempt = 0;
 uint32_t uploadBackoff = 30000;
 String preferredPacket;
-#if ALLERT_UPLOAD_MODE == 1
+#if ALLERT_UPLOAD_MODE == 1 || ALLERT_UPLOAD_MODE == 2
 BearSSL::X509List trustAnchor(ALLERT_TLS_ROOT_CA);
 #endif
 
@@ -660,6 +666,8 @@ bool configureNodeWiFi(bool forcePortal) {
     Serial.println("[Setup] Open http://192.168.4.1 and choose Configure WiFi.");
   });
   String apName = "ALLERT-Setup-" + String(ESP.getChipId(), HEX);
+  Serial.printf("[Upload] Mode: %s\n", ALLERT_UPLOAD_MODE == 2 ? "hosted FastAPI HTTPS" :
+    (ALLERT_UPLOAD_MODE == 1 ? "Supabase HTTPS" : "local FastAPI HTTP"));
   bool connected = forcePortal
     ? manager.startConfigPortal(apName.c_str(), SETUP_AP_PASSWORD)
     : manager.autoConnect(apName.c_str(), SETUP_AP_PASSWORD);
@@ -689,13 +697,14 @@ bool configureNodeWiFi(bool forcePortal) {
     Serial.println("[NTP] Synchronization requested.");
     return true;
   }
-  Serial.println("[WiFi] Not connected. Send s in Serial Monitor to reopen setup.");
+  Serial.println("[WiFi] Not connected. Reopen setup with the setup button (if fitted) or Serial command s.");
   return false;
 }
 
 void initWiFi() {
   configureNodeWiFi(false);
-  Serial.println("[Setup] Send s in Serial Monitor to change Wi-Fi or upload server.");
+  if (ALLERT_SETUP_BUTTON_PIN >= 0) Serial.println("[Setup] Hold the setup button for 3 seconds to change Wi-Fi.");
+  Serial.println("[Setup] Serial command s also reopens Wi-Fi setup.");
 }
 
 // ============================================================
@@ -772,17 +781,26 @@ void processUploadQueue() {
   const String packet = file.readString(); file.close();
   HTTPClient http;
   http.setTimeout(8000);
+  http.setFollowRedirects(HTTPC_DISABLE_FOLLOW_REDIRECTS);
   int code = -1;
   String response;
-#if ALLERT_UPLOAD_MODE == 1
-  String credential = ALLERT_UPLOAD_TOKEN;
-  if (credential.length() != 64 || credential.startsWith("REPLACE")) {
-    Serial.println("[Cloud] Set the private device upload token before switching to cloud mode."); return;
+#if ALLERT_UPLOAD_MODE == 1 || ALLERT_UPLOAD_MODE == 2
+  const char* credential = ALLERT_UPLOAD_TOKEN;
+  if (!allertDeviceTokenValid(credential)) {
+    Serial.println("[Cloud] Set a private 64-hex device upload token before cloud uploads."); return;
+  }
+#if ALLERT_UPLOAD_MODE == 2
+  const char* uploadUrl = ALLERT_HOSTED_API_URL;
+#else
+  const char* uploadUrl = ALLERT_CLOUD_INGEST_URL;
+#endif
+  if (!allertHttpsUploadUrlValid(uploadUrl)) {
+    Serial.println("[Cloud] Set a valid HTTPS upload URL without credentials, query or fragment."); return;
   }
   BearSSL::WiFiClientSecure client;
   client.setTrustAnchors(&trustAnchor);
   client.setHandshakeTimeout(8);
-  if (!http.begin(client, ALLERT_CLOUD_INGEST_URL)) return;
+  if (!http.begin(client, uploadUrl)) return;
   http.addHeader("X-Allert-Device-Token", credential);
 #else
   WiFiClient client;
@@ -792,8 +810,8 @@ void processUploadQueue() {
   code = http.POST(packet);
   if (code > 0) response = http.getString();
   http.end();
-  bool accepted = code >= 200 && code < 300;
-#if ALLERT_UPLOAD_MODE == 1
+  bool accepted = allertHttpSuccess(code);
+#if ALLERT_UPLOAD_MODE == 1 || ALLERT_UPLOAD_MODE == 2
   JsonDocument acknowledgement;
   accepted = accepted && !deserializeJson(acknowledgement, response) && acknowledgement["ok"].is<bool>() && acknowledgement["ok"].as<bool>();
 #endif
@@ -941,7 +959,7 @@ void printBlockAverage() {
 
 
   // ----------------------------------------------------------
-  // Send to FastAPI
+  // Save the completed block; the configured upload mode drains the queue.
   // ----------------------------------------------------------
 
   bool sent = queueReading(
