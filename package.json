@@ -6,7 +6,8 @@
     "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "node --test integration/environment-policy.test.mjs integration/account-validation.test.mjs integration/environment-validation.test.mjs integration/auth-session.test.mjs integration/node-access.test.mjs integration/telemetry-session.test.mjs integration/environment-source.test.mjs integration/telemetry-analysis.test.mjs integration/risk-monitor.test.mjs integration/node-cloud.test.mjs integration/node-linking-session.test.mjs integration/node-telemetry-session.test.mjs integration/backend-auth.test.mjs",
+    "test": "node scripts/test-app.mjs",
+    "test:app-features": "node --test integration/anomaly-policy.test.mjs integration/app-feature-database.test.mjs integration/app-feature-http.test.mjs integration/app-feature-ui.test.mjs integration/worker-schedule.test.mjs",
     "test:firmware": "python3 integration/test_firmware_logic.py",
     "test:push": "node --test integration/push-database.test.mjs integration/push-http.test.mjs integration/push-session.test.mjs integration/push-ui.test.mjs integration/push-worker.test.mjs integration/push-browser.test.mjs",
     "test:notifications": "node --test integration/notification-preferences.test.mjs integration/notification-http.test.mjs integration/notification-session.test.mjs integration/notification-ui.test.mjs"

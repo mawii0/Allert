@@ -4,6 +4,8 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { build } from 'esbuild';
 await build({entryPoints:['src/app/components/SettingsScreen.tsx','src/app/components/OnboardingScreen.tsx'],outdir:'integration/test-output/notification-ui',bundle:true,format:'esm',platform:'node',jsx:'automatic',external:['react','react/jsx-runtime','lucide-react'],plugins:[{name:'fixtures',setup(b){
+  b.onResolve({filter:/AdminLiveTools$/},()=>({path:'admin-link',namespace:'admin-link-fixture'}));b.onLoad({filter:/.*/,namespace:'admin-link-fixture'},()=>({contents:'export const AdminAccessLink=()=>null;'}));
+  b.onResolve({filter:/NodeLocationControls$/},()=>({path:'location-controls',namespace:'location-fixture'}));b.onLoad({filter:/.*/,namespace:'location-fixture'},()=>({contents:'export const NodeLocationControls=()=>null;'}));
   b.onResolve({filter:/BrowserPushControls$/},()=>({path:'push-controls',namespace:'fixture'}));
   b.onResolve({filter:/useNotificationPreferences$/},()=>({path:'preferences',namespace:'fixture'}));
   b.onResolve({filter:/useNodeTelemetry$/},()=>({path:'telemetry',namespace:'fixture'}));

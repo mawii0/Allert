@@ -1,3 +1,7 @@
+import { useState } from "react";
+import { useNavigate } from "react-router";
+import { usePrivateResource } from "../utils/usePrivateResource";
+import { AdminLoadState, AdminReadingChart, adminTime, formatNumber } from "./AdminLiveTools";
 import {
   Activity,
   AlertTriangle,
@@ -12,148 +16,14 @@ import {
 } from "lucide-react";
 import { AdminSearchBar } from "./AdminSearchBar";
 
-const kpis = [
-  {
-    label: "Active Sensors",
-    value: "6 / 6",
-    subtext: "100% online",
-    accent: "#00c853",
-    icon: Radio,
-  },
-  {
-    label: "Data Availability (24h)",
-    value: "97.3%",
-    subtext: "Target: >=95%",
-    accent: "#00c853",
-    icon: Database,
-  },
-  {
-    label: "Alerts Dispatched (24h)",
-    value: "12",
-    subtext: "3 Very High, 9 Moderate",
-    accent: "#ffd600",
-    icon: Bell,
-  },
-  {
-    label: "Anomaly Events (24h)",
-    value: "2",
-    subtext: "1 Resolved, 1 Investigating",
-    accent: "#ff9100",
-    icon: AlertTriangle,
-  },
-];
-
-const sensors = [
-  {
-    id: "ilo-node-01",
-    location: "Iloilo City Proper",
-    lastSeen: "2 min ago",
-    quality: "VALID",
-    status: "online",
-    telemetry: ["45 ug/m3", "28 C", "72%", "58 ug/m3"],
-  },
-  {
-    id: "ilo-node-02",
-    location: "Jaro District",
-    lastSeen: "4 min ago",
-    quality: "VALID",
-    status: "online",
-    telemetry: ["39 ug/m3", "27 C", "68%", "52 ug/m3"],
-  },
-  {
-    id: "ilo-node-03",
-    location: "Mandurriao",
-    lastSeen: "1 min ago",
-    quality: "INTERPOLATED",
-    status: "online",
-    telemetry: ["57 ug/m3", "29 C", "75%", "64 ug/m3"],
-  },
-  {
-    id: "ilo-node-04",
-    location: "Arevalo",
-    lastSeen: "6 min ago",
-    quality: "VALID",
-    status: "online",
-    telemetry: ["33 ug/m3", "26 C", "69%", "47 ug/m3"],
-  },
-  {
-    id: "ilo-node-05",
-    location: "La Paz",
-    lastSeen: "12 min ago",
-    quality: "VALID",
-    status: "online",
-    telemetry: ["41 ug/m3", "27 C", "71%", "55 ug/m3"],
-  },
-  {
-    id: "ilo-node-06",
-    location: "Molo",
-    lastSeen: "18 min ago",
-    quality: "OFFLINE",
-    status: "offline",
-    telemetry: ["--", "--", "--", "--"],
-  },
-];
-
-const anomalies = [
-  {
-    time: "14:32",
-    node: "ilo-node-03",
-    type: "SPIKE_EMERGENCY",
-    z: "Z=4.2",
-    velocity: "18.5 ug/m3/h",
-    status: "Investigating",
-  },
-  {
-    time: "13:11",
-    node: "ilo-node-02",
-    type: "SPIKE_WARNING",
-    z: "Z=3.4",
-    velocity: "12.1 ug/m3/h",
-    status: "Resolved",
-  },
-  {
-    time: "11:48",
-    node: "ilo-node-05",
-    type: "SPIKE_WATCH",
-    z: "Z=2.6",
-    velocity: "7.8 ug/m3/h",
-    status: "Resolved",
-  },
-  {
-    time: "09:25",
-    node: "ilo-node-01",
-    type: "SPIKE_WATCH",
-    z: "Z=2.2",
-    velocity: "6.4 ug/m3/h",
-    status: "False Positive",
-  },
-  {
-    time: "07:03",
-    node: "ilo-node-04",
-    type: "SPIKE_WARNING",
-    z: "Z=3.1",
-    velocity: "10.2 ug/m3/h",
-    status: "Resolved",
-  },
-];
-
 const badgeStyles: Record<string, string> = {
   VALID: "bg-[#00c853]/10 text-[#00c853] border-[#00c853]/40",
   INTERPOLATED: "bg-[#ffd600]/10 text-[#ffd600] border-[#ffd600]/40",
   OFFLINE: "bg-[#ff1744]/10 text-[#ff1744] border-[#ff1744]/40",
-  SPIKE_WATCH: "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/40",
-  SPIKE_WARNING: "bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/40",
-  SPIKE_EMERGENCY: "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/40",
+  WATCH: "bg-[#3b82f6]/10 text-[#3b82f6] border-[#3b82f6]/40",
+  WARNING: "bg-[#f59e0b]/10 text-[#f59e0b] border-[#f59e0b]/40",
+  CRITICAL: "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/40",
 };
-
-const sparklineSets = [
-  "10 42 22 36 34 38 46 26 58 40 70 22",
-  "10 36 22 28 34 34 46 30 58 38 70 40",
-  "10 30 22 26 34 36 46 20 58 28 70 34",
-  "10 40 22 44 34 32 46 40 58 30 70 46",
-  "10 34 22 32 34 38 46 28 58 36 70 30",
-  "10 40 22 40 34 40 46 40 58 40 70 40",
-];
 
 function Badge({ label }: { label: string }) {
   return (
@@ -167,20 +37,30 @@ function Badge({ label }: { label: string }) {
   );
 }
 
-function Sparkline({ points }: { points: string }) {
-  return (
-    <svg viewBox="0 0 80 48" className="h-12 w-20">
-      <polyline
-        fill="none"
-        stroke="#00bfa5"
-        strokeWidth="2"
-        points={points}
-      />
-    </svg>
-  );
-}
-
 export function AdminOverviewScreen() {
+  const resource=usePrivateResource<any>("/admin/overview"),navigate=useNavigate();
+  const [search,setSearch]=useState("");
+  const data=resource.data;
+  const nodes=data?.nodes || [];
+  const total=nodes.length,online=nodes.filter((node:any)=>node.online).length;
+  const coverage=total && nodes.every((node:any)=>node.coverage!==null)?nodes.reduce((sum:number,node:any)=>sum+node.coverage,0)/total:null;
+  const kpis=[
+    {label:"Recent Sensors",value:data?`${online} / ${total}`:"—",subtext:"Recent complete readings · loaded nodes",accent:"#00c853",icon:Radio},
+    {label:"Verified Blocks (24h)",value:coverage===null?"—":`${coverage.toFixed(1)}%`,subtext:"Receipt-verified coverage · loaded nodes",accent:"#00c853",icon:Database},
+    {label:"Push Accepted (24h)",value:data?String(data.accepted_deliveries):"—",subtext:"Transport accepted; display is not confirmed",accent:"#ffd600",icon:Bell},
+    {label:"Anomaly Events (24h)",value:data?String(data.anomaly_count):"—",subtext:"Stored measurement anomalies",accent:"#ff9100",icon:AlertTriangle},
+  ];
+  const sensors=nodes.filter((node:any)=>`${node.device.device_id} ${node.device.location_label}`.toLowerCase().includes(search.toLowerCase())).map((node:any)=>({
+    id:node.device.device_id,location:node.device.location_label || "Home",lastSeen:adminTime(node.latest?.timestamp),
+    quality:node.error?"UNAVAILABLE":!node.device.is_active?"DISABLED":node.online?node.latest.data_quality_status:"OFFLINE",status:node.online?"online":"offline",history:node.history,
+    telemetry:[formatNumber(node.latest?.pm2_5,"µg/m³"),formatNumber(node.latest?.temperature,"°C"),formatNumber(node.latest?.humidity,"%"),formatNumber(node.latest?.pm10,"µg/m³")],
+  }));
+  const anomalies=(data?.events || []).filter((event:any)=>`${event.device_id} ${event.severity} ${event.classification}`.toLowerCase().includes(search.toLowerCase())).map((event:any)=>({
+    id:event.id,time:adminTime(event.observed_at),node:event.device_id,type:event.severity.toUpperCase(),
+    z:formatNumber(Math.max(event.metrics.pm2_5?.z || 0,event.metrics.pm10?.z || 0)),
+    velocity:formatNumber(Math.max(event.metrics.pm2_5?.velocity || 0,event.metrics.pm10?.velocity || 0),"µg/m³/h"),status:event.classification.replaceAll("_"," "),
+  }));
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="flex">
@@ -192,21 +72,21 @@ export function AdminOverviewScreen() {
             ALLERT Admin
           </div>
           <nav className="space-y-2 text-sm text-[#b0b0b0]">
-            <div className="rounded-xl bg-[#1e1e1e] px-3 py-2 text-white">Sensor Network</div>
-            <div className="rounded-xl px-3 py-2 hover:bg-[#1e1e1e]">Node Detail</div>
-            <div className="rounded-xl px-3 py-2 hover:bg-[#1e1e1e]">Anomaly Review</div>
-            <div className="rounded-xl px-3 py-2 hover:bg-[#1e1e1e]">Calibration</div>
-            <div className="rounded-xl px-3 py-2 hover:bg-[#1e1e1e]">System Health</div>
+            <a href="/admin/overview" className="block rounded-xl bg-[#1e1e1e] px-3 py-2 text-white">Sensor Network</a>
+            <div className="rounded-xl px-3 py-2 hover:bg-[#1e1e1e]">Node Detail · select a node below</div>
+            <div className="rounded-xl px-3 py-2 hover:bg-[#1e1e1e]">Anomaly Review · select an event below</div>
+            <div className="rounded-xl px-3 py-2 hover:bg-[#1e1e1e]">Calibration · not connected</div>
+            <div className="rounded-xl px-3 py-2 hover:bg-[#1e1e1e]"><a href="/app/settings">System Health</a></div>
           </nav>
           <div className="mt-auto space-y-3 rounded-2xl border border-[#2a2a2a] bg-[#141414] p-4 text-xs text-[#b0b0b0]">
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 text-[#00c853]" />
-              <span className="text-white">Operational</span>
+              <span className="text-white">{data ? "Live monitoring" : "Data unavailable"}</span>
             </div>
-            <div className="font-mono">Last ingest: 2 min ago</div>
+            <div className="font-mono">Last refresh: {adminTime(data?.generated_at)}</div>
             <div className="flex items-center gap-2">
               <Cpu className="h-4 w-4 text-[#00bfa5]" />
-              Model v2.3.1 deployed
+              Model status unavailable
             </div>
           </div>
         </aside>
@@ -219,30 +99,31 @@ export function AdminOverviewScreen() {
               </div>
               <div>
                 <div className="text-lg font-semibold">Sensor Network Overview</div>
-                <div className="text-xs text-[#b0b0b0]">Iloilo Deployment Cluster</div>
+                <div className="text-xs text-[#b0b0b0]">Registered sensor network</div>
               </div>
             </div>
             <div className="flex flex-col gap-3 text-sm text-[#b0b0b0] lg:flex-row lg:items-center">
-              <AdminSearchBar className="w-full lg:w-72" />
+              <AdminSearchBar className="w-full lg:w-72" value={search} onChange={setSearch} placeholder="Search loaded nodes and events" />
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-[#00c853] animate-pulse" />
-                  Operational
+                  {resource.loading ? "Loading…" : resource.error ? "Unavailable" : "Live records"}
                 </div>
-                <div className="font-mono">Last data: 2 min ago</div>
+                <div className="font-mono">Refreshed: {adminTime(data?.generated_at)}</div>
                 <div className="flex items-center gap-3">
                   <div className="h-9 w-9 rounded-full bg-[#1e1e1e] flex items-center justify-center">
                     <Signal className="h-4 w-4" />
                   </div>
                   <div>
                     <div className="text-white">System Admin</div>
-                    <div className="text-xs">admin@allert.system</div>
+                    <div className="text-xs">Verified administrator</div>
                   </div>
                 </div>
               </div>
             </div>
           </header>
 
+          <div className="mt-4"><AdminLoadState resource={resource} /><button type="button" onClick={resource.retry} disabled={resource.loading} className="text-xs text-[#00bfa5] underline mt-2">Refresh monitoring</button>{data?.truncated && <p className="text-xs text-amber-300 mt-2">Showing the first {nodes.length} of {data.total_nodes} registered nodes. Counts of recent sensors and coverage describe only loaded nodes.</p>}</div>
           <section className="mt-6 grid gap-4 lg:grid-cols-4">
             {kpis.map((kpi) => {
               const Icon = kpi.icon;
@@ -264,7 +145,8 @@ export function AdminOverviewScreen() {
 
           <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-              {sensors.map((sensor, index) => (
+              {data && !sensors.length && <p className="text-sm text-zinc-400">No matching registered nodes.</p>}
+              {sensors.map((sensor:any, index:number) => (
                 <div
                   key={sensor.id}
                   className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-5"
@@ -307,8 +189,8 @@ export function AdminOverviewScreen() {
                     ))}
                   </div>
                   <div className="mt-4 flex items-center justify-between text-xs">
-                    <Sparkline points={sparklineSets[index]} />
-                    <button className="text-[#00bfa5]">View Detail</button>
+                    <AdminReadingChart rows={sensor.history} small />
+                    <button onClick={()=>navigate(`/admin/sensor-detail?node=${encodeURIComponent(sensor.id)}`)} className="text-[#00bfa5]">View Detail</button>
                   </div>
                 </div>
               ))}
@@ -316,8 +198,8 @@ export function AdminOverviewScreen() {
 
             <div className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-5">
               <div className="mb-4 text-sm font-semibold">Anomaly Event Log</div>
-              <div className="grid gap-3 text-xs text-[#b0b0b0]">
-                <div className="grid grid-cols-[70px_90px_1fr_70px_90px_100px] gap-2 text-[11px] uppercase">
+              <div className="grid gap-3 overflow-x-auto text-xs text-[#b0b0b0]">
+                <div className="min-w-[600px] grid grid-cols-[70px_90px_1fr_70px_90px_100px] gap-2 text-[11px] uppercase">
                   <span>Time</span>
                   <span>Node</span>
                   <span>Type</span>
@@ -325,12 +207,13 @@ export function AdminOverviewScreen() {
                   <span>Velocity</span>
                   <span>Status</span>
                 </div>
-                {anomalies.map((entry) => (
+                {data && !anomalies.length && <p className="text-sm text-zinc-400">No matching stored anomaly events.</p>}
+                {anomalies.map((entry:any) => (
                   <div
-                    key={`${entry.time}-${entry.node}`}
-                    className="grid grid-cols-[70px_90px_1fr_70px_90px_100px] items-center gap-2 rounded-xl border border-transparent px-2 py-2 hover:border-[#2a2a2a] hover:bg-[#1e1e1e]"
+                    key={entry.id}
+                    className="min-w-[600px] grid grid-cols-[70px_90px_1fr_70px_90px_100px] items-center gap-2 rounded-xl border border-transparent px-2 py-2 hover:border-[#2a2a2a] hover:bg-[#1e1e1e]"
                   >
-                    <span className="font-mono text-white">{entry.time}</span>
+                    <button onClick={()=>navigate(`/admin/anomaly-investigation?event=${entry.id}`)} className="font-mono text-[#00bfa5] underline text-left">{entry.time}</button>
                     <span className="font-mono">{entry.node}</span>
                     <Badge label={entry.type} />
                     <span>{entry.z}</span>
@@ -345,52 +228,9 @@ export function AdminOverviewScreen() {
           <section className="mt-6 rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="text-sm font-semibold">Calibration Drift Monitor</div>
-              <div className="text-xs text-[#b0b0b0]">7-day rolling MAE (ug/m3)</div>
+              <div className="text-xs text-[#b0b0b0]">Reference measurements required</div>
             </div>
-            <div className="relative h-60 w-full">
-              <svg viewBox="0 0 600 220" className="h-full w-full">
-                <line
-                  x1="0"
-                  y1="160"
-                  x2="600"
-                  y2="160"
-                  stroke="#ff1744"
-                  strokeDasharray="6 6"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="2"
-                  points="0,150 100,140 200,132 300,120 400,110 500,100 600,90"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#00c853"
-                  strokeWidth="2"
-                  points="0,160 100,150 200,146 300,140 400,130 500,122 600,110"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#9c27b0"
-                  strokeWidth="2"
-                  points="0,130 100,138 200,140 300,150 400,158 500,162 600,170"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#ff9100"
-                  strokeWidth="2"
-                  points="0,120 100,112 200,118 300,126 400,138 500,148 600,155"
-                />
-                <circle cx="400" cy="110" r="4" fill="#ff1744" />
-              </svg>
-              <div className="absolute inset-0 flex items-end justify-between text-[11px] text-[#6b7280]">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((label) => (
-                  <span key={label} className="w-[14%] text-center">
-                    {label}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <div className="relative h-60 w-full flex items-center justify-center text-sm text-zinc-400">No matched calibration/reference data has been recorded. Drift and MAE are unavailable.</div>
           </section>
         </main>
       </div>

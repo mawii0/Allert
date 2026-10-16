@@ -10,6 +10,10 @@ import { readingTableFor } from "./sensor-routing.mjs";
 import { validEntryId, symptomSummary, visibleHealthLogs } from "./health-log-tools.mjs";
 import { notificationPreferenceKey, defaultNotificationPreferences, validNotificationPreferences, notificationPreferenceChange } from "./notification-preferences.mjs";
 import { installPushRoutes } from "./push-routes.mjs";
+import { installAppFeatureRoutes } from "./app-feature-routes.mjs";
+import { automaticAnomalyReady } from "./anomaly-worker.mjs";
+import { pushConfiguration } from "./push-policy.mjs";
+import { deliverAnomalyPush } from "./push-delivery.mjs";
 import { deliverTestPush } from "./push-delivery.mjs";
 
 import { normalizeNodeClaim } from "./node-link-validation.mjs";
@@ -682,7 +686,7 @@ app.get("/make-server-a473accf/notification-preferences", async c => {
     const stored = await kv.get(notificationPreferenceKey(verified.user.id));
     const preferences = stored === undefined || stored === null ? defaultNotificationPreferences() : stored;
     if (!validNotificationPreferences(preferences)) return c.json({ error: "Stored notification settings are invalid." }, 503);
-    return c.json({ preferences, deliveryReady: false });
+    return c.json({ preferences, deliveryReady: pushConfiguration(Deno.env).ready && await automaticAnomalyReady(verified.client,Deno.env) });
   } catch { return c.json({ error: "Unable to load notification settings." }, 503); }
 });
 app.put("/make-server-a473accf/notification-preferences", async c => {
@@ -697,9 +701,19 @@ app.put("/make-server-a473accf/notification-preferences", async c => {
     if (error) return c.json({ error: "Unable to save notification preference. Check the notification database migration." }, 503);
     if (!data?.ok) return c.json({ error: data?.error || "Unable to save notification preference." }, data?.status === 409 ? 409 : data?.status === 400 ? 400 : 503);
     if (!validNotificationPreferences(data.preferences)) return c.json({ error: "Invalid saved notification settings." }, 503);
-    return c.json({ preferences: data.preferences, deliveryReady: false });
+    return c.json({ preferences: data.preferences, deliveryReady: pushConfiguration(Deno.env).ready && await automaticAnomalyReady(verified.client,Deno.env) });
   } catch { return c.json({ error: "Unable to save notification preference." }, 503); }
 });
 
 installPushRoutes(app, notificationAccount, Deno.env, deliverTestPush);
+const getAlertWorkerClient = () => {
+  const deadline = AbortSignal.timeout(45000);
+  return createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: (input: any, init: any = {}) => fetch(input, {
+      ...init, signal: init.signal ? AbortSignal.any([deadline, init.signal]) : deadline,
+    }) },
+  });
+};
+installAppFeatureRoutes(app, notificationAccount, getAlertWorkerClient, Deno.env, deliverAnomalyPush);
 Deno.serve(app.fetch);

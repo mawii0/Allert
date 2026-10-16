@@ -1,4 +1,5 @@
 import { defaultQuietHours, validQuietHours, validPushId, validPushSubscription, pushConfiguration } from "./push-policy.mjs";
+import { automaticAnomalyReady } from "./anomaly-worker.mjs";
 
 export function installPushRoutes(app, authenticate, env, send) {
   const root = "/make-server-a473accf/push";
@@ -17,7 +18,7 @@ export function installPushRoutes(app, authenticate, env, send) {
     if (error) return c.json({ error: "Push database unavailable. Check the push migration." }, 503);
     const config = pushConfiguration(env);
     const quietHours = data ? { enabled: data.quiet_enabled, start: data.quiet_start, end: data.quiet_end, revision: data.revision, timezone: "Asia/Manila" } : defaultQuietHours();
-    return c.json({ configured: config.ready, publicKey: config.publicKey, quietHours, automaticAlertsReady: false });
+    return c.json({ configured: config.ready, publicKey: config.publicKey, quietHours, automaticAlertsReady: config.ready && await automaticAnomalyReady(client,env) });
   }));
   app.put(`${root}/quiet-hours`, guard(async (c, { client, user }) => {
     const body = await c.req.json();

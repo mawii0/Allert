@@ -1,3 +1,4 @@
+import { SensorNotices } from "./SensorNotices";
 import { useEffect, useState } from "react";
 import { Wind, Thermometer, Droplets, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
@@ -127,6 +128,7 @@ export function EnvironmentalScreen() {
     const reset = () => { revision++; setTelemetry(null); setError(""); setLoading(true); void refresh(); };
     window.addEventListener("storage", reset);
     window.addEventListener("allert-session-changed", reset);
+    window.addEventListener("allert-location-changed", reset);
     window.addEventListener("focus", refresh);
     void refresh();
 
@@ -135,6 +137,7 @@ export function EnvironmentalScreen() {
       clearTimeout(timer);
       window.removeEventListener("storage", reset);
       window.removeEventListener("allert-session-changed", reset);
+      window.removeEventListener("allert-location-changed", reset);
       window.removeEventListener("focus", refresh);
     };
   }, [attempt]);
@@ -276,6 +279,7 @@ export function EnvironmentalScreen() {
         </section>
         <p className="mt-3 text-[10px] text-zinc-500">{latest.device_id} - {replay ? "Recorded window ended" : "Last reading"} {displayTime(latest.timestamp)} (Manila).</p>
       </>}
+      <SensorNotices />
     </div>
   );
 }

@@ -42,14 +42,14 @@ export function useNodeTelemetry() {
     const changed = (event: StorageEvent) => { if (!event.key || event.key.startsWith("allert_")) reset(); };
     window.addEventListener("storage", changed);
     window.addEventListener("allert-session-changed", reset);
-    window.addEventListener("allert-node-changed", reset);
+    window.addEventListener("allert-node-changed", reset);window.addEventListener("allert-location-changed", reset);
     void refresh();
     return () => {
       active = false; controller.abort();
       if (timer !== undefined) clearTimeout(timer);
       window.removeEventListener("storage", changed);
       window.removeEventListener("allert-session-changed", reset);
-      window.removeEventListener("allert-node-changed", reset);
+      window.removeEventListener("allert-node-changed", reset);window.removeEventListener("allert-location-changed", reset);
     };
   }, [revision]);
   const device = telemetry?.device ?? null;
