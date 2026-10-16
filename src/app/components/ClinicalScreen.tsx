@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Slider } from "./ui/slider";
 import { useDiary } from "../utils/useDiary";
+import { ClinicalCorrelation } from "./ClinicalCorrelation";
 import type { DiaryEntry, DiaryFields } from "../utils/diary";
 import { diaryCsv, diaryDailyTrend, filteredDiary, manilaInput } from "../utils/diary-history.mjs";
 import {
@@ -512,6 +513,8 @@ export function ClinicalScreen() {
       >
         {isSaving ? "Saving..." : editing ? "Save changes" : "Save Today's Entry"}
       </button>
+
+      <ClinicalCorrelation diaryRevision={diary.entries.map(entry=>`${entry.id}:${entry.revision}`).join(",")} />
 
       {/* Success Toast */}
       <AnimatePresence>

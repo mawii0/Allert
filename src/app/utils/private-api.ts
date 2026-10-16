@@ -1,7 +1,7 @@
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { getCurrentUser, getValidAuthToken, logout } from "./auth";
 
-export async function privateApi<T>(path: string, options: { method?: string; body?: object; signal?: AbortSignal } = {}): Promise<T> {
+export async function privateApi<T>(path: string, options: { method?: string; body?: object; signal?: AbortSignal; timeoutMs?: number } = {}): Promise<T> {
   const account = getCurrentUser().id;
   let invalidated=false;
   const invalidate=()=>{invalidated=true;};
@@ -19,7 +19,7 @@ export async function privateApi<T>(path: string, options: { method?: string; bo
     method: options.method || "GET", cache: "no-store",
     headers: { Authorization: `Bearer ${token}`, apikey: publicAnonKey, ...(options.body && { "Content-Type": "application/json" }) },
     ...(options.body && { body: JSON.stringify(options.body) }),
-    signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
+    signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs || 20000)]) : AbortSignal.timeout(options.timeoutMs || 20000),
   });
   const raw = await response.text();
   checkAccount();

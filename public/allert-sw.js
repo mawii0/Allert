@@ -1,4 +1,9 @@
-// Push only. No fetch handler, response cache, access tokens, or health records.
+// Generic offline navigation fallback only. No cached responses, tokens, or health records.
+const offlineDocument = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ALLERT — Offline</title><body style="background:#09090b;color:#f4f4f5;font:16px system-ui;padding:32px;max-width:480px;margin:auto"><h1>ALLERT</h1><h2>You are offline</h2><p>Connect to the internet and reload to open your account and current readings.</p><p>No diary save or account change has been confirmed on this page.</p><button onclick="location.reload()" style="padding:12px">Try again</button></body></html>';
+self.addEventListener("fetch", event => {
+  if(event.request.mode!=="navigate" || new URL(event.request.url).origin!==self.location.origin)return;
+  event.respondWith(fetch(event.request).catch(()=>new Response(offlineDocument,{status:503,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"}})));
+});
 const database = () => new Promise((resolve, reject) => {
   const request = indexedDB.open("allert-push", 1);
   request.onupgradeneeded = () => request.result.createObjectStore("state");

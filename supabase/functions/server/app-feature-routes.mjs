@@ -2,6 +2,7 @@ import { ANOMALY_POLICY } from "./anomaly-policy.mjs";
 import { processAnomalyBatch } from "./anomaly-worker.mjs";
 import { adminOverview, nodeSnapshot } from "./admin-monitoring.mjs";
 import { normalizeNodeLocation } from "./location-policy.mjs";
+import { currentNodeOwner } from "./node-ownership.mjs";
 
 const validId = value => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 export function installAppFeatureRoutes(app, authenticate, createClient, env, send) {
@@ -51,6 +52,7 @@ export function installAppFeatureRoutes(app, authenticate, createClient, env, se
       client.from("allert_detector_state").select("status,baseline_count,updated_at").eq("device_id",device.device_id).eq("user_id",user.id).eq("owner_epoch",epoch).maybeSingle(),
     ]);
     if(events.error || state.error)throw Error("Alert history unavailable.");
+    if(!await currentNodeOwner(client,user.id,device))return c.json({error:"Node ownership changed. Refresh this screen."},409);
     return c.json({device:{device_id:device.device_id},events:events.data || [],detector:state.data,processorReady:ready,policy:ANOMALY_POLICY});
   }));
   app.get(`${root}/admin/access`,guard(async(c,{client,user})=>{
@@ -89,6 +91,7 @@ export function installAppFeatureRoutes(app, authenticate, createClient, env, se
     const response=await client.from("allert_node_locations").select("enabled,latitude,longitude,accuracy,captured_at,revision,updated_at")
       .eq("device_id",device.device_id).eq("user_id",user.id).eq("owner_epoch",device.owner_since || "1970-01-01T00:00:00.000Z").maybeSingle();
     if(response.error)throw response.error;
+    if(!await currentNodeOwner(client,user.id,device))return c.json({error:"Node ownership changed. Refresh this screen."},409);
     return c.json({device:{device_id:device.device_id,owner_epoch:device.owner_since || "1970-01-01T00:00:00.000Z"},location:{enabled:false,revision:0,latitude:null,longitude:null,accuracy:null,captured_at:null,...response.data,label:device.location_label || "Home"}});
   }));
   app.put(`${root}/node-location`,guard(async(c,{client,user})=>{

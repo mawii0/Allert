@@ -1,5 +1,4 @@
-import { projectId, publicAnonKey } from "/utils/supabase/info";
-import { getValidAuthToken, logout } from "./auth";
+import { privateApi } from "./private-api";
 
 export interface SensorReading {
   id: number;
@@ -28,31 +27,8 @@ export interface SensorTelemetry {
 export async function getSensorTelemetry(
   signal?: AbortSignal,
 ): Promise<SensorTelemetry> {
-  const token = await getValidAuthToken();
-
-  if (!token) throw new Error("Please sign in.");
-
-  const response = await fetch(
-    `https://${projectId}.supabase.co/functions/v1/make-server-a473accf/sensor-telemetry`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: publicAnonKey,
-      },
-      cache: "no-store",
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
-    },
-  );
-
-  if (response.status === 401) logout();
-  const raw = await response.text();
-  let data;
-  try { data = JSON.parse(raw); }
-  catch { throw new Error(`Sensor endpoint returned HTTP ${response.status}. Check its deployment.`); }
-
-  if (!response.ok) {
-    throw new Error(data.error || "Unable to load sensor readings.");
-  }
+  signal?.throwIfAborted();
+  const data = await privateApi<SensorTelemetry>("/sensor-telemetry", { signal });
 
   if (!data || typeof data !== "object" || !Array.isArray(data.history) || data.history.length > 1000 ||
       !("latest" in data) || !("device" in data) ||

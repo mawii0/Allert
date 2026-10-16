@@ -11,6 +11,8 @@ import { validEntryId, symptomSummary, visibleHealthLogs } from "./health-log-to
 import { notificationPreferenceKey, defaultNotificationPreferences, validNotificationPreferences, notificationPreferenceChange } from "./notification-preferences.mjs";
 import { installPushRoutes } from "./push-routes.mjs";
 import { installAppFeatureRoutes } from "./app-feature-routes.mjs";
+import { archiveForecastEvidence, installClinicalRoutes } from "./clinical-routes.mjs";
+import { currentNodeOwner } from "./node-ownership.mjs";
 import { automaticAnomalyReady } from "./anomaly-worker.mjs";
 import { pushConfiguration } from "./push-policy.mjs";
 import { deliverAnomalyPush } from "./push-delivery.mjs";
@@ -308,18 +310,20 @@ app.get("/make-server-a473accf/health-logs", async (c) => {
       return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const legacyLogs = await kv.get(`health-logs:${user.id}`) || [];
-    const entries = await kv.getRecentByPrefix(`health-log:v2:${user.id}:`, 500);
-    const legacyIds = (Array.isArray(legacyLogs) ? legacyLogs : []).slice(0, 500).filter(entry => validEntryId(entry?.id));
-    const overrides = legacyIds.length ? await kv.mget(legacyIds.map(entry => `health-log:v2:${user.id}:${entry.id}`)) : [];
-    const logs = visibleHealthLogs([...entries, ...overrides], legacyLogs, 500);
-
-    return c.json({ logs, history_limit: 500, truncated: entries.length >= 500 });
+    return c.json(await loadVisibleDiary(user.id));
   } catch (error: any) {
     console.log("Health logs fetch error:", error);
     return c.json({ error: error.message || "Health logs fetch failed" }, 500);
   }
 });
+
+async function loadVisibleDiary(userId: string) {
+  const legacyLogs = await kv.get(`health-logs:${userId}`) || [];
+  const entries = await kv.getRecentByPrefix(`health-log:v2:${userId}:`, 500);
+  const legacyIds = (Array.isArray(legacyLogs) ? legacyLogs : []).slice(0, 500).filter(entry => validEntryId(entry?.id));
+  const overrides = legacyIds.length ? await kv.mget(legacyIds.map(entry => `health-log:v2:${userId}:${entry.id}`)) : [];
+  return { logs: visibleHealthLogs([...entries, ...overrides], legacyLogs, 500), history_limit: 500, truncated: entries.length >= 500 || legacyIds.length >= 500 };
+}
 
 // Corrections use a stored revision so simultaneous edits cannot overwrite each other.
 async function manageHealthLog(c: any, action: "update" | "delete") {
@@ -475,6 +479,7 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
 
     if (latestResult.error) throw latestResult.error;
     if (historyResult.error) throw historyResult.error;
+    if (!await currentNodeOwner(supabase, user.id, device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
 
     return c.json({
       device,
@@ -559,6 +564,7 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
 
         if (
           validModelForecast(cached, configuredSensor, now) &&
+          Date.parse(cached.forecast_origin) >= Date.parse(telemetry.device.owner_since ?? "1970-01-01T00:00:00Z") &&
           Date.parse(cached.forecast_origin) === origin
         ) {
           model = cached;
@@ -644,7 +650,16 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
       modelStatus = "sensor_not_enabled_for_model";
     }
 
-    return c.json({ ...buildMonitor(telemetry, model, now, modelStatus), model_input: inputStatus });
+    const monitor = { ...buildMonitor(telemetry, model, now, modelStatus), model_input: inputStatus };
+    if (telemetry.device) {
+      const account = await notificationAccount(c);
+      if (account.response) return account.response;
+      if (!await currentNodeOwner(account.client, account.user.id, telemetry.device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
+      const evidenceStatus = await archiveForecastEvidence(account.client, account.user, telemetry.device, monitor);
+      if (!await currentNodeOwner(account.client, account.user.id, telemetry.device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
+      return c.json({ ...monitor, forecast_evidence: evidenceStatus });
+    }
+    return c.json(monitor);
   } catch {
     return c.json(
       { error: "Unable to load risk monitor readings." },
@@ -716,4 +731,5 @@ const getAlertWorkerClient = () => {
   });
 };
 installAppFeatureRoutes(app, notificationAccount, getAlertWorkerClient, Deno.env, deliverAnomalyPush);
+installClinicalRoutes(app, notificationAccount, loadVisibleDiary, userId => kv.get(`profile:${userId}`));
 Deno.serve(app.fetch);
