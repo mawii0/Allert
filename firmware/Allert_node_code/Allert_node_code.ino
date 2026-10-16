@@ -799,7 +799,7 @@ void processUploadQueue() {
   }
   BearSSL::WiFiClientSecure client;
   client.setTrustAnchors(&trustAnchor);
-  client.setHandshakeTimeout(8);
+  client.setTimeout(8000);
   if (!http.begin(client, uploadUrl)) return;
   http.addHeader("X-Allert-Device-Token", credential);
 #else
