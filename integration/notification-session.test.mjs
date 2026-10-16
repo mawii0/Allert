@@ -28,6 +28,10 @@ async function mount(){function Harness(){state=useNotificationPreferences();ret
 test('loading preferences never requests browser permission automatically',async()=>{
   await mount();assert.equal(prompts,0);assert.equal(state.enabled,false);assert.equal(state.loading,false);assert.match(state.status,/Off for your account/);
 });
+test('a running automatic sender remains compatible with loading a saved notification preference',async()=>{
+  globalThis.fetch=async()=>new Response(JSON.stringify({preferences:{enabled:true,revision:2,updatedAt:new Date().toISOString()},deliveryReady:true}),{status:200});
+  await mount();assert.equal(state.enabled,true);assert.equal(state.error,'');assert.equal(prompts,0);
+});
 test('a user enable action requests permission before issuing the save request',async()=>{
   await mount();const order=[];window.Notification.requestPermission=()=>{order.push('permission');window.Notification.permission='granted';return Promise.resolve('granted');};
   const fetch=globalThis.fetch;globalThis.fetch=(url,options)=>{if(options.method==='PUT')order.push('save');return fetch(url,options);};

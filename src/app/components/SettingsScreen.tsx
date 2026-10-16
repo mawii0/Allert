@@ -1,5 +1,6 @@
+import { AdminAccessLink } from "./AdminLiveTools";
+import { NodeLocationControls } from "./NodeLocationControls";
 import { useNodeTelemetry } from "../utils/useNodeTelemetry";
-import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   Cpu,
@@ -25,7 +26,6 @@ import { ProfileEditor } from "./ProfileEditor";
 export function SettingsScreen() {
   const navigate = useNavigate();
   const notifications = useNotificationPreferences();
-  const [locationEnabled, setLocationEnabled] = useState(false);
   const profileSettings = useProfileSettings();
   const { profile: userProfile, loading: isLoadingProfile } = profileSettings;
   const {
@@ -312,18 +312,7 @@ export function SettingsScreen() {
 
           <div className="h-px bg-zinc-800" />
 
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <div className="text-sm font-medium">Location Services</div>
-              <div className="text-xs text-zinc-500">Not connected yet</div>
-            </div>
-            <Switch
-              disabled
-              aria-label="Location services unavailable"
-              checked={false}
-              onCheckedChange={setLocationEnabled}
-            />
-          </div>
+          <NodeLocationControls />
         </div>
       </div>
 
@@ -335,6 +324,7 @@ export function SettingsScreen() {
             <span className="font-medium text-emerald-400">{nodeStatus}</span>
           </div>
           <div>ALLERT System • Version 1.1.0</div>
+          <AdminAccessLink />
           <div>Model: {monitor?.model_status?.replaceAll("_", " ") || (monitorStatus === "loading" ? "Checking…" : "Unavailable")}</div>
           <div>Allergic Rhinitis Environmental Monitoring</div>
           <div className="text-xs pt-2">© 2026 Research Prototype</div>

@@ -9,7 +9,7 @@ function worker(binding={id:'current',owner:'account-a'}){
   vm.runInContext(source,context);context.currentBinding=binding;
   vm.runInContext('state=async()=>currentBinding;',context);
   const dispatch=async(name,extra)=>{let task;listeners[name]({...extra,waitUntil:promise=>task=promise});await task;};
-  return {notifications,opened,push:message=>dispatch('push',{data:{json:()=>message}}),click:bindingId=>dispatch('notificationclick',{notification:{data:{bindingId},close(){}}})};
+  return {notifications,opened,push:message=>dispatch('push',{data:{json:()=>message}}),click:(bindingId,kind)=>dispatch('notificationclick',{notification:{data:{bindingId,kind},close(){}}})};
 }
 test('a matching current binding displays a fixed generic test message',async()=>{
   const w=worker();await w.push({version:1,kind:'test',bindingId:'current',sentAt:Date.now(),title:'injected health detail',url:'https://evil.example'});
@@ -23,4 +23,11 @@ test('unbound, previous-account, malformed, old and future push messages cannot 
 });
 test('notification clicks use only this origin and refuse stale account bindings',async()=>{
   const w=worker();await w.click('old');assert.equal(w.opened.length,0);await w.click('current');assert.deepEqual(w.opened,['https://allert.example/']);
+});
+test('anomaly notices reveal only a fixed generic message and navigate to the fixed sensor-notice page',async()=>{
+  const w=worker();await w.push({version:1,kind:'anomaly',bindingId:'current',sentAt:Date.now(),eventId:'33333333-3333-4333-8333-333333333333',title:'Injected patient detail',url:'https://evil.example'});
+  assert.equal(w.notifications.length,1);assert.equal(w.notifications[0].title,'ALLERT sensor notice');assert.ok(!JSON.stringify(w.notifications[0]).includes('Injected patient detail'));await w.click('current','anomaly');assert.deepEqual(w.opened,['https://allert.example/app/environmental#sensor-notices']);
+});
+test('an invalid anomaly ID, previous binding, or malformed sent time never displays a sensor notice',async()=>{
+  for(const patch of [{eventId:'invalid'},{bindingId:'old'},{sentAt:NaN}]){const w=worker();await w.push({version:1,kind:'anomaly',bindingId:'current',sentAt:Date.now(),eventId:'33333333-3333-4333-8333-333333333333',...patch});assert.equal(w.notifications.length,0);}
 });

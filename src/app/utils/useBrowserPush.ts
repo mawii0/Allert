@@ -5,7 +5,7 @@ import { browserPushConnected, connectBrowser, disconnectBrowser, testBrowserPus
 import { defaultQuietHours, validQuietHours } from "../../../supabase/functions/server/push-policy.mjs";
 
 export function useBrowserPush() {
-  const [config, setConfig] = useState<{ configured: boolean; publicKey: string | null } | null>(null);
+  const [config, setConfig] = useState<{ configured: boolean; publicKey: string | null; automaticAlertsReady?: boolean } | null>(null);
   const [quiet, setQuiet] = useState(defaultQuietHours);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true), [busy, setBusy] = useState(false);
@@ -49,6 +49,7 @@ export function useBrowserPush() {
   }
   return {
     quiet, connected, loading, busy, error, message, supported: pushSupported(), configured: config?.configured === true,
+    automaticAlertsReady: config?.automaticAlertsReady === true,
     refresh: () => { if (!working.current) setAttempt(value => value + 1); },
     connect: () => action(async current => {
       if (!config?.publicKey) throw Error("Configure push keys in Supabase first.");

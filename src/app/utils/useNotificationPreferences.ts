@@ -5,7 +5,7 @@ import { validNotificationPreferences } from "../../../supabase/functions/server
 import { notificationPermission, requestNotificationPermission, notificationStatus } from "./notification-permission";
 
 interface NotificationPreferences { enabled: boolean; revision: number; updatedAt: string | null; }
-interface PreferenceResponse { preferences: NotificationPreferences; deliveryReady: false; }
+interface PreferenceResponse { preferences: NotificationPreferences; deliveryReady: boolean; }
 
 export function useNotificationPreferences() {
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
@@ -27,7 +27,7 @@ export function useNotificationPreferences() {
     setLoading(true); setError("");
     const current = () => active && generation.current === currentGeneration && getCurrentUser().id === account;
     void privateApi<PreferenceResponse>("/notification-preferences", { signal: controller.signal }).then(result => {
-      if (!validNotificationPreferences(result.preferences) || result.deliveryReady !== false) throw new Error("Invalid notification settings response. Check the backend deployment.");
+      if (!validNotificationPreferences(result.preferences) || typeof result.deliveryReady !== "boolean") throw new Error("Invalid notification settings response. Check the backend deployment.");
       if (current()) setPreferences(result.preferences);
     }).catch(error => {
       if (current()) setError(error instanceof Error ? error.message : "Unable to load notification settings.");
@@ -73,7 +73,7 @@ export function useNotificationPreferences() {
         method: "PUT", body: { enabled, revision: preferences.revision },
       });
       if (!current()) return false;
-      if (!validNotificationPreferences(result.preferences) || result.deliveryReady !== false) throw new Error("Invalid notification settings response. Refresh settings.");
+      if (!validNotificationPreferences(result.preferences) || typeof result.deliveryReady !== "boolean") throw new Error("Invalid notification settings response. Refresh settings.");
       setPreferences(result.preferences);
       return true;
     } catch (error) {

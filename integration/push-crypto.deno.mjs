@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { createECDH, randomBytes } from "node:crypto";
 import webpush from "npm:web-push@3.6.7";
 import ece from "npm:http_ece@1.2.0";
-import { deliverTestPush } from "../supabase/functions/server/push-delivery.mjs";
+import { deliverTestPush,deliverAnomalyPush } from "../supabase/functions/server/push-delivery.mjs";
 const receiver = createECDH("prime256v1"); receiver.generateKeys();
 const auth = randomBytes(16).toString("base64url");
 const vapid = webpush.generateVAPIDKeys();
@@ -25,4 +25,11 @@ const status = await deliverTestPush({ endpoint: "https://fcm.googleapis.com/fcm
     return new Response(null, { status: 201 });
   });
 assert.equal(status, 201); assert.equal(calls, 1);
+const anomaly=await deliverAnomalyPush({endpoint:"https://fcm.googleapis.com/fcm/send/test-only",keys:{p256dh:receiver.getPublicKey().toString("base64url"),auth}},binding,"33333333-3333-4333-8333-333333333333",
+  {ready:true,publicKey:vapid.publicKey,privateKey:vapid.privateKey,subject:"https://allert-ten.vercel.app/"},async(_url,options)=>{
+    const payload=JSON.parse(ece.decrypt(Buffer.from(options.body),{version:"aes128gcm",privateKey:receiver,authSecret:auth}).toString());
+    assert.equal(payload.kind,"anomaly");assert.equal(payload.eventId,"33333333-3333-4333-8333-333333333333");assert.deepEqual(Object.keys(payload).sort(),["bindingId","eventId","kind","sentAt","version"]);
+    return new Response(null,{status:201});
+  });
+assert.equal(anomaly,201);
 console.log("PASS: Deno encrypted Web Push round trip and bounded transport; no live push sent.");

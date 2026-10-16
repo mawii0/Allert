@@ -33,6 +33,6 @@ export function BrowserPushControls({ enabled }: { enabled: boolean }) {
     </details>
     {push.message && <p role="status" className="text-emerald-300">{push.message}</p>}
     {push.error && <p role="alert" className="text-red-300">{push.error}</p>}
-    <p className="text-zinc-500">Automatic risk alerts are not connected yet.</p>
+    <p className="text-zinc-500">{push.automaticAlertsReady?"Automatic sensor notices are connected to the running processor.":"Automatic sensor notices are not confirmed active."} Forecast risk alerts are not connected yet.</p>
   </div>;
 }

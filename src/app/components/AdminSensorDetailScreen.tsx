@@ -1,3 +1,8 @@
+import { useState } from "react";
+import { useSearchParams } from "react-router";
+import { usePrivateResource } from "../utils/usePrivateResource";
+import { metricTrend } from "../utils/telemetry-analysis.mjs";
+import { AdminLoadState, AdminReadingChart, adminTime, formatNumber, downloadNodeCsv } from "./AdminLiveTools";
 import {
   Clipboard,
   Download,
@@ -11,105 +16,7 @@ import {
 } from "lucide-react";
 import { AdminSearchBar } from "./AdminSearchBar";
 
-const metadataSections = [
-  {
-    title: "Identity",
-    items: [
-      { label: "Node ID", value: "ilo-node-01" },
-      { label: "Location", value: "Iloilo City Proper" },
-      { label: "Hardware Rev", value: "SPS30-R2" },
-      { label: "Firmware", value: "v1.7.4" },
-    ],
-  },
-  {
-    title: "Hardware",
-    items: [
-      { label: "SPS30 Serial", value: "SPS30-89211" },
-      { label: "SHT40 Serial", value: "SHT40-55102" },
-      { label: "ESP32-S3", value: "ESP-S3-881" },
-    ],
-  },
-  {
-    title: "Calibration",
-    items: [
-      { label: "Last Co-Location", value: "2026-04-18" },
-      { label: "R2 vs DENR-EMB", value: "0.92" },
-      { label: "Post-cal MAE", value: "3.1 ug/m3" },
-      { label: "Next Calibration", value: "2026-06-05" },
-    ],
-  },
-  {
-    title: "Operational",
-    items: [
-      { label: "Uptime", value: "182 days" },
-      { label: "Measurements", value: "1,203,440" },
-      { label: "Last Reboot", value: "2026-05-12 02:11" },
-      { label: "WiFi", value: "-62 dBm" },
-    ],
-  },
-];
-
-const gauges = [
-  {
-    label: "PM2.5",
-    value: "45 ug/m3",
-    trend: "+12% (1h)",
-    status: "Moderate",
-    color: "#ffd600",
-    icon: Gauge,
-  },
-  {
-    label: "PM10",
-    value: "58 ug/m3",
-    trend: "+8% (1h)",
-    status: "Low",
-    color: "#00c853",
-    icon: Gauge,
-  },
-  {
-    label: "Temperature",
-    value: "28 C",
-    trend: "+2 C (1h)",
-    status: "Normal",
-    color: "#00c853",
-    icon: Thermometer,
-  },
-  {
-    label: "Humidity",
-    value: "72%",
-    trend: "Stable",
-    status: "Normal",
-    color: "#00c853",
-    icon: LineChart,
-  },
-];
-
-const forecastRows = [
-  {
-    horizon: "6h",
-    mae: "2.3 ug/m3",
-    rmse: "3.1 ug/m3",
-    mape: "4.8%",
-    status: "Under 5% target",
-    badge: "#00c853",
-  },
-  {
-    horizon: "12h",
-    mae: "4.1 ug/m3",
-    rmse: "5.6 ug/m3",
-    mape: "7.2%",
-    status: "Near 7% target",
-    badge: "#f59e0b",
-  },
-  {
-    horizon: "24h",
-    mae: "6.8 ug/m3",
-    rmse: "9.2 ug/m3",
-    mape: "11.3%",
-    status: "Exceeds 10% target",
-    badge: "#ff1744",
-  },
-];
+type GaugeData={label:string;value:string;trend:string;status:string;color:string;icon:any};
 
 function GaugeCard({
   label,
@@ -118,7 +25,7 @@ function GaugeCard({
   status,
   color,
   icon: Icon,
-}: (typeof gauges)[number]) {
+}: GaugeData) {
   return (
     <div className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-4">
       <div className="flex items-center justify-between">
@@ -144,7 +51,7 @@ function GaugeCard({
               stroke={color}
               strokeWidth="6"
               strokeDasharray="175"
-              strokeDashoffset="40"
+              strokeDashoffset={value === "—" ? "175" : "0"}
               strokeLinecap="round"
             />
           </svg>
@@ -162,6 +69,24 @@ function GaugeCard({
 }
 
 export function AdminSensorDetailScreen() {
+  const [params]=useSearchParams(),node=params.get("node");
+  const resource=usePrivateResource<any>(node?`/admin/nodes/${encodeURIComponent(node)}`:null);
+  const [search,setSearch]=useState("");
+  const data=resource.data,current=data?.latest,history=data?.history || [];
+  const end=Date.parse(data?.generated_at || "") || Date.now();
+  const metadataSections=[
+    {title:"Identity",items:[{label:"Node ID",value:data?.device.device_id || node || "Select a node"},{label:"Location",value:data?.device.location_label || "Not recorded"},{label:"Hardware Rev",value:"Not recorded"},{label:"Firmware",value:"Not reported"}]},
+    {title:"Hardware",items:[{label:"SPS30 Serial",value:"Not reported"},{label:"SHT40 Serial",value:"Not reported"},{label:"Microcontroller",value:"Not reported by firmware"}]},
+    {title:"Calibration",items:[{label:"Last Co-Location",value:"Not recorded"},{label:"R2 vs DENR-EMB",value:"Not calculated"},{label:"Post-cal MAE",value:"Not calculated"},{label:"Next Calibration",value:"Not scheduled"}]},
+    {title:"Operational",items:[{label:"Uptime",value:"Not reported"},{label:"Readings shown (24h)",value:data?String(history.length):"—"},{label:"Last reading",value:adminTime(current?.timestamp)},{label:"WiFi signal",value:"Not reported"}]},
+  ];
+  const gauges=[
+    {key:"pm2_5",label:"PM2.5",icon:Gauge,unit:"µg/m³"},{key:"pm10",label:"PM10",icon:Gauge,unit:"µg/m³"},
+    {key:"temperature",label:"Temperature",icon:Thermometer,unit:"°C"},{key:"humidity",label:"Humidity",icon:LineChart,unit:"%"},
+  ].filter(item=>item.label.toLowerCase().includes(search.toLowerCase())).map(item=>({label:item.label,value:formatNumber(current?.[item.key],item.unit),trend:metricTrend(history,item.key),status:current?"Observed":"Unavailable",color:"#3b82f6",icon:item.icon}));
+  const forecastRows=[6,12,24].map(hour=>({horizon:`${hour}h`,mae:"—",rmse:"—",mape:"—",status:"Evaluation report unavailable",badge:"#6b7280"}));
+  const qualityCounts=Array.from({length:24},(_,hour)=>new Set(history.filter((row:any)=>row.data_quality_status==="VALID" && row.sample_count===30 && row.expected_samples===30 && row.created_at && Date.parse(row.timestamp)>end-86400000+hour*3600000 && Date.parse(row.timestamp)<=end-86400000+(hour+1)*3600000).map((row:any)=>Math.floor(Date.parse(row.timestamp)/300000))).size);
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col gap-6 px-6 py-6 lg:flex-row">
@@ -169,11 +94,11 @@ export function AdminSensorDetailScreen() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-[#b0b0b0]">Sensor Detail</div>
-              <div className="text-lg font-semibold">ilo-node-01</div>
+              <div className="text-lg font-semibold">{node || "Select a node"}</div>
             </div>
             <div className="flex items-center gap-2 text-[#b0b0b0]">
               <MapPin className="h-4 w-4" />
-              Iloilo City Proper
+              {data?.device.location_label || "Location not recorded"}
             </div>
           </div>
 
@@ -194,14 +119,14 @@ export function AdminSensorDetailScreen() {
           </div>
 
           <div className="mt-6 space-y-3">
-            <button className="w-full rounded-xl bg-[#00bfa5] px-4 py-2 text-sm font-semibold text-[#0a0a0a]">
+            <button disabled title="Remote calibration is not connected" className="w-full disabled:opacity-40 rounded-xl bg-[#00bfa5] px-4 py-2 text-sm font-semibold text-[#0a0a0a]">
               Trigger Remote Calibration
             </button>
-            <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#2a2a2a] px-4 py-2 text-sm">
+            <button disabled={!history.length} onClick={()=>downloadNodeCsv(node || "node",history)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#2a2a2a] px-4 py-2 text-sm disabled:opacity-40">
               <Download className="h-4 w-4" />
               Download Raw Data (CSV)
             </button>
-            <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#ff1744]/40 bg-[#ff1744]/10 px-4 py-2 text-sm text-[#ff1744]">
+            <button disabled title="Remote maintenance is not connected" className="flex w-full disabled:opacity-40 items-center justify-center gap-2 rounded-xl border border-[#ff1744]/40 bg-[#ff1744]/10 px-4 py-2 text-sm text-[#ff1744]">
               Flag for Maintenance
             </button>
           </div>
@@ -211,17 +136,18 @@ export function AdminSensorDetailScreen() {
           <header className="flex flex-col gap-3 rounded-2xl border border-[#2a2a2a] bg-[#141414] px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="text-xs text-[#b0b0b0]">Realtime Telemetry</div>
-              <div className="text-lg font-semibold">Node Status - Operational</div>
+              <div className="text-lg font-semibold">{data ? data.online ? "Node Status · Recent verified reading" : "Node Status · No recent verified reading" : "Node Status · Unavailable"}</div>
             </div>
-            <AdminSearchBar className="w-full lg:w-80" />
+            <AdminSearchBar className="w-full lg:w-80" value={search} onChange={setSearch} placeholder="Filter current metrics" />
             <div className="flex items-center gap-3 text-xs text-[#b0b0b0]">
               <Wifi className="h-4 w-4" />
-              -62 dBm
+              Signal not reported
               <Signal className="h-4 w-4" />
-              99.1% uptime
+              {data ? `${data.coverage.toFixed(1)}% receipt-verified coverage` : "Coverage unavailable"}
             </div>
           </header>
 
+          <div><a href="/admin/overview" className="text-xs text-[#00bfa5] underline">Back to sensor network</a><AdminLoadState resource={resource} missing="Select a node using View Detail on the overview." /><button disabled={resource.loading || !node} onClick={resource.retry} className="text-xs text-[#00bfa5] underline mt-2">Refresh node</button>{data?.truncated && <p className="text-xs text-amber-300">This 24-hour result reached its 1,000-row limit.</p>}</div>
           <section className="grid gap-4 lg:grid-cols-4">
             {gauges.map((gauge) => (
               <GaugeCard key={gauge.label} {...gauge} />
@@ -232,52 +158,15 @@ export function AdminSensorDetailScreen() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold">24-Hour Trend</div>
-                <div className="text-xs text-[#b0b0b0]">PM2.5, PM10, Temperature, Humidity</div>
+                <div className="text-xs text-[#b0b0b0]">Recorded PM2.5 · µg/m³</div>
               </div>
               <div className="flex items-center gap-2 text-xs text-[#b0b0b0]">
                 <RefreshCw className="h-4 w-4" />
-                Live feed
+                Refreshed every minute
               </div>
             </div>
             <div className="mt-4 h-[320px] rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] p-4">
-              <svg viewBox="0 0 680 280" className="h-full w-full">
-                <polyline
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="2"
-                  points="0,180 80,160 160,140 240,150 320,120 400,110 480,130 560,120 640,140"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#6b7280"
-                  strokeWidth="2"
-                  points="0,210 80,200 160,190 240,200 320,180 400,170 480,190 560,200 640,210"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#ff9100"
-                  strokeWidth="2"
-                  points="0,130 80,120 160,110 240,130 320,100 400,90 480,110 560,100 640,120"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#00c853"
-                  strokeWidth="2"
-                  points="0,90 80,95 160,92 240,100 320,88 400,80 480,85 560,90 640,100"
-                />
-              </svg>
-              <div className="mt-2 flex justify-between text-[11px] text-[#6b7280]">
-                {[
-                  "00:00",
-                  "04:00",
-                  "08:00",
-                  "12:00",
-                  "16:00",
-                  "20:00",
-                ].map((label) => (
-                  <span key={label}>{label}</span>
-                ))}
-              </div>
+              <AdminReadingChart rows={history} width={680} height={250} end={end} />
             </div>
           </section>
 
@@ -288,24 +177,18 @@ export function AdminSensorDetailScreen() {
               style={{ gridTemplateColumns: "repeat(24, minmax(0, 1fr))" }}
             >
               {Array.from({ length: 24 }).map((_, idx) => {
-                const color =
-                  idx >= 14 && idx <= 17
-                    ? "bg-[#ff9100]"
-                    : idx === 20
-                    ? "bg-[#ff1744]"
-                    : idx % 6 === 0
-                    ? "bg-[#ffd600]"
-                    : "bg-[#00c853]";
-                return <div key={idx} className={`h-4 rounded-sm ${color}`} />;
+                const count=qualityCounts[idx];
+                const color=count>=12?"bg-[#00c853]":count>0?"bg-[#ffd600]":"bg-zinc-700";
+                return <div key={idx} title={`${count}/12 verified blocks`} className={`h-4 rounded-sm ${color}`} />;
               })}
             </div>
-            <div className="mt-2 text-xs text-[#b0b0b0]">24h timeline, 1h segments</div>
+            <div className="mt-2 text-xs text-[#b0b0b0]">24h timeline, 1h segments · green: 12 verified blocks, amber: partial, gray: none</div>
           </section>
 
           <section className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6">
             <div className="mb-4 text-sm font-semibold">Forecast Accuracy Tracker</div>
-            <div className="grid gap-2 text-xs text-[#b0b0b0]">
-              <div className="grid grid-cols-[70px_120px_120px_120px_1fr] gap-2 text-[11px] uppercase">
+            <div className="grid gap-2 overflow-x-auto text-xs text-[#b0b0b0]">
+              <div className="min-w-[620px] grid grid-cols-[70px_120px_120px_120px_1fr] gap-2 text-[11px] uppercase">
                 <span>Horizon</span>
                 <span>MAE</span>
                 <span>RMSE</span>
@@ -315,7 +198,7 @@ export function AdminSensorDetailScreen() {
               {forecastRows.map((row) => (
                 <div
                   key={row.horizon}
-                  className="grid grid-cols-[70px_120px_120px_120px_1fr] items-center gap-2 rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] px-3 py-2"
+                  className="min-w-[620px] grid grid-cols-[70px_120px_120px_120px_1fr] items-center gap-2 rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] px-3 py-2"
                 >
                   <span className="font-mono text-white">{row.horizon}</span>
                   <span>{row.mae}</span>

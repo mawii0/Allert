@@ -122,7 +122,7 @@ export function OnboardingScreen() {
               <div>
                 <div className="text-sm font-medium text-[#ffffff]">Location Services</div>
                 <div className="text-xs text-zinc-500">
-                  Not connected yet
+                  Configure node location in Settings after linking your node.
                 </div>
               </div>
             </div>

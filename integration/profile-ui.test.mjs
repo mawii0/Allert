@@ -5,6 +5,8 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { build } from 'esbuild';
 import { resolve } from 'node:path';
 await build({stdin:{contents:`export * from './src/app/utils/auth';export * from './src/app/utils/useProfileSettings';export * from './src/app/components/SettingsScreen';export * from './src/app/components/DashboardScreen';`,resolveDir:process.cwd(),loader:'ts'},outfile:'integration/test-output/profile-ui.mjs',bundle:true,format:'esm',platform:'node',jsx:'automatic',loader:{'.css':'empty'},external:['react','react/jsx-runtime','lucide-react'],plugins:[{name:'fixtures',setup(b){
+  b.onResolve({filter:/AdminLiveTools$/},()=>({path:'admin-link',namespace:'admin-link-fixture'}));b.onLoad({filter:/.*/,namespace:'admin-link-fixture'},()=>({contents:'export const AdminAccessLink=()=>null;'}));
+  b.onResolve({filter:/NodeLocationControls$/},()=>({path:'location-controls',namespace:'location-fixture'}));b.onLoad({filter:/.*/,namespace:'location-fixture'},()=>({contents:'export const NodeLocationControls=()=>null;'}));
   b.onResolve({filter:/^\/utils\/supabase\/info$/},()=>({path:resolve('utils/supabase/info.tsx')}));
   const fixtures={
     useNotificationPreferences:'export const useNotificationPreferences=()=>({enabled:false,loading:false,saving:false,error:"",toggleDisabled:false,status:"Notifications unchanged",retry:()=>{},changeEnabled:async()=>true});',
@@ -43,7 +45,7 @@ test('Settings keeps its existing sections and adds editing inside the profile c
   assert.equal(tree.root.findAllByType('form').length,0);
 });
 test('cancel discards draft changes and performs no save',async()=>{
-  await mount(app.SettingsScreen);await click('Edit profile');await act(async()=>tree.root.findByType('input').props.onChange({target:{value:'Unsaved name'}}));await click('Cancel');
+  await mount(app.SettingsScreen);await click('Edit profile');await act(async()=>form().findByProps({name:'name'}).props.onChange({target:{value:'Unsaved name'}}));await click('Cancel');
   assert.equal(requests.filter(request=>request.options.method==='POST').length,0);assert.ok(text(tree.toJSON()).includes('Original name'));await click('Edit profile');assert.equal(tree.root.findByProps({name:'name'}).props.value,'Original name');
 });
 test('name correction persists and survives remount while email and membership remain intact',async()=>{
@@ -55,7 +57,7 @@ test('category change requires explicit confirmation and updates the mounted das
   function Screens(){return React.createElement(React.Fragment,null,React.createElement(app.SettingsScreen),React.createElement(app.DashboardScreen));}
   await mount(Screens);assert.ok(text(tree.toJSON()).includes('12.3'));await click('Edit profile');await act(async()=>tree.root.findByType('select').props.onChange({target:{value:'pediatric'}}));
   assert.equal(button('Save profile').props.disabled,true);await submit();assert.equal(requests.filter(request=>request.options.method==='POST').length,0);
-  await act(async()=>tree.root.findByProps({type:'checkbox'}).props.onChange({target:{checked:true}}));assert.equal(button('Save profile').props.disabled,false);await submit();
+  await act(async()=>form().findByProps({type:'checkbox'}).props.onChange({target:{checked:true}}));assert.equal(button('Save profile').props.disabled,false);await submit();
   assert.equal(saved.demographic,'pediatric');assert.ok(text(tree.toJSON()).includes('45.6'));assert.ok(text(tree.toJSON()).includes('Current pediatric environmental indicator'));
 });
 test('switching categories again resets the confirmation and cancel keeps the saved category',async()=>{

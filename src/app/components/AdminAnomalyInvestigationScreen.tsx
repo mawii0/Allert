@@ -1,3 +1,7 @@
+import { useSearchParams } from "react-router";
+import { usePrivateResource } from "../utils/usePrivateResource";
+import { useAdminReview } from "../utils/useAdminReview";
+import { AdminLoadState, AdminReadingChart, adminTime, formatNumber } from "./AdminLiveTools";
 import {
   AlertTriangle,
   CalendarClock,
@@ -7,48 +11,6 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { AdminSearchBar } from "./AdminSearchBar";
-
-const metadata = [
-  { label: "Anomaly ID", value: "anom-2026-0514-1432-7a3f" },
-  { label: "Timestamp", value: "2026-05-14 14:32:00 PST" },
-  { label: "Triggering Node", value: "ilo-node-03" },
-  { label: "Detection Method", value: "Z-Score + Velocity Override" },
-  { label: "Z-Score", value: "Z = 4.2", badge: "#ef4444" },
-  { label: "Velocity", value: "18.5 ug/m3/h", badge: "#ef4444" },
-  { label: "CUSUM Score", value: "S_i = 12.7", badge: "#f59e0b" },
-  { label: "Risk Output", value: "P_risk = 85.3% - VERY HIGH", badge: "#ff1744" },
-];
-
-const comparisonRows = [
-  {
-    metric: "PM2.5",
-    forecast: "38.1 ug/m3",
-    observed: "62.3 ug/m3",
-    deviation: "+24.2 ug/m3 (+63.5%)",
-    color: "#ff1744",
-  },
-  {
-    metric: "PM10",
-    forecast: "52.4 ug/m3",
-    observed: "78.9 ug/m3",
-    deviation: "+26.5 ug/m3 (+50.6%)",
-    color: "#ff1744",
-  },
-  {
-    metric: "Temperature",
-    forecast: "27.8 C",
-    observed: "28.0 C",
-    deviation: "+0.2 C",
-    color: "#00c853",
-  },
-  {
-    metric: "Humidity",
-    forecast: "71.5%",
-    observed: "72.0%",
-    deviation: "+0.5%",
-    color: "#00c853",
-  },
-];
 
 function Badge({ label, color }: { label: string; color: string }) {
   return (
@@ -62,23 +24,41 @@ function Badge({ label, color }: { label: string; color: string }) {
 }
 
 export function AdminAnomalyInvestigationScreen() {
+  const [params]=useSearchParams(),eventId=params.get("event");
+  const resource=usePrivateResource<any>(eventId?`/admin/anomalies/${encodeURIComponent(eventId)}`:null);
+  const event=resource.data?.event,review=useAdminReview(resource,eventId);
+  const metrics=event?.metrics || {};
+  const maximum=(key:string)=>event?Math.max(metrics.pm2_5?.[key] || 0,metrics.pm10?.[key] || 0):null;
+  const metadata=[
+    {label:"Anomaly ID",value:event?.id || "Select an event"},{label:"Timestamp",value:adminTime(event?.observed_at)},
+    {label:"Triggering Node",value:event?.device_id || "—"},{label:"Detection Method",value:event?[...new Set(Object.values(metrics).flatMap((value:any)=>value.methods || []))].join(" + ") || "Recorded rule": "—"},
+    {label:"Z-Score",value:formatNumber(maximum("z")),badge:"#ef4444"},{label:"Velocity",value:formatNumber(maximum("velocity"),"µg/m³/h"),badge:"#ef4444"},
+    {label:"CUSUM Score",value:formatNumber(maximum("cusum")),badge:"#f59e0b"},{label:"Risk Output",value:"Observed measurement anomaly; no symptom probability",badge:"#6b7280"},
+  ];
+  const comparisonRows=[{metric:"PM2.5",key:"pm2_5",unit:"µg/m³"},{metric:"PM10",key:"pm10",unit:"µg/m³"},{metric:"Temperature",key:"temperature",unit:"°C"},{metric:"Humidity",key:"humidity",unit:"%"}].map(item=>({
+    metric:item.metric,forecast:formatNumber(metrics[item.key]?.mean,item.unit),observed:formatNumber(event?.reading?.[item.key],item.unit),
+    deviation:typeof metrics[item.key]?.mean==="number"?formatNumber(event.reading[item.key]-metrics[item.key].mean,item.unit):"—",color:"#b0b0b0",
+  }));
+  const history=event?[...(event.baseline || []),{...event.reading,timestamp:event.observed_at}]:[];
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="mx-auto max-w-[1200px] space-y-6 px-6 py-8">
         <header className="flex flex-col gap-4 rounded-2xl border border-[#2a2a2a] bg-[#141414] px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="text-xs text-[#b0b0b0]">Anomaly Investigation</div>
-            <div className="text-lg font-semibold">SPIKE_EMERGENCY Event</div>
+            <div className="text-lg font-semibold">{event ? `${event.severity.toUpperCase()} measurement event` : "Select an anomaly event"}</div>
           </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <AdminSearchBar className="w-full md:w-72" />
+            <a href="/admin/overview" className="text-xs text-[#00bfa5] underline">Back to sensor network</a>
             <div className="flex items-center gap-3 text-xs text-[#b0b0b0]">
               <CalendarClock className="h-4 w-4" />
-              2026-05-14 14:32 PST
+              {adminTime(event?.observed_at)} · Manila
             </div>
           </div>
         </header>
 
+        <div><AdminLoadState resource={resource} missing="Select an event from the overview." /><button disabled={resource.loading || !eventId || review.busy} onClick={resource.retry} className="text-xs text-[#00bfa5] underline">Refresh event</button></div>
         <section className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6">
           <div className="mb-4 text-sm font-semibold">Event Metadata</div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -101,11 +81,11 @@ export function AdminAnomalyInvestigationScreen() {
 
         <section className="grid gap-4 md:grid-cols-2">
           <div className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6">
-            <div className="mb-4 text-sm font-semibold">Forecast vs Actual</div>
+            <div className="mb-4 text-sm font-semibold">Baseline vs Observed</div>
             <div className="grid gap-2 text-sm text-[#b0b0b0]">
               <div className="grid grid-cols-[120px_1fr_1fr_1fr] gap-2 text-[11px] uppercase">
                 <span>Metric</span>
-                <span>Forecast</span>
+                <span>Baseline mean</span>
                 <span>Observed</span>
                 <span>Deviation</span>
               </div>
@@ -125,32 +105,8 @@ export function AdminAnomalyInvestigationScreen() {
           <div className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6">
             <div className="mb-4 text-sm font-semibold">Temporal Context</div>
             <div className="h-[260px] rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] p-4">
-              <svg viewBox="0 0 520 220" className="h-full w-full">
-                <polyline
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="2"
-                  points="0,180 80,170 160,165 240,120 320,90 400,110 480,130 520,140"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#93c5fd"
-                  strokeWidth="2"
-                  strokeDasharray="6 6"
-                  points="0,175 80,165 160,150 240,140 320,130 400,120 480,110 520,100"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#93c5fd"
-                  strokeWidth="1"
-                  points="0,190 80,180 160,170 240,160 320,150 400,140 480,130 520,120"
-                  opacity="0.3"
-                />
-                <line x1="320" y1="0" x2="320" y2="220" stroke="#ff1744" />
-              </svg>
-              <div className="mt-2 text-xs text-[#b0b0b0]">
-                SPIKE_EMERGENCY triggered at 14:32
-              </div>
+              <AdminReadingChart rows={history} height={190} lookback={65*60000} end={Date.parse(event?.observed_at || "") || Date.now()} />
+              <div className="mt-2 text-xs text-[#b0b0b0]">Observed PM2.5 with preceding baseline blocks. No forecast overlay is connected.</div>
             </div>
           </div>
         </section>
@@ -159,47 +115,13 @@ export function AdminAnomalyInvestigationScreen() {
           <div className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6">
             <div className="mb-4 text-sm font-semibold">Cross-Sensor Correlation</div>
             <div className="h-[240px] rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] p-4">
-              <svg viewBox="0 0 520 220" className="h-full w-full">
-                <polyline
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="3"
-                  points="0,180 80,170 160,150 240,110 320,90 400,105 480,120 520,130"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#00c853"
-                  strokeWidth="2"
-                  points="0,190 80,182 160,175 240,168 320,162 400,158 480,160 520,168"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#9c27b0"
-                  strokeWidth="2"
-                  points="0,195 80,190 160,185 240,178 320,170 400,168 480,170 520,175"
-                />
-              </svg>
+              <p className="text-sm text-zinc-400">Matched cross-sensor data is not connected. No correlation has been calculated.</p>
             </div>
           </div>
           <div className="rounded-2xl border border-[#2a2a2a] bg-[#141414] p-6">
             <div className="mb-4 text-sm font-semibold">DENR-EMB Reference Overlay</div>
             <div className="h-[240px] rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] p-4">
-              <svg viewBox="0 0 520 220" className="h-full w-full">
-                <polyline
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="2"
-                  points="0,170 80,160 160,140 240,120 320,90 400,110 480,130 520,140"
-                />
-                <polyline
-                  fill="none"
-                  stroke="#6b7280"
-                  strokeWidth="2"
-                  strokeDasharray="6 6"
-                  points="0,180 80,170 160,155 240,140 320,120 400,130 480,145 520,155"
-                />
-                <rect x="300" y="90" width="40" height="40" fill="#ff1744" opacity="0.1" />
-              </svg>
+              <p className="text-sm text-zinc-400">DENR-EMB reference data is not connected. No reference overlay is available.</p>
             </div>
           </div>
         </section>
@@ -212,43 +134,17 @@ export function AdminAnomalyInvestigationScreen() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-3">
               <div className="text-xs text-[#b0b0b0]">Classification</div>
-              <div className="rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] p-3">
-                <div className="flex items-center justify-between text-sm">
-                  EXTERNAL_EVENT
-                  <AlertTriangle className="h-4 w-4 text-[#f59e0b]" />
-                </div>
-                <div className="mt-3 space-y-2 text-xs">
-                  {[
-                    "CONFIRMED_ANOMALY",
-                    "FALSE_POSITIVE",
-                    "SENSOR_ARTIFACT",
-                    "EXTERNAL_EVENT",
-                  ].map((option) => (
-                    <div
-                      key={option}
-                      className={`rounded-lg px-3 py-2 ${
-                        option === "EXTERNAL_EVENT"
-                          ? "bg-[#1e1e1e] text-white"
-                          : "text-[#b0b0b0]"
-                      }`}
-                    >
-                      {option}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-[#b0b0b0]">External Event Subtype</div>
-                <div className="mt-2 rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-sm">
-                  Construction
-                </div>
-              </div>
+              <select aria-label="Anomaly classification" value={review.classification} disabled={review.busy || !event} onChange={change=>review.setClassification(change.target.value)} className="w-full rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] p-3 text-sm">
+                {["investigating","confirmed_anomaly","false_positive","sensor_artifact","external_event"].map(option=><option key={option} value={option}>{option.replaceAll("_"," ")}</option>)}
+              </select>
+              <p className="text-xs text-zinc-400">Classification is saved with the authenticated administrator and a revision history.</p>
             </div>
             <div className="space-y-3">
               <div>
                 <div className="text-xs text-[#b0b0b0]">Notes</div>
                 <textarea
                   className="mt-2 h-[140px] w-full rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] p-3 text-sm text-white"
+                  aria-label="Investigation notes" value={review.notes} maxLength={500} disabled={review.busy || !event} onChange={change=>review.setNotes(change.target.value)}
                   placeholder="Add investigation notes (max 500 chars)"
                 />
               </div>
@@ -257,16 +153,19 @@ export function AdminAnomalyInvestigationScreen() {
                 <div className="mt-2 flex items-center justify-between rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] px-4 py-3 text-sm">
                   <div className="flex items-center gap-2 text-[#b0b0b0]">
                     <FileText className="h-4 w-4" />
-                    Upload evidence
+                    Attachments are not connected
                   </div>
-                  <button className="rounded-lg border border-[#2a2a2a] px-3 py-1 text-xs">
+                  <button disabled className="rounded-lg border border-[#2a2a2a] px-3 py-1 text-xs opacity-40">
                     Browse
                   </button>
                 </div>
               </div>
-              <button className="w-full rounded-xl bg-[#00bfa5] px-4 py-2 text-sm font-semibold text-[#0a0a0a]">
-                Save Classification
+              <button disabled={!review.canSave} onClick={()=>{void review.save();}} className="w-full disabled:opacity-40 rounded-xl bg-[#00bfa5] px-4 py-2 text-sm font-semibold text-[#0a0a0a]">
+                {review.busy ? "Saving…" : "Save Classification"}
               </button>
+              <button disabled={review.busy} onClick={review.cancel} className="text-xs text-[#00bfa5] underline">Cancel and reload review</button>
+              {review.error && <p role="alert" className="text-xs text-red-300">{review.error}</p>}{review.message && <p role="status" className="text-xs text-emerald-300">{review.message}</p>}
+              {(resource.data?.reviews || []).map((item:any)=><p key={item.revision} className="text-xs text-zinc-400">Revision {item.revision}: {item.classification.replaceAll("_"," ")} · {adminTime(item.created_at)} · {item.notes}</p>)}
             </div>
           </div>
         </section>
@@ -274,11 +173,11 @@ export function AdminAnomalyInvestigationScreen() {
         <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#2a2a2a] bg-[#141414] px-6 py-4 text-xs text-[#b0b0b0]">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            Iloilo City Proper
+            {event?.device_id || "No event selected"}
           </div>
           <div className="flex items-center gap-2">
             <Clipboard className="h-4 w-4" />
-            Reference anomaly logs updated every 5 min
+            Delivery: {(resource.data?.deliveries || []).map((item:any)=>item.status).join(", ") || "No browser delivery recorded"}
           </div>
         </section>
       </div>

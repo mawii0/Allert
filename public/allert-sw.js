@@ -44,14 +44,16 @@ self.addEventListener("message", event => {
 self.addEventListener("push", event => event.waitUntil((async () => {
   let message;
   try { message = event.data?.json(); } catch { return; }
-  if (message?.version !== 1 || message.kind !== "test" || typeof message.sentAt !== "number" ||
+  if (message?.version !== 1 || !["test", "anomaly"].includes(message.kind) || !Number.isFinite(message.sentAt) ||
+      (message.kind === "anomaly" && (typeof message.eventId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(message.eventId))) ||
       Date.now() - message.sentAt > 120000 || message.sentAt - Date.now() > 30000) return;
   const binding = await state("read");
   if (!binding || binding.id !== message.bindingId) return;
   // Text and destination are fixed locally: the payload cannot inject health data or URLs.
-  await self.registration.showNotification("ALLERT test notification", {
-    body: "Browser push is working. This is a test notification.",
-    tag: "allert-test", data: { bindingId: binding.id },
+  const anomaly = message.kind === "anomaly";
+  await self.registration.showNotification(anomaly ? "ALLERT sensor notice" : "ALLERT test notification", {
+    body: anomaly ? "An unusual change was detected in your sensor measurements. Open ALLERT to review." : "Browser push is working. This is a test notification.",
+    tag: anomaly ? `allert-anomaly-${message.eventId}` : "allert-test", data: { bindingId: binding.id, kind: message.kind },
   });
 })()));
 self.addEventListener("notificationclick", event => {
@@ -61,7 +63,10 @@ self.addEventListener("notificationclick", event => {
     if (!binding || binding.id !== event.notification.data?.bindingId) return;
     const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
     const existing = windows.find(client => new URL(client.url).origin === self.location.origin);
-    if (existing) await existing.focus();
-    else await self.clients.openWindow(self.location.origin + "/");
+    const destination = event.notification.data?.kind === "anomaly" ? "/app/environmental#sensor-notices" : "/";
+    if (existing) {
+      if (destination !== "/" && existing.navigate) await existing.navigate(self.location.origin + destination);
+      await existing.focus();
+    } else await self.clients.openWindow(self.location.origin + destination);
   })());
 });

@@ -22,6 +22,12 @@ test('private requests use renewed token, timeout and caller abort signal',async
 test('late error from a previous account cannot sign out the new account',async()=>{
   let finish;globalThis.fetch=()=>new Promise(resolve=>finish=resolve);const pending=privateApi('/health-logs');await Promise.resolve();account='b';finish(response({error:'Old unauthorized'},401));await assert.rejects(pending,/Account changed/);assert.equal(signedOut,false);
 });
+test('a previous request cannot sign out a new session for the same account after a session change',async()=>{
+  account='a';signedOut=false;let finish;globalThis.fetch=()=>new Promise(resolve=>finish=resolve);const pending=privateApi('/health-logs');await Promise.resolve();window.dispatchEvent(new Event('allert-session-changed'));finish(response({error:'Old session'},401));await assert.rejects(pending,/Account changed/);assert.equal(signedOut,false);
+});
+test('a late unauthorized response for a rotated access token does not sign out the renewed session',async()=>{
+  account='a';signedOut=false;token='old';globalThis.localStorage={getItem:()=> 'new'};let finish;globalThis.fetch=()=>new Promise(resolve=>finish=resolve);const pending=privateApi('/health-logs');await Promise.resolve();finish(response({error:'Old token'},401));await assert.rejects(pending,/Old token/);assert.equal(signedOut,false);delete globalThis.localStorage;
+});
 test('current rejected sessions sign out and plain text deployment errors are readable',async()=>{
   globalThis.fetch=async()=>response({error:'Expired'},401);await assert.rejects(privateApi('/health-logs'),/Expired/);assert.equal(signedOut,true);
   globalThis.fetch=async()=>new Response('404 Not Found',{status:404});await assert.rejects(privateApi('/health-logs'),/HTTP 404/);
