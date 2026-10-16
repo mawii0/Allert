@@ -1,4 +1,5 @@
 import { AdminAccessLink } from "./AdminLiveTools";
+import { AppInstallation } from "./AppInstallation";
 import { NodeLocationControls } from "./NodeLocationControls";
 import { useNodeTelemetry } from "../utils/useNodeTelemetry";
 import { useNavigate } from "react-router";
@@ -325,6 +326,7 @@ export function SettingsScreen() {
           </div>
           <div>ALLERT System • Version 1.1.0</div>
           <AdminAccessLink />
+          <AppInstallation />
           <div>Model: {monitor?.model_status?.replaceAll("_", " ") || (monitorStatus === "loading" ? "Checking…" : "Unavailable")}</div>
           <div>Allergic Rhinitis Environmental Monitoring</div>
           <div className="text-xs pt-2">© 2026 Research Prototype</div>

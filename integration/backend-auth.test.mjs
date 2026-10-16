@@ -16,7 +16,7 @@ await build({entryPoints:['supabase/functions/server/index.tsx'],outfile:'integr
 }}]});
 globalThis.Deno={env:{get:()=>undefined},serve:handler=>{globalThis.serverHandler=handler;}};
 await import('./test-output/server.mjs');
-const routes=[['GET','profile'],['POST','profile'],['GET','health-logs'],['POST','health-logs'],['GET','sensor-telemetry'],['GET','risk-monitor'],['GET','environment'],['POST','nodes/claim'],['POST','nodes/unlink']];
+const routes=[['GET','profile'],['POST','profile'],['GET','health-logs'],['POST','health-logs'],['GET','sensor-telemetry'],['GET','risk-monitor'],['GET','environment'],['GET','clinical-correlation'],['POST','nodes/claim'],['POST','nodes/unlink']];
 for(const [method,path] of routes)for(const auth of ['', 'Bearer forged'])test(`${method} ${path} rejects ${auth?'forged':'missing'} sessions with gateway verification disabled`,async()=>{
   const request=new Request(`https://example.invalid/make-server-a473accf/${path}`,{method,headers:{Authorization:auth,'Content-Type':'application/json'},...(method==='POST'?{body:'{}'}:{})});
   const response=await serverHandler(request);
