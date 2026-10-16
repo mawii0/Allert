@@ -1,3 +1,4 @@
+import { pendingNodeSharePath } from "../utils/pending-node-share";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { User, Users, MapPin, Bell, ChevronRight, Loader2 } from "lucide-react";
@@ -39,7 +40,7 @@ export function OnboardingScreen() {
       localStorage.setItem("allert_onboarding_complete", "true");
       localStorage.setItem("allert_demographic", demographic);
 
-      navigate("/app/dashboard");
+      navigate(pendingNodeSharePath() || "/app/dashboard");
     } catch (err: any) {
       console.error("Onboarding save error:", err);
       setError(err.message || "Failed to save profile. Please try again.");

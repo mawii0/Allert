@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router";
+import { JoinNodeScreen } from "./components/JoinNodeScreen";
 import { Root } from "./components/Root";
 import { AuthScreen } from "./components/AuthScreen";
 import { PasswordRecoveryScreen } from "./components/PasswordRecoveryScreen";
@@ -14,6 +15,7 @@ import { AdminAnomalyInvestigationScreen } from "./components/AdminAnomalyInvest
 import { AccessBoundary, AdminBoundary } from "./components/AccessBoundary";
 
 export const router = createBrowserRouter([
+  { path:"/join-node", Component:JoinNodeScreen },
   {
     path: "/",
     Component: AuthScreen,

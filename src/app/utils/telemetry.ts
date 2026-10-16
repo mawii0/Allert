@@ -17,6 +17,7 @@ export interface SensorReading {
 export interface SensorTelemetry {
   device: {
     device_id: string;
+    role?: "owner" | "member";
     location_label: string | null;
     is_active: boolean;
   } | null;

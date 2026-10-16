@@ -3,6 +3,7 @@ import { Switch } from "./ui/switch";
 import { useNodeLocation } from "../utils/useNodeLocation";
 export function NodeLocationControls(){
   const location=useNodeLocation(),id=useId();
+  if(location.readOnly)return <div className="space-y-2"><p className="text-sm font-medium">Node location</p><p className="text-sm text-zinc-300">{location.location?.label || "Home"}</p><p className="text-xs text-zinc-500">The owner manages the installed node location. Saved coordinates are private to the owner.</p></div>;
   return <div className="space-y-3">
     <div className="flex items-center justify-between py-2"><div><div className="text-sm font-medium">Location Services</div>
       <div className="text-xs text-zinc-500 max-w-[230px]">{location.loading?"Loading node location…":!location.device?"Link a node before saving its location.":location.location?.enabled?"An installed node position is saved.":"Capture once near the node, or enter its label manually."}</div></div>

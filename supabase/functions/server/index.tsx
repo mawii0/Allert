@@ -11,8 +11,9 @@ import { validEntryId, symptomSummary, visibleHealthLogs } from "./health-log-to
 import { notificationPreferenceKey, defaultNotificationPreferences, validNotificationPreferences, notificationPreferenceChange } from "./notification-preferences.mjs";
 import { installPushRoutes } from "./push-routes.mjs";
 import { installAppFeatureRoutes } from "./app-feature-routes.mjs";
+import { installHouseholdRoutes } from "./household-routes.mjs";
 import { archiveForecastEvidence, installClinicalRoutes } from "./clinical-routes.mjs";
-import { currentNodeOwner } from "./node-ownership.mjs";
+import { accessibleNode, currentNodeAccess } from "./node-ownership.mjs";
 import { automaticAnomalyReady } from "./anomaly-worker.mjs";
 import { pushConfiguration } from "./push-policy.mjs";
 import { deliverAnomalyPush } from "./push-delivery.mjs";
@@ -419,31 +420,9 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
       );
     }
 
-    const { data: devices, error: deviceError } = await supabase
-      .from("sensor_devices")
-      .select("device_id, location_label, is_active, owner_since")
-      .eq("user_id", user.id)
-      .eq("is_active", true)
-      .limit(2);
-
-    if (deviceError) throw deviceError;
-
-    if (!devices?.length) {
-      return c.json({
-        device: null,
-        latest: null,
-        history: [],
-      });
-    }
-
-    if (devices.length > 1) {
-      return c.json(
-        { error: "More than one active node is assigned to this account." },
-        409,
-      );
-    }
-
-    const device = devices[0];
+    const device = await accessibleNode(supabase,user.id);
+    if(device===undefined)return c.json({error:"More than one active home is assigned to this account."},409);
+    if(!device)return c.json({device:null,latest:null,history:[]});
     const readingTable = await readingTableFor(supabase, device.device_id);
 
     const columns =
@@ -479,7 +458,7 @@ app.get("/make-server-a473accf/sensor-telemetry", async (c) => {
 
     if (latestResult.error) throw latestResult.error;
     if (historyResult.error) throw historyResult.error;
-    if (!await currentNodeOwner(supabase, user.id, device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
+    if (!await currentNodeAccess(supabase, user.id, device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
 
     return c.json({
       device,
@@ -507,6 +486,8 @@ app.post("/make-server-a473accf/nodes/claim", async (c) => {
   catch { return c.json({ error: "Invalid JSON." }, 400); }
   const claim = normalizeNodeClaim(body);
   if (!claim) return c.json({ error: "Enter your node ID and its 32-character setup code." }, 400);
+  const existingHome=await accessibleNode(supabase,user.id);
+  if(existingHome===undefined || existingHome?.role==="member")return c.json({error:"Leave your shared home before claiming a node."},409);
   const { data, error } = await supabase.rpc("claim_allert_node", {
     p_user_id: user.id,
     p_device_id: claim.device_id,
@@ -654,9 +635,9 @@ app.get("/make-server-a473accf/risk-monitor", async (c) => {
     if (telemetry.device) {
       const account = await notificationAccount(c);
       if (account.response) return account.response;
-      if (!await currentNodeOwner(account.client, account.user.id, telemetry.device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
+      if (!await currentNodeAccess(account.client, account.user.id, telemetry.device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
       const evidenceStatus = await archiveForecastEvidence(account.client, account.user, telemetry.device, monitor);
-      if (!await currentNodeOwner(account.client, account.user.id, telemetry.device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
+      if (!await currentNodeAccess(account.client, account.user.id, telemetry.device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
       return c.json({ ...monitor, forecast_evidence: evidenceStatus });
     }
     return c.json(monitor);
@@ -732,4 +713,5 @@ const getAlertWorkerClient = () => {
 };
 installAppFeatureRoutes(app, notificationAccount, getAlertWorkerClient, Deno.env, deliverAnomalyPush);
 installClinicalRoutes(app, notificationAccount, loadVisibleDiary, userId => kv.get(`profile:${userId}`));
+installHouseholdRoutes(app, notificationAccount, userId => kv.get(`profile:${userId}`));
 Deno.serve(app.fetch);

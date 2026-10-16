@@ -128,6 +128,7 @@ export function EnvironmentalScreen() {
     const reset = () => { revision++; setTelemetry(null); setError(""); setLoading(true); void refresh(); };
     window.addEventListener("storage", reset);
     window.addEventListener("allert-session-changed", reset);
+    window.addEventListener("allert-node-changed", reset);
     window.addEventListener("allert-location-changed", reset);
     window.addEventListener("focus", refresh);
     void refresh();
@@ -137,6 +138,7 @@ export function EnvironmentalScreen() {
       clearTimeout(timer);
       window.removeEventListener("storage", reset);
       window.removeEventListener("allert-session-changed", reset);
+      window.removeEventListener("allert-node-changed", reset);
       window.removeEventListener("allert-location-changed", reset);
       window.removeEventListener("focus", refresh);
     };

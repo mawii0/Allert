@@ -46,16 +46,16 @@ export async function processAnomalyBatch(client, env, send, now = Date.now()) {
     }
     const configuration = pushConfiguration(env);
     if (configuration.ready) {
-      const pending = await client.from("allert_alert_outbox").select("event_id").eq("status","pending").lte("next_attempt_at",new Date().toISOString()).order("next_attempt_at").limit(3);
+      const pending = await client.from("allert_alert_recipients").select("event_id,user_id").eq("status","pending").lte("next_attempt_at",new Date().toISOString()).order("next_attempt_at").limit(33);
       if (pending.error) throw Error("Unable to load alert delivery queue.");
-      for (const event of pending.data || []) {
+      for (const eventId of [...new Set((pending.data || []).map(row=>row.event_id))].slice(0,3)) {
         if (Date.now() > deadline - 11000) break;
-        const reserved = await client.rpc("reserve_allert_anomaly_push", { p_event_id:event.event_id,p_vapid_key:configuration.publicKey });
+        const reserved = await client.rpc("reserve_allert_family_event", { p_event_id:eventId,p_vapid_key:configuration.publicKey });
         if (reserved.error || !reserved.data?.ok) { summary.errors++; continue; }
         if (reserved.data.outcome !== "reserved") continue;
         await Promise.all((reserved.data.deliveries || []).map(async delivery => {
           let status = null;
-          try { status = await send(delivery.subscription,delivery.bindingId,event.event_id,configuration); }
+          try { status = await send(delivery.subscription,delivery.bindingId,eventId,configuration); }
           catch { /* Ambiguous transport is recorded; never blindly resend a reserved delivery. */ }
           const finished = await client.rpc("finish_allert_anomaly_push", { p_delivery_id:delivery.deliveryId,p_http_status:status });
           if (finished.error || !finished.data?.ok) summary.errors++;
