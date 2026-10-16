@@ -15,7 +15,7 @@ export function useNodeLocation() {
   const working=useRef(false),dirty=useRef(false),generation=useRef(0),mounted=useRef(false);
   const controller=useRef<AbortController>();
   const loadedRevision=useRef<number | null>(null);
-  const location=resource.data?.location,device=resource.data?.device;
+  const location=resource.data?.location,device=resource.data?.device,readOnly=resource.data?.readOnly===true;
   useEffect(()=>{
     mounted.current=true;
     const reset=()=>{generation.current++;controller.current?.abort();working.current=false;dirty.current=false;loadedRevision.current=null;setBusy(false);setLabelValue("");setDraft(null);setConfirmed(false);setStale(false);setError("");setMessage("");};
@@ -35,7 +35,7 @@ export function useNodeLocation() {
     return current;
   };
   async function capture(){
-    if(working.current || !device || resource.loading || stale)return;
+    if(readOnly || working.current || !device || resource.loading || stale)return;
     const current=start();
     try{
       if(!window.isSecureContext)throw Error("Open ALLERT over HTTPS or localhost to capture location.");
@@ -50,7 +50,7 @@ export function useNodeLocation() {
     finally{if(current()){working.current=false;setBusy(false);}}
   }
   async function save(disable=false){
-    if(working.current || !device || !location || resource.loading || stale)return false;
+    if(readOnly || working.current || !device || !location || resource.loading || stale)return false;
     if(!label.trim() || label.trim().length>100){setError("Enter a node label between 1 and 100 characters.");return false;}
     if(!disable && draft && !confirmed){setError("Confirm that this is the sensor node's installed location.");return false;}
     const current=start();controller.current=new AbortController();
@@ -68,8 +68,8 @@ export function useNodeLocation() {
     finally{if(current()){working.current=false;setBusy(false);}}
   }
   function cancel(){if(working.current)return;dirty.current=false;setDraft(null);setConfirmed(false);setStale(false);setError("");setMessage("");if(location)setLabelValue(location.label);resource.retry();}
-  return {device,location,label,draft,confirmed,busy,loading:resource.loading,error:error || resource.error,message,stale,capture,save,cancel,
+  return {device,location,readOnly,label,draft,confirmed,busy,loading:resource.loading,error:error || resource.error,message,stale,capture,save,cancel,
     setLabel:(value:string)=>{dirty.current=true;setLabelValue(value);setMessage("");},setConfirmed,
-    canSave:!!device && !!location && !resource.loading && !busy && !stale && !!label.trim() && label.trim().length<=100 && (!!draft || label.trim()!==location.label) && (!draft || confirmed),
+    canSave:!readOnly && !!device && !!location && !resource.loading && !busy && !stale && !!label.trim() && label.trim().length<=100 && (!!draft || label.trim()!==location.label) && (!draft || confirmed),
     retry:resource.retry};
 }

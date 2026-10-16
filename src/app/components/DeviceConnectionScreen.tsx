@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import { ArrowLeft, Cloud } from "lucide-react";
+import { HouseholdSharing } from "./HouseholdSharing";
 import { Button } from "./ui/button";
 import { useNodeTelemetry } from "../utils/useNodeTelemetry";
 import { claimNode, unlinkNode } from "../utils/node-linking";
@@ -17,6 +18,12 @@ export function DeviceConnectionScreen() {
   const [confirmId, setConfirmId] = useState("");
 
   useEffect(() => { if (device?.device_id) setDeviceId(device.device_id); }, [device?.device_id]);
+  useEffect(()=>{
+    const clear=()=>{setSetupCode("");setConfirmUnlink(false);setConfirmId("");setClaimError("");setSuccess("");};
+    const storage=(event:StorageEvent)=>{if(event.key===null||event.key==="allert_user_id"||event.key==="allert_auth_token"&&!event.newValue)clear();};
+    window.addEventListener("allert-session-changed",clear);window.addEventListener("storage",storage);
+    return()=>{window.removeEventListener("allert-session-changed",clear);window.removeEventListener("storage",storage);};
+  },[]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,7 +84,9 @@ export function DeviceConnectionScreen() {
           className="w-full mt-3 bg-emerald-600">View Sensor Readings</Button>}
       </section>
 
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 mb-5">
+      <HouseholdSharing />
+
+      {device?.role!=="member" && <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 mb-5">
         <h2 className="font-semibold mb-2">{device ? "Verify Node Link" : "Link Your Node"}</h2>
         <p className="text-sm text-zinc-400 mb-4">
           Enter the private setup code supplied with your node. A node belonging
@@ -105,7 +114,7 @@ export function DeviceConnectionScreen() {
             {submitting ? "Linking…" : device ? "Verify Node Link" : "Link Node"}
           </Button>
         </form>
-      </section>
+      </section>}
 
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
         <h2 className="font-semibold mb-3">Set Up Node Wi-Fi</h2>
@@ -124,7 +133,7 @@ export function DeviceConnectionScreen() {
         <p className="text-xs text-zinc-400 mt-3">If the node already joins Wi-Fi, send lowercase <code>s</code> in Serial Monitor to open setup. With the optional setup button fitted, hold it for three seconds.</p>
         <a href="http://192.168.4.1" className="block mt-4 text-sm text-emerald-400 underline">Open Node Wi-Fi Setup</a>
       </section>
-      {device && <section className="rounded-2xl border border-red-900 bg-zinc-900/50 p-5 mt-5">
+      {device && device.role!=="member" && <section className="rounded-2xl border border-red-900 bg-zinc-900/50 p-5 mt-5">
         <h2 className="font-semibold mb-2">Unlink Node</h2>
         <p className="text-sm text-zinc-400">Unlinking removes account access and does not turn off the node. Stored readings remain protected; a new owner starts with readings collected after their link.</p>
         {!confirmUnlink ? <Button variant="outline" className="mt-4 text-red-400" onClick={() => setConfirmUnlink(true)}>Unlink from Account</Button> : <div className="mt-4 space-y-3">

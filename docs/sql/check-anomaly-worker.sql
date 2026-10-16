@@ -6,3 +6,5 @@ SELECT status,count(*) FROM public.allert_alert_outbox GROUP BY status;
 SELECT status,count(*) FROM public.allert_alert_deliveries GROUP BY status;
 -- Supabase pg_net responses: a cron SQL success alone does not confirm an HTTP success.
 SELECT id,status_code,timed_out,error_msg FROM net._http_response ORDER BY id DESC LIMIT 10;
+-- Per-account delivery states after the household-sharing migration.
+SELECT status,count(*) FROM public.allert_alert_recipients GROUP BY status;

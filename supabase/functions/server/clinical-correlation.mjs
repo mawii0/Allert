@@ -44,8 +44,8 @@ export function forecastEvidence(monitor, now = Date.now()) {
   return new Set(rows.map(row => `${row.horizon}:${row.population}`)).size === 6 ? rows : [];
 }
 
-export function correlateSymptoms(entries, forecasts, { deviceId, ownerEpoch, population, horizon, days, now = Date.now() }) {
-  const boundary = Math.max(time(ownerEpoch), Date.parse(day(now)) - 28800000 - (days-1)*86400000);
+export function correlateSymptoms(entries, forecasts, { deviceId, ownerEpoch, accessSince = ownerEpoch, population, horizon, days, now = Date.now() }) {
+  const boundary = Math.max(time(ownerEpoch), time(accessSince), Date.parse(day(now)) - 28800000 - (days-1)*86400000);
   const evidence = forecasts.filter(row => row.device_id === deviceId && time(row.owner_epoch) === time(ownerEpoch) && row.population === population && row.horizon_hours === horizon &&
     row.policy_hash === POLICY_HASH && tiers.includes(row.tier) && finite(row.score) && row.score >= 0 && row.score <= 100 &&
     time(row.origin) >= time(ownerEpoch) && time(row.target) === time(row.origin)+horizon*3600000 && time(row.captured_at) >= time(row.origin) &&

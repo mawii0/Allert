@@ -1,3 +1,4 @@
+import { pendingNodeSharePath } from "../utils/pending-node-share";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
@@ -79,7 +80,7 @@ export function AuthScreen() {
         if (profile.success && profile.profile?.updatedAt) {
           localStorage.setItem("allert_demographic", profile.profile.demographic);
           localStorage.setItem("allert_onboarding_complete", "true");
-          navigate("/app/dashboard");
+          navigate(pendingNodeSharePath() || "/app/dashboard");
         } else {
           navigate("/onboarding");
         }

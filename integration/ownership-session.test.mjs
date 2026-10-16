@@ -4,7 +4,7 @@ import React from 'react';
 import TestRenderer,{act} from 'react-test-renderer';
 import {build} from 'esbuild';
 import {resolve} from 'node:path';
-await build({stdin:{contents:`export * from './src/app/utils/telemetry';export * from './src/app/utils/node-linking';export * from './src/app/utils/risk-monitor';`,resolveDir:process.cwd(),loader:'ts'},outfile:'integration/test-output/ownership-session.mjs',bundle:true,format:'esm',platform:'node',external:['react'],plugins:[{name:'fixtures',setup(b){
+await build({stdin:{contents:`export * from './src/app/utils/telemetry';export * from './src/app/utils/node-linking';export * from './src/app/utils/risk-monitor';export * from './src/app/utils/environment';`,resolveDir:process.cwd(),loader:'ts'},outfile:'integration/test-output/ownership-session.mjs',bundle:true,format:'esm',platform:'node',external:['react'],plugins:[{name:'fixtures',setup(b){
   b.onResolve({filter:/^\/utils\/supabase\/info$/},()=>({path:resolve('utils/supabase/info.tsx')}));b.onResolve({filter:/(?:^|\/)auth$/},()=>({path:'auth',namespace:'fixture'}));
   b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const getCurrentUser=()=>({id:globalThis.currentAccount});export const getValidAuthToken=async()=>globalThis.currentToken;export const logout=()=>{globalThis.signouts++;};',loader:'js'}));
 }}]});
@@ -31,3 +31,5 @@ test('Risk Monitor ignores a previous account response and does not sign out a r
   await act(async()=>pending[0](new Response(JSON.stringify({error:'old'}),{status:401})));assert.equal(signouts,0);assert.equal(state.data,null);
   await act(async()=>pending.at(-1)(new Response(JSON.stringify({availability:'unavailable',device:null,current:null,forecasts:[],model_status:'warming_up'}))));assert.equal(state.status,'unavailable');
 });
+
+test('legacy environment loading cannot sign out a new family account from a previous-account 401',async()=>{const pending=[];globalThis.fetch=()=>new Promise(resolve=>pending.push(resolve));let state;function Screen(){state=app.useEnvironment();return null;}await act(async()=>{tree=TestRenderer.create(React.createElement(Screen));});currentAccount='b';currentToken='new-token';await act(async()=>window.dispatchEvent(new Event('allert-session-changed')));await act(async()=>pending[0](new Response(JSON.stringify({error:'old'}),{status:401})));assert.equal(signouts,0);assert.equal(state.snapshot,null);await act(async()=>pending.at(-1)(new Response(JSON.stringify({snapshot:null,availability:'unavailable'}))));assert.equal(state.status,'unavailable');});

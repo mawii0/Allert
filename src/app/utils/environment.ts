@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { projectId } from "/utils/supabase/info";
-import { getValidAuthToken, logout } from "./auth";
+import { privateApi } from "./private-api";
 import type { ForecastResponse, HistoryBlock, RiskResponse } from "./model-contract";
 
 export interface EnvironmentSnapshot {
@@ -27,14 +26,7 @@ export function useEnvironment() {
       pending = true;
       const requestRevision = revision;
       try {
-        const token = await getValidAuthToken();
-        if (!token) throw new Error("Sign in to read environmental data");
-        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-a473accf/environment`, {
-          headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
-        });
-        const data = await response.json();
-        if (response.status === 401) logout();
-        if (!response.ok) throw new Error(data.error || "Environmental data unavailable");
+        const data = await privateApi<any>("/environment", {signal:controller.signal,timeoutMs:15000});
         if (active && revision === requestRevision) { setSnapshot(data.snapshot); setStatus(data.availability); }
       } catch (error) {
         if (active && revision === requestRevision) { setSnapshot(null); setStatus(error instanceof Error ? error.message : "unavailable"); }
@@ -43,10 +35,11 @@ export function useEnvironment() {
     const reset = () => { revision++; setSnapshot(null); setStatus("loading"); void refresh(); };
     window.addEventListener("storage", reset);
     window.addEventListener("allert-session-changed", reset);
+    window.addEventListener("allert-node-changed", reset);
     void refresh();
     const timer = window.setInterval(refresh, 60000);
     window.addEventListener("focus", refresh);
-    return () => { active = false; controller.abort(); window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("storage", reset); window.removeEventListener("allert-session-changed", reset); };
+    return () => { active = false; controller.abort(); window.clearInterval(timer); window.removeEventListener("focus", refresh); window.removeEventListener("storage", reset); window.removeEventListener("allert-session-changed", reset);window.removeEventListener("allert-node-changed", reset); };
   }, [attempt]);
   return { snapshot, status, retry: () => setAttempt(value => value + 1) };
 }

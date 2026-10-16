@@ -2,7 +2,7 @@ import { ANOMALY_POLICY } from "./anomaly-policy.mjs";
 import { processAnomalyBatch } from "./anomaly-worker.mjs";
 import { adminOverview, nodeSnapshot } from "./admin-monitoring.mjs";
 import { normalizeNodeLocation } from "./location-policy.mjs";
-import { currentNodeOwner } from "./node-ownership.mjs";
+import { accessibleNode, currentNodeAccess } from "./node-ownership.mjs";
 
 const validId = value => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 export function installAppFeatureRoutes(app, authenticate, createClient, env, send) {
@@ -21,11 +21,7 @@ export function installAppFeatureRoutes(app, authenticate, createClient, env, se
   };
   const result = (c, response, payload) => response.error ? c.json({error:"Database request failed. Refresh and try again."},503) :
     !response.data?.ok ? c.json({error:response.data?.error || "Request could not be completed."},[400,403,404,409,429].includes(response.data?.status)?response.data.status:503) : c.json(payload(response.data));
-  const ownedDevice = async(client,user) => {
-    const response = await client.from("sensor_devices").select("device_id,location_label,is_active,user_id,owner_since").eq("user_id",user.id).eq("is_active",true).limit(2);
-    if (response.error) throw Error("Unable to load the assigned node.");
-    return response.data?.length>1 ? undefined : response.data?.[0] || null;
-  };
+  const ownedDevice=(client,user)=>accessibleNode(client,user.id);
   app.post(`${root}/alerts/process`, async c => {
     try {
       const expected=env.get("ALLERT_ALERT_WORKER_TOKEN"),actual=c.req.header("X-Allert-Worker-Token");
@@ -48,11 +44,11 @@ export function installAppFeatureRoutes(app, authenticate, createClient, env, se
     if(!device)return c.json({device:null,events:[],detector:null,processorReady:ready});
     const epoch=device.owner_since || "1970-01-01T00:00:00.000Z";
     const [events,state]=await Promise.all([
-      client.from("allert_anomaly_events").select("id,device_id,observed_at,severity,policy_version,metrics,reading,classification").eq("device_id",device.device_id).eq("user_id",user.id).eq("owner_epoch",epoch).order("observed_at",{ascending:false}).limit(30),
-      client.from("allert_detector_state").select("status,baseline_count,updated_at").eq("device_id",device.device_id).eq("user_id",user.id).eq("owner_epoch",epoch).maybeSingle(),
+      client.from("allert_anomaly_events").select("id,device_id,observed_at,severity,policy_version,metrics,reading,classification").eq("device_id",device.device_id).eq("user_id",device.owner_id || user.id).eq("owner_epoch",epoch).gte("observed_at",epoch).order("observed_at",{ascending:false}).limit(30),
+      client.from("allert_detector_state").select("status,baseline_count,updated_at").eq("device_id",device.device_id).eq("user_id",device.owner_id || user.id).eq("owner_epoch",epoch).maybeSingle(),
     ]);
     if(events.error || state.error)throw Error("Alert history unavailable.");
-    if(!await currentNodeOwner(client,user.id,device))return c.json({error:"Node ownership changed. Refresh this screen."},409);
+    if(!await currentNodeAccess(client,user.id,device))return c.json({error:"Node ownership changed. Refresh this screen."},409);
     return c.json({device:{device_id:device.device_id},events:events.data || [],detector:state.data,processorReady:ready,policy:ANOMALY_POLICY});
   }));
   app.get(`${root}/admin/access`,guard(async(c,{client,user})=>{
@@ -88,11 +84,12 @@ export function installAppFeatureRoutes(app, authenticate, createClient, env, se
     const device=await ownedDevice(client,user);
     if(device===undefined)return c.json({error:"Multiple active nodes require node selection."},409);
     if(!device)return c.json({device:null,location:null});
+    if(device.role==="member"){if(!await currentNodeAccess(client,user.id,device))return c.json({error:"Node access changed. Refresh this screen."},409);return c.json({device:{device_id:device.device_id,owner_epoch:device.owner_since,role:"member"},location:{label:device.location_label || "Home",enabled:false,revision:0,latitude:null,longitude:null,accuracy:null,captured_at:null},readOnly:true});}
     const response=await client.from("allert_node_locations").select("enabled,latitude,longitude,accuracy,captured_at,revision,updated_at")
       .eq("device_id",device.device_id).eq("user_id",user.id).eq("owner_epoch",device.owner_since || "1970-01-01T00:00:00.000Z").maybeSingle();
     if(response.error)throw response.error;
-    if(!await currentNodeOwner(client,user.id,device))return c.json({error:"Node ownership changed. Refresh this screen."},409);
-    return c.json({device:{device_id:device.device_id,owner_epoch:device.owner_since || "1970-01-01T00:00:00.000Z"},location:{enabled:false,revision:0,latitude:null,longitude:null,accuracy:null,captured_at:null,...response.data,label:device.location_label || "Home"}});
+    if(!await currentNodeAccess(client,user.id,device))return c.json({error:"Node ownership changed. Refresh this screen."},409);
+    return c.json({device:{device_id:device.device_id,owner_epoch:device.owner_since || "1970-01-01T00:00:00.000Z",role:"owner"},location:{enabled:false,revision:0,latitude:null,longitude:null,accuracy:null,captured_at:null,...response.data,label:device.location_label || "Home"}});
   }));
   app.put(`${root}/node-location`,guard(async(c,{client,user})=>{
     const body=normalizeNodeLocation(await c.req.json());if(!body)return c.json({error:"Enter a node label and confirm a fresh valid position when enabling location."},400);
