@@ -40,7 +40,7 @@ export function installPushRoutes(app, authenticate, env, send) {
     const config = pushConfiguration(env);
     if (!config.ready) return c.json({ error: "Push keys are not configured in Supabase Secrets." }, 503);
     const body = await c.req.json();
-    if (!validPushSubscription(body.subscription)) return c.json({ error: "This subscription is not supported. Connect using Windows Chrome." }, 400);
+    if (!validPushSubscription(body.subscription)) return c.json({ error: "This push provider is not supported. Use Chrome, Firefox, or Safari with Web Push." }, 400);
     const { endpoint, keys } = body.subscription;
     const { data, error } = await client.rpc("connect_allert_push", {
       p_user_id: user.id, p_subscription: { endpoint, keys: { auth: keys.auth, p256dh: keys.p256dh } }, p_vapid_key: config.publicKey,
@@ -65,7 +65,7 @@ export function installPushRoutes(app, authenticate, env, send) {
     if (data.outcome !== "reserved") return c.json({ outcome: data.outcome });
     let status;
     try { status = await send(data.subscription, bindingId, config); }
-    catch { return c.json({ error: "Delivery could not be confirmed. Check Chrome, then wait 60 seconds before another test." }, 502); }
+    catch { return c.json({ error: "Delivery could not be confirmed. Check your device notifications, then wait 60 seconds before another test." }, 502); }
     if (status === 404 || status === 410) {
       await client.from("allert_push_subscriptions").delete().eq("user_id", user.id).eq("id", bindingId);
       return c.json({ error: "This browser subscription expired. Disconnect and connect this browser again." }, 410);

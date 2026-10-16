@@ -3,14 +3,15 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-    "scripts": {
+  "scripts": {
     "build": "vite build",
     "dev": "vite",
     "test": "node scripts/test-app.mjs",
     "test:app-features": "node --test integration/anomaly-policy.test.mjs integration/app-feature-database.test.mjs integration/app-feature-http.test.mjs integration/app-feature-ui.test.mjs integration/worker-schedule.test.mjs",
     "test:firmware": "python3 integration/test_firmware_logic.py",
     "test:push": "node --test integration/push-database.test.mjs integration/push-http.test.mjs integration/push-session.test.mjs integration/push-ui.test.mjs integration/push-worker.test.mjs integration/push-browser.test.mjs",
-    "test:notifications": "node --test integration/notification-preferences.test.mjs integration/notification-http.test.mjs integration/notification-session.test.mjs integration/notification-ui.test.mjs"
+    "test:notifications": "node --test integration/notification-preferences.test.mjs integration/notification-http.test.mjs integration/notification-session.test.mjs integration/notification-ui.test.mjs",
+    "audit:release": "node scripts/audit-release.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

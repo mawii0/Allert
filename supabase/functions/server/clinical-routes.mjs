@@ -34,7 +34,7 @@ export function installClinicalRoutes(app, authenticate, loadDiary, loadProfile)
       if (!await currentNodeAccess(client,user.id,device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
       const analysis = correlateSymptoms(diary.logs, forecasts.data || [], { deviceId:device.device_id,ownerEpoch:epoch,accessSince:device.access_since,population:profile.demographic,horizon,days });
       return c.json({device:{device_id:device.device_id},analysis,history_truncated:diary.truncated || forecasts.data?.length >= 18001,
-        collection:"Verified live forecasts are saved when Risk Monitor loads. Historical forecasts are not reconstructed."});
+        collection:"Verified live forecasts are saved by the enabled background collector and when Risk Monitor loads. Collection requires an available model and eligible input. Historical forecasts are not reconstructed."});
     } catch { return c.json({error:"Correlation could not be loaded. Check its migration and backend deployment."},503); }
   });
 }

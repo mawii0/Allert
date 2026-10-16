@@ -15,3 +15,6 @@ firmware/**/node_secrets.h
 firmware/**/tls_roots.h
 firmware/**/data/
 index-main-reference.txt
+
+# Vercel builds the app from source.
+/dist/

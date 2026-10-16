@@ -31,3 +31,9 @@ test('anomaly notices reveal only a fixed generic message and navigate to the fi
 test('an invalid anomaly ID, previous binding, or malformed sent time never displays a sensor notice',async()=>{
   for(const patch of [{eventId:'invalid'},{bindingId:'old'},{sentAt:NaN}]){const w=worker();await w.push({version:1,kind:'anomaly',bindingId:'current',sentAt:Date.now(),eventId:'33333333-3333-4333-8333-333333333333',...patch});assert.equal(w.notifications.length,0);}
 });
+
+test('forecast notices use a fixed generic message and a safe forecast destination',async()=>{
+ const w=worker();await w.push({version:1,kind:'forecast',bindingId:'current',sentAt:Date.now(),eventId:'33333333-3333-4333-8333-333333333333',score:95,url:'https://evil.example'});
+ assert.equal(w.notifications.length,1);assert.equal(w.notifications[0].title,'ALLERT forecast notice');assert.ok(!JSON.stringify(w.notifications).includes('95'));await w.click('current','forecast');assert.deepEqual(w.opened,['https://allert.example/app/environmental#forecast-notices']);
+ for(const patch of [{eventId:'invalid'},{bindingId:'old'},{sentAt:Date.now()-121000}]){const check=worker();await check.push({version:1,kind:'forecast',bindingId:'current',sentAt:Date.now(),eventId:'33333333-3333-4333-8333-333333333333',...patch});assert.equal(check.notifications.length,0);}
+});

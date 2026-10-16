@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {build} from 'esbuild';
 import React from 'react';
 import TestRenderer,{act} from 'react-test-renderer';
-await build({entryPoints:['src/app/components/BrowserPushControls.tsx'],outfile:'integration/test-output/push-ui.mjs',bundle:true,format:'esm',platform:'node',jsx:'automatic',external:['react','react/jsx-runtime'],plugins:[{name:'fixture',setup(b){
+await build({entryPoints:['src/app/components/BrowserPushControls.tsx'],outfile:'integration/test-output/push-ui.mjs',bundle:true,format:'esm',platform:'node',jsx:'automatic',external:['react','react/jsx-runtime'],plugins:[{name:'fixture',setup(b){b.onResolve({filter:/ForecastNotices$/},()=>({path:'forecast-card',namespace:'forecast-card'}));b.onLoad({filter:/.*/,namespace:'forecast-card'},()=>({contents:'export const ForecastNotices=()=>null;'}));
   b.onResolve({filter:/useBrowserPush$/},()=>({path:'push',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const useBrowserPush=()=>globalThis.push;'}));
 }}]});
 const {BrowserPushControls}=await import('./test-output/push-ui.mjs');
@@ -13,7 +13,7 @@ test('connecting requires an enabled account, and tests require an actual connec
   fixture();let tree;await act(async()=>{tree=TestRenderer.create(React.createElement(BrowserPushControls,{enabled:false}));});
   assert.equal(tree.root.findAllByType('button').find(b=>text(b)==='Connect this browser').props.disabled,true);assert.equal(tree.root.findAllByType('button').some(b=>text(b)==='Send test notification'),false);
   await act(async()=>tree.unmount());fixture({connected:true});let tests=0;push.test=async()=>tests++;
-  await act(async()=>{tree=TestRenderer.create(React.createElement(BrowserPushControls,{enabled:true}));});await act(async()=>tree.root.findAllByType('button').find(b=>text(b)==='Send test notification').props.onClick());assert.equal(tests,1);assert.match(text(tree.toJSON()),/Forecast risk alerts are not connected yet/);assert.match(text(tree.toJSON()),/not confirmed active/);await act(async()=>tree.unmount());
+  await act(async()=>{tree=TestRenderer.create(React.createElement(BrowserPushControls,{enabled:true}));});await act(async()=>tree.root.findAllByType('button').find(b=>text(b)==='Send test notification').props.onClick());assert.equal(tests,1);assert.doesNotMatch(text(tree.toJSON()),/Forecast risk alerts are not connected yet/);assert.match(text(tree.toJSON()),/not confirmed active/);await act(async()=>tree.unmount());
 });
 test('quiet-hour inputs preserve chosen times and submit an explicit save',async()=>{
   fixture();let tree,saved;push.saveQuiet=async value=>saved=value;

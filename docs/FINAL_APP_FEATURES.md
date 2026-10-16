@@ -1,5 +1,7 @@
 # Clinical correlation, ownership protections, and mobile installation
 
+Historical implementation notes. Current deployment and acceptance status: [Release completion](RELEASE_COMPLETION.md).
+
 Prepared against merged main `e5bfbcb3a2ec604d86536497aced91cb962009f9`.
 
 ## Delivered scope
@@ -18,8 +20,8 @@ Version: `prospective-tier-symptoms-v1`.
 - The predictor is the canonical environmental tier: low=1, moderate=2, high=3, very_high=4. It is not the diary's symptom-derived `/50` summary and is not an allergy probability.
 - Only verified live `model_adjusted` forecasts under the current policy hash qualify. Median fallback, stale, malformed and unverified outputs cannot be archived.
 - Risk Monitor saves both adult and pediatric forecast indicators at the existing 6/12/24-hour horizons when it loads. The stored evidence is server-authored, append-only through a privileged RPC, and scoped to user, device and ownership epoch.
-- Capture must occur at or after forecast origin, within 20 minutes of origin, and strictly before the target and paired symptom observation. Existing model configuration and inference requests are reused; there is no new model worker or new inference call.
-- Collection is **on Risk Monitor load**, not continuous model scheduling. Closing the app does not create new forecast evidence. Do not describe this as a completed continuous forecast collection pipeline.
+- Capture must occur at or after forecast origin, within 20 minutes of origin, and strictly before the target and paired symptom observation. Existing model configuration and the verified cache are reused. The release completion batch adds a separately enabled background collector.
+- The original collection ran **on Risk Monitor load**. The release completion batch also collects prospectively while the app is closed, after its migration, feature flag and Cron are deployed.
 - Reports require a genuine `observedAt`. Legacy creation time is never substituted. A report matches a forecast target within **±15 minutes**.
 - Deterministically select one closest matched report per **Asia/Manila calendar day**, without reusing a forecast target. Corrections and deletions are reflected by reloading the canonical diary.
 - Calculate Pearson correlation on **average ranks**, including ties. At least **7 matched days** are required. Constant predictors or outcomes return an unavailable value, never a fabricated zero.
@@ -70,7 +72,7 @@ Run `npm test` and `npm run build`. The suite covers statistics, PostgreSQL perm
 - A supported browser's install event enables Install on this device. The prompt runs only after the button; dismissing it must not report success.
 - If no install event is offered, the UI provides the browser menu/Add to Home Screen instructions. Installation availability is determined by the browser; absence of an in-app button is not an app authentication failure.
 - Open the installed app and confirm its original login logo and navigation. Its start URL contains no account identifiers or credentials.
-- On iPhone, use Safari's Share → Add to Home Screen. This batch adds installation metadata/instructions, **not iPhone push transport support**. iPhone push remains deferred.
+- On iPhone, use Safari's Share → Add to Home Screen. The release completion batch adds Apple Web Push provider support. Actual iPhone permission and delivery testing remains a release acceptance check.
 - In an open app, browser offline mode shows the offline notice. An offline reload under the active service worker shows a generic offline page with a retry button.
 - No app HTML, JavaScript, private API response, diary record, coordinate, or token is saved to a service-worker response cache. Offline navigation does not provide an offline private app or offline diary saves.
 - Reconnect and reload, then verify ordinary sign-in, telemetry, diary persistence and the existing Chrome test push. Do not unregister the worker or clear all site storage to test installation; that would remove existing push bindings.
@@ -81,11 +83,11 @@ The feature suite and full regression tests run against the actual implementatio
 
 ## Remaining release work
 
-- Hosted FastAPI/PC-independent uploads and routine node hotspot reopening.
-- Physical power-loss queue recovery and reconnection drain testing.
+- Hosted FastAPI and FLASH-button setup reopening: implemented; the user reported fresh readings with the PC off and successful phone setup.
+- Basic physical power-loss queue recovery and reconnection drain: verified by the user; repeat as a release smoke check after future firmware changes.
 - Physical ownership and additional-node routing acceptance tests.
 - Live anomaly detection and notification display on genuine sensor data.
-- Teammate verification of model hosting, credentials, receipt-bearing input availability, and continuous forecast delivery.
+- Teammate verification of model hosting and receipt-bearing input availability, plus deployment/acceptance of the scheduled forecast collector.
 - Prospective collection and research evaluation of clinical correlation. Numeric availability cannot be forced by manufacturing historical predictions.
 - iPhone push transport/permission acceptance testing.
 - Production browser/device checks and owner review of duplicated dashboard backend files. This patch does not delete unknown dashboard files.

@@ -1,3 +1,4 @@
+import { requestSignal } from "./request-signal";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { getAuthToken, getCurrentUser } from "./auth";
 import { privateApi } from "./private-api";
@@ -63,7 +64,7 @@ export async function browserPushConnected() {
   });
 }
 export async function connectBrowser(publicKey: string) {
-  if (!pushSupported()) throw Error("Connect using Chrome over HTTPS or localhost.");
+  if (!pushSupported()) throw Error("Use a supported browser over HTTPS. On iPhone, open ALLERT from its Home Screen icon.");
   const owner = getCurrentUser().id;
   // Keep the native permission request directly attached to the button action.
   const permission = requestNotificationPermission();
@@ -140,7 +141,7 @@ export function startPushSessionGuard() {
         // Captured before synchronous logout clears the session. No response can restore it.
         void fetch(`https://${projectId}.supabase.co/functions/v1/make-server-a473accf/push/subscriptions`, {
           method: "DELETE", keepalive: true, headers: { Authorization: `Bearer ${token}`, apikey: publicAnonKey, "Content-Type": "application/json" },
-          body: JSON.stringify({ bindingId: binding.id }), signal: AbortSignal.timeout(10000),
+          body: JSON.stringify({ bindingId: binding.id }), signal: requestSignal(10000),
         }).catch(() => {});
       }
       await workerState(reg, { type: "clear", owner });

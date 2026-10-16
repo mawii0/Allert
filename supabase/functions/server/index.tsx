@@ -1,3 +1,4 @@
+import { installForecastRoutes } from "./forecast-routes.mjs";
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
@@ -16,6 +17,7 @@ import { archiveForecastEvidence, installClinicalRoutes } from "./clinical-route
 import { accessibleNode, currentNodeAccess } from "./node-ownership.mjs";
 import { automaticAnomalyReady } from "./anomaly-worker.mjs";
 import { pushConfiguration } from "./push-policy.mjs";
+import { deliverForecastPush } from "./push-delivery.mjs";
 import { deliverAnomalyPush } from "./push-delivery.mjs";
 import { deliverTestPush } from "./push-delivery.mjs";
 
@@ -714,4 +716,5 @@ const getAlertWorkerClient = () => {
 installAppFeatureRoutes(app, notificationAccount, getAlertWorkerClient, Deno.env, deliverAnomalyPush);
 installClinicalRoutes(app, notificationAccount, loadVisibleDiary, userId => kv.get(`profile:${userId}`));
 installHouseholdRoutes(app, notificationAccount, userId => kv.get(`profile:${userId}`));
+installForecastRoutes(app, notificationAccount, getAlertWorkerClient, Deno.env, deliverForecastPush);
 Deno.serve(app.fetch);

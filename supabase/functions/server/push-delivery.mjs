@@ -10,6 +10,10 @@ export async function deliverAnomalyPush(subscription, bindingId, eventId, confi
   if (!validPushId(eventId) || !validPushId(bindingId)) throw Error("Invalid alert identity.");
   return deliverPayload(subscription,configuration,{ version:1,kind:"anomaly",bindingId,eventId,sentAt:Date.now() },transport);
 }
+export async function deliverForecastPush(subscription,bindingId,eventId,configuration,transport=fetch) {
+  if(!validPushId(eventId) || !validPushId(bindingId))throw Error("Invalid forecast identity.");
+  return deliverPayload(subscription,configuration,{version:1,kind:"forecast",bindingId,eventId,sentAt:Date.now()},transport);
+}
 async function deliverPayload(subscription, configuration, message, transport) {
   if (!configuration.ready || !validPushSubscription(subscription)) throw new Error("Invalid push configuration or subscription.");
   const payload = JSON.stringify(message);
