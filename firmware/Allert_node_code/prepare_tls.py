@@ -1,4 +1,4 @@
-"""Export the verified root CA for the configured Supabase hostname. No secrets needed.
+"""Export the verified root CA for the configured HTTPS upload hostname. No secrets needed.
 Run on an internet-connected PC; never disable TLS verification to make this succeed.
 """
 import argparse
@@ -19,7 +19,10 @@ with socket.create_connection((url.hostname, url.port or 443), timeout=15) as co
         getter = getattr(secure, 'get_verified_chain', None)
         if getter:
             chain = getter()
-            pem = ssl.DER_cert_to_PEM_cert(chain[-1])
+            cert = chain[-1]
+            pem = ssl.DER_cert_to_PEM_cert(cert) if isinstance(cert, bytes) else cert.public_bytes()
+            if isinstance(pem, bytes):
+                pem = pem.decode('ascii')
         else:
             # CPython 3.11/3.12 expose the same verified chain through their SSL object.
             getter = getattr(secure._sslobj, 'get_verified_chain', None)
