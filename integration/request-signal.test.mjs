@@ -1,0 +1,12 @@
+import {test,afterEach} from 'node:test';
+import assert from 'node:assert/strict';
+import {build} from 'esbuild';
+await build({entryPoints:['src/app/utils/request-signal.ts'],outfile:'integration/test-output/request-signal.mjs',bundle:true,format:'esm',platform:'node'});
+const {requestSignal}=await import('./test-output/request-signal.mjs');
+const originalAny=AbortSignal.any,originalTimeout=AbortSignal.timeout;
+afterEach(()=>{AbortSignal.any=originalAny;AbortSignal.timeout=originalTimeout});
+test('native signals retain caller cancellation and its reason',()=>{const caller=new AbortController(),reason=new Error('account changed');const signal=requestSignal(1000,caller.signal);caller.abort(reason);assert.equal(signal.aborted,true);assert.equal(signal.reason,reason);});
+test('older Safari without AbortSignal.any retains caller cancellation',()=>{AbortSignal.any=undefined;const caller=new AbortController(),signal=requestSignal(1000,caller.signal);assert.equal(signal.aborted,false);caller.abort();assert.equal(signal.aborted,true);});
+test('fallback handles an already-aborted caller without leaving a live request',()=>{AbortSignal.any=undefined;const caller=new AbortController();caller.abort(new Error('already cancelled'));const signal=requestSignal(1000,caller.signal);assert.equal(signal.aborted,true);assert.match(signal.reason.message,/already cancelled/);});
+test('fallback keeps a real timeout even without either static AbortSignal method',async()=>{AbortSignal.any=undefined;AbortSignal.timeout=undefined;const signal=requestSignal(5);await new Promise(resolve=>setTimeout(resolve,15));assert.equal(signal.aborted,true);assert.equal(signal.reason.name,'TimeoutError');});
+test('fallback timeout detaches its caller listener',async()=>{AbortSignal.any=undefined;const caller=new AbortController();let removed=0;const remove=caller.signal.removeEventListener.bind(caller.signal);caller.signal.removeEventListener=(...args)=>{removed++;return remove(...args)};const signal=requestSignal(5,caller.signal);await new Promise(resolve=>setTimeout(resolve,15));assert.equal(signal.aborted,true);assert.equal(removed,1);caller.abort();assert.equal(signal.reason.name,'TimeoutError');});

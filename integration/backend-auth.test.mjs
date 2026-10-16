@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 // Run the actual Hono entrypoint. No request may reach a private query without verified Auth.
 await build({entryPoints:['supabase/functions/server/index.tsx'],outfile:'integration/test-output/server.mjs',bundle:true,format:'esm',platform:'node',plugins:[{name:'backend-fixture',setup(b){
   b.onResolve({filter:/push-delivery\.mjs$/},()=>({path:'push-delivery',namespace:'push-fixture'}));
-  b.onLoad({filter:/.*/,namespace:'push-fixture'},()=>({contents:'export const deliverTestPush=()=>{throw Error("Unexpected push transport in this fixture");};export const deliverAnomalyPush=deliverTestPush;'}));
+  b.onLoad({filter:/.*/,namespace:'push-fixture'},()=>({contents:'export const deliverTestPush=()=>{throw Error("Unexpected push transport in this fixture");};export const deliverAnomalyPush=deliverTestPush;export const deliverForecastPush=deliverTestPush;'}));
   b.onResolve({filter:/^npm:hono/},args=>({path:args.path.replace('npm:',''),external:true}));
   b.onResolve({filter:/^npm:@supabase/},()=>({path:'supabase',namespace:'fixture'}));
   b.onResolve({filter:/kv_store\.tsx$/},()=>({path:'kv',namespace:'fixture'}));

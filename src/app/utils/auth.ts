@@ -1,3 +1,4 @@
+import { requestSignal } from "./request-signal";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 
 export interface UserProfile {
@@ -60,7 +61,7 @@ export async function getValidAuthToken(): Promise<string | null> {
   if (!refreshing) refreshing = (async () => {
     const response = await fetch(`https://${projectId}.supabase.co/auth/v1/token?grant_type=refresh_token`, {
       method: "POST", headers: { "Content-Type": "application/json", apikey: publicAnonKey },
-      body: JSON.stringify({ refresh_token: refreshToken }), signal: AbortSignal.timeout(15000),
+      body: JSON.stringify({ refresh_token: refreshToken }), signal: requestSignal(15000),
     });
     const data = await response.json();
     if (!response.ok) { if (response.status < 500 && localStorage.getItem("allert_refresh_token") === refreshToken) logout(); throw new Error("Session could not be renewed. Please sign in again."); }
@@ -115,7 +116,7 @@ async function profileRequest(body: { demographic: UserProfile["demographic"]; n
       method: body ? "POST" : "GET", cache: "no-store",
       headers: { Authorization: `Bearer ${token}`, apikey: publicAnonKey, ...(body && { "Content-Type": "application/json" }) },
       ...(body && { body: JSON.stringify(body) }),
-      signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
+      signal: requestSignal(15000, options.signal),
     });
     const raw = await response.text();
     checkAccount();
@@ -173,7 +174,7 @@ export const saveHealthLog = async (
     const response = await fetch(
       `https://${projectId}.supabase.co/functions/v1/make-server-a473accf/health-logs`,
       {
-        signal: AbortSignal.timeout(15000),
+        signal: requestSignal(15000),
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -212,7 +213,7 @@ export const getHealthLogs = async (): Promise<{
     const response = await fetch(
       `https://${projectId}.supabase.co/functions/v1/make-server-a473accf/health-logs`,
       {
-        signal: AbortSignal.timeout(15000),
+        signal: requestSignal(15000),
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,

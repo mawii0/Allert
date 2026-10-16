@@ -1,3 +1,4 @@
+import { requestSignal } from "./request-signal";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { getCurrentUser, getValidAuthToken, logout } from "./auth";
 
@@ -19,7 +20,7 @@ export async function privateApi<T>(path: string, options: { method?: string; bo
     method: options.method || "GET", cache: "no-store",
     headers: { Authorization: `Bearer ${token}`, apikey: publicAnonKey, ...(options.body && { "Content-Type": "application/json" }) },
     ...(options.body && { body: JSON.stringify(options.body) }),
-    signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(options.timeoutMs || 20000)]) : AbortSignal.timeout(options.timeoutMs || 20000),
+    signal: requestSignal(options.timeoutMs || 20000, options.signal),
   });
   const raw = await response.text();
   checkAccount();

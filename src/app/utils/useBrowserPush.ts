@@ -63,9 +63,9 @@ export function useBrowserPush() {
     test: () => action(async current => {
       const outcome = await testBrowserPush();
       if (!current()) return;
-      if (outcome === "accepted") setMessage("The push service accepted the test. Check Chrome or Windows Notification Center for ALLERT.");
+      if (outcome === "accepted") setMessage("The push service accepted the test. Check your device notifications for ALLERT.");
       else if (outcome === "quiet_hours") setMessage("No test was sent because quiet hours are active in Asia/Manila.");
-      else if (outcome === "already_attempted") setMessage("This test was already attempted. Check Chrome before sending another.");
+      else if (outcome === "already_attempted") setMessage("This test was already attempted. Check your device notifications before sending another.");
       else throw Error("Unknown delivery response. Check the backend deployment.");
     }),
     saveQuiet: (value: { enabled: boolean; start: string; end: string }) => action(async () => {

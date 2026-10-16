@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 await build({entryPoints:['supabase/functions/server/index.tsx'],outfile:'integration/test-output/notification-http.mjs',bundle:true,format:'esm',platform:'node',plugins:[{name:'fixtures',setup(b){
   b.onResolve({filter:/push-delivery\.mjs$/},()=>({path:'push-delivery',namespace:'push-fixture'}));
-  b.onLoad({filter:/.*/,namespace:'push-fixture'},()=>({contents:'export const deliverTestPush=()=>{throw Error("Unexpected push transport in this fixture");};export const deliverAnomalyPush=deliverTestPush;'}));
+  b.onLoad({filter:/.*/,namespace:'push-fixture'},()=>({contents:'export const deliverTestPush=()=>{throw Error("Unexpected push transport in this fixture");};export const deliverAnomalyPush=deliverTestPush;export const deliverForecastPush=deliverTestPush;'}));
   b.onResolve({filter:/^npm:hono$/},()=>({path:'hono',external:true}));b.onResolve({filter:/^npm:hono\/cors$/},()=>({path:'hono/cors',external:true}));b.onResolve({filter:/^npm:hono\/logger$/},()=>({path:'hono/logger',external:true}));
   b.onResolve({filter:/^npm:@supabase\/supabase-js@2$/},()=>({path:'supabase',namespace:'fixture'}));b.onResolve({filter:/kv_store\.tsx$/},()=>({path:'kv',namespace:'fixture'}));
   b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='supabase'?'export const createClient=()=>globalThis.client;':`export const get=async key=>{globalThis.reads.push(key);return globalThis.records.get(key);};export const set=async()=>{};export const del=async()=>{};export const mget=async()=>[];export const getRecentByPrefix=async()=>[];export const setIfAbsent=async()=>{};`,loader:'js'}));
