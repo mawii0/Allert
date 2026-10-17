@@ -1,34 +1,23 @@
-import { readingTableFor } from "./sensor-routing.mjs";
-import { validObservedBlock } from "./anomaly-policy.mjs";
-
-export async function nodeSnapshot(client, device, now = Date.now()) {
-  const table = await readingTableFor(client,device.device_id);
-  const columns = "id,device_id,timestamp,created_at,pm2_5,pm10,temperature,humidity,sample_count,expected_samples,data_quality_status";
-  const [latest, history] = await Promise.all([
-    client.from(table).select(columns).eq("device_id",device.device_id).order("timestamp",{ascending:false}).order("id",{ascending:false}).limit(1),
-    client.from(table).select(columns).eq("device_id",device.device_id).gte("timestamp",new Date(now-86400000).toISOString()).lte("timestamp",new Date(now).toISOString()).order("timestamp").order("id").limit(1000),
-  ]);
-  if (latest.error || history.error) throw Error("Unable to load node telemetry.");
-  const slots = new Map();
-  for (const row of history.data || []) {
-    const slot = Math.floor(Date.parse(row.timestamp)/300000);
-    slots.set(slot,slots.has(slot) ? null : row);
-  }
-  const valid = [...slots.values()].filter(row => validObservedBlock(row,device.device_id,now) && Date.parse(row.timestamp)>now-86400000);
-  const reading = latest.data?.[0] || null;
-  return { device:{device_id:device.device_id,location_label:device.location_label,is_active:device.is_active,assigned:!!device.user_id},latest:reading,history:history.data || [],
-    valid_blocks:valid.length,expected_blocks:288,coverage:valid.length/288*100,
-    online:device.is_active && validObservedBlock(reading,device.device_id,now) && Date.parse(reading.timestamp)>=now-600000 && Date.parse(reading.timestamp)<=now,
-    generated_at:new Date(now).toISOString(),truncated:(history.data?.length || 0)===1000 };
+import {observationReading} from './seed7-read-routes.mjs';
+const validPm=row=>!!row && ['pm2_5','pm10'].every(k=>row.quality?.[k]==='ok' && Number.isFinite(row[k]) && row[k]>=0);
+export async function nodeSnapshot(client,device,now=Date.now()){
+ const scope=q=>q.eq('device_id',device.device_id).eq('stream_id','live').eq('mode','live');
+ const [latest,history]=await Promise.all([
+ scope(client.from('allert_v2_observations').select('*')).order('block_end',{ascending:false}).limit(1),
+ scope(client.from('allert_v2_observations').select('*')).gte('block_end',new Date(now-86400000).toISOString()).lte('block_end',new Date(now).toISOString()).order('block_end').limit(1000)]);
+ if(latest.error || history.error)throw Error('Unable to read canonical telemetry');
+ const rows=history.data || [],valid=rows.filter(validPm),raw=latest.data?.[0],reading=observationReading(raw),age=now-Date.parse(raw?.block_end);
+ return{device:{device_id:device.device_id,location_label:device.location_label,is_active:device.is_active,assigned:!!device.user_id},latest:reading,history:rows.map(observationReading),
+ valid_blocks:valid.length,expected_blocks:288,coverage:valid.length/288*100,coverage_basis:'valid_pm_blocks',online:device.is_active && validPm(raw) && age>=0 && age<=600000,generated_at:new Date(now).toISOString(),truncated:rows.length===1000};
 }
 export async function adminOverview(client, now = Date.now()) {
   const since = new Date(now-86400000).toISOString();
   const [devices,events,accepted,eventCount,worker] = await Promise.all([
     client.from("sensor_devices").select("device_id,location_label,is_active,user_id,owner_since",{count:"exact"}).order("device_id").limit(100),
-    client.from("allert_anomaly_events").select("id,device_id,observed_at,severity,metrics,classification,review_revision").order("observed_at",{ascending:false}).limit(30),
+    client.from("allert_anomaly_events").select("id,device_id,observed_at,severity,metrics,reading,classification,review_revision").order("observed_at",{ascending:false}).limit(30),
     client.from("allert_alert_deliveries").select("id",{count:"exact",head:true}).eq("status","accepted").gte("attempted_at",since),
     client.from("allert_anomaly_events").select("id",{count:"exact",head:true}).gte("observed_at",since),
-    client.from("allert_alert_worker").select("last_finished_at,last_success_at,summary").eq("id",1).maybeSingle(),
+    client.from("allert_v2_worker").select("last_finished_at,summary").eq("id",1).maybeSingle(),
   ]);
   if ([devices,events,accepted,eventCount,worker].some(result=>result.error)) throw Error("Admin data is unavailable. Check the feature migrations.");
   const nodes=[];

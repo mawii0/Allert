@@ -45,7 +45,7 @@ def set_assignment(key, value):
 
 try:
     status, health = call(edge+'/health',anon)
-    expect('deployed authorization revision is current',status==200 and health.get('revision')=='persistent-node-assignment-v1')
+    expect('deployed authorization revision is current',status==200 and health.get('revision')=='seed7-joint-policy-durable-v1')
     expect('publication without worker credential denied',call(edge+'/environment/publish',anon,{},'POST')[0]==401)
     expect('publication with incorrect worker credential denied',call(edge+'/environment/publish',{**anon,'X-Allert-Worker-Token':'incorrect'}, {}, 'POST')[0]==401)
     for _ in range(2):

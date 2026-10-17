@@ -1,0 +1,33 @@
+version: observed-pm-v1
+status: provisional_engineering_settings_not_validated_health_limits
+reference_minutes: 60
+cadence_minutes: 5
+adjacency_min_minutes: 4.5
+adjacency_max_minutes: 7.5
+reference_jitter_minutes: 2.5
+freshness_minutes: 10
+future_tolerance_minutes: 1
+confirmation_blocks: 2
+recovery_blocks: 3
+exit_fraction: 0.5
+cooldown_minutes: 30
+worsening_fraction: 0.25
+reminders_enabled: false
+policy: robust_rise_plus_level
+pollutants:
+  pm2_5:
+    minimum_excess: 10
+    variability_multiplier: 3
+    minimum_rate: 2
+    high_on: 50
+    high_off: 40
+    higher_level: 100
+    measurement_max: 1000
+  pm10:
+    minimum_excess: 20
+    variability_multiplier: 3
+    minimum_rate: 4
+    high_on: 100
+    high_off: 80
+    higher_level: 200
+    measurement_max: 1000

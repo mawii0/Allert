@@ -1,3 +1,4 @@
+import {MODEL_ID,CHECKPOINT} from '../supabase/functions/server/seed7-policy.mjs';
 import {test,beforeEach,afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
@@ -29,7 +30,7 @@ test('Risk Monitor ignores a previous account response and does not sign out a r
   await act(async()=>{tree=TestRenderer.create(React.createElement(Screen));});
   currentAccount='b';currentToken='new-token';await act(async()=>window.dispatchEvent(new Event('allert-session-changed')));
   await act(async()=>pending[0](new Response(JSON.stringify({error:'old'}),{status:401})));assert.equal(signouts,0);assert.equal(state.data,null);
-  await act(async()=>pending.at(-1)(new Response(JSON.stringify({availability:'unavailable',device:null,current:null,forecasts:[],model_status:'warming_up'}))));assert.equal(state.status,'unavailable');
+  await act(async()=>pending.at(-1)(new Response(JSON.stringify({availability:'unavailable',device:null,current:null,forecasts:[],model_status:'warming_up',model_id:MODEL_ID,checkpoint_sha256:CHECKPOINT}))));assert.equal(state.status,'unavailable');
 });
 
 test('legacy environment loading cannot sign out a new family account from a previous-account 401',async()=>{const pending=[];globalThis.fetch=()=>new Promise(resolve=>pending.push(resolve));let state;function Screen(){state=app.useEnvironment();return null;}await act(async()=>{tree=TestRenderer.create(React.createElement(Screen));});currentAccount='b';currentToken='new-token';await act(async()=>window.dispatchEvent(new Event('allert-session-changed')));await act(async()=>pending[0](new Response(JSON.stringify({error:'old'}),{status:401})));assert.equal(signouts,0);assert.equal(state.snapshot,null);await act(async()=>pending.at(-1)(new Response(JSON.stringify({snapshot:null,availability:'unavailable'}))));assert.equal(state.status,'unavailable');});

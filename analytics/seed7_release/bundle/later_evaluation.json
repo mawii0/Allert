@@ -1,0 +1,259 @@
+{
+  "seed": 7,
+  "selected": false,
+  "block": "test",
+  "n_origins": 1614,
+  "metrics": {
+    "targets": [
+      {
+        "target": "PM2.5 6h",
+        "n": 1614,
+        "MAE": 3.3929923847441468,
+        "RMSE": 4.778044212191262,
+        "bias": 0.11368069523051648,
+        "underprediction_rate": 0.47831474597273854,
+        "spread_ratio": 0.9648532308761347,
+        "MAPE_pct": 23.599208403346434,
+        "MAPE_n": 1614,
+        "MAPE_excluded_zero_n": 0,
+        "R2": 0.4949044917901634,
+        "actual_std": 6.7230048179626465,
+        "prediction_std": 6.486712746156327,
+        "high_n": 0,
+        "high_MAE": null,
+        "high_bias": null,
+        "high_underprediction_rate": null,
+        "negative_forecast_n": 0
+      },
+      {
+        "target": "PM10 6h",
+        "n": 1614,
+        "MAE": 3.7571749294078463,
+        "RMSE": 5.489558261178972,
+        "bias": 0.040261079377654635,
+        "underprediction_rate": 0.48141263940520446,
+        "spread_ratio": 0.9543409270342023,
+        "MAPE_pct": 21.296272487236052,
+        "MAPE_n": 1614,
+        "MAPE_excluded_zero_n": 0,
+        "R2": 0.4113609560764062,
+        "actual_std": 7.15505313873291,
+        "prediction_std": 6.828360086240194,
+        "high_n": 12,
+        "high_MAE": 19.05836572746436,
+        "high_bias": -19.05836572746436,
+        "high_underprediction_rate": 1.0,
+        "negative_forecast_n": 0
+      },
+      {
+        "target": "PM2.5 12h",
+        "n": 1614,
+        "MAE": 4.523629701812839,
+        "RMSE": 6.31497068360691,
+        "bias": 0.2007495832016122,
+        "underprediction_rate": 0.42998760842627015,
+        "spread_ratio": 0.9539460253943794,
+        "MAPE_pct": 31.540651908622685,
+        "MAPE_n": 1614,
+        "MAPE_excluded_zero_n": 0,
+        "R2": 0.13525804959077403,
+        "actual_std": 6.790911674499512,
+        "prediction_std": 6.4781630941424435,
+        "high_n": 0,
+        "high_MAE": null,
+        "high_bias": null,
+        "high_underprediction_rate": null,
+        "negative_forecast_n": 0
+      },
+      {
+        "target": "PM10 12h",
+        "n": 1614,
+        "MAE": 4.940425106068978,
+        "RMSE": 7.099400768430349,
+        "bias": 0.11771870274835335,
+        "underprediction_rate": 0.43742255266418834,
+        "spread_ratio": 0.944696062447324,
+        "MAPE_pct": 28.329406779433945,
+        "MAPE_n": 1614,
+        "MAPE_excluded_zero_n": 0,
+        "R2": 0.03160149524462952,
+        "actual_std": 7.2143073081970215,
+        "prediction_std": 6.815327708795195,
+        "high_n": 12,
+        "high_MAE": 19.84813075910012,
+        "high_bias": -19.84813075910012,
+        "high_underprediction_rate": 1.0,
+        "negative_forecast_n": 0
+      },
+      {
+        "target": "PM2.5 24h",
+        "n": 1614,
+        "MAE": 4.522464009927634,
+        "RMSE": 6.463895931666003,
+        "bias": 0.30695925089744147,
+        "underprediction_rate": 0.3680297397769517,
+        "spread_ratio": 0.9203389895095655,
+        "MAPE_pct": 29.80793422363827,
+        "MAPE_n": 1614,
+        "MAPE_excluded_zero_n": 0,
+        "R2": 0.12420264840372808,
+        "actual_std": 6.90704870223999,
+        "prediction_std": 6.356826569467059,
+        "high_n": 0,
+        "high_MAE": null,
+        "high_bias": null,
+        "high_underprediction_rate": null,
+        "negative_forecast_n": 0
+      },
+      {
+        "target": "PM10 24h",
+        "n": 1614,
+        "MAE": 4.882533502334306,
+        "RMSE": 7.084425799692438,
+        "bias": 0.16227874957195867,
+        "underprediction_rate": 0.38042131350681535,
+        "spread_ratio": 0.9139926878266678,
+        "MAPE_pct": 26.606127970528576,
+        "MAPE_n": 1614,
+        "MAPE_excluded_zero_n": 0,
+        "R2": 0.0627224849468645,
+        "actual_std": 7.317631721496582,
+        "prediction_std": 6.688262008281167,
+        "high_n": 12,
+        "high_MAE": 14.151664085686207,
+        "high_bias": -14.151664085686207,
+        "high_underprediction_rate": 1.0,
+        "negative_forecast_n": 0
+      }
+    ],
+    "mean_MAE": 4.336536605715959,
+    "mean_RMSE": 6.2050492761276566,
+    "mean_bias": 0.15694134350458946,
+    "mean_underprediction_rate": 0.42926476662536145,
+    "mean_spread_ratio": 0.9420279871813789,
+    "mean_MAPE_pct": 26.863266962134333,
+    "mean_MAPE_pct_defined_outputs": 6,
+    "mean_R2": 0.21000835434209422,
+    "mean_R2_defined_outputs": 6,
+    "future_rise_gt_5": [
+      {
+        "target": "PM2.5 6h",
+        "n": 161,
+        "MAE": 9.907118869283213,
+        "RMSE": 10.630833215602824,
+        "bias": -9.907118869283213,
+        "underprediction_rate": 1.0
+      },
+      {
+        "target": "PM10 6h",
+        "n": 173,
+        "MAE": 11.055021313226895,
+        "RMSE": 12.080358748701927,
+        "bias": -11.055021313226895,
+        "underprediction_rate": 1.0
+      },
+      {
+        "target": "PM2.5 12h",
+        "n": 234,
+        "MAE": 11.217679433287003,
+        "RMSE": 12.123741170234686,
+        "bias": -11.217679433287003,
+        "underprediction_rate": 1.0
+      },
+      {
+        "target": "PM10 12h",
+        "n": 245,
+        "MAE": 12.328592875572491,
+        "RMSE": 13.403936283971799,
+        "bias": -12.328592875572491,
+        "underprediction_rate": 1.0
+      },
+      {
+        "target": "PM2.5 24h",
+        "n": 208,
+        "MAE": 12.710621249700825,
+        "RMSE": 13.763590799725387,
+        "bias": -12.710621249700825,
+        "underprediction_rate": 1.0
+      },
+      {
+        "target": "PM10 24h",
+        "n": 229,
+        "MAE": 13.445916807465256,
+        "RMSE": 14.40161686583663,
+        "bias": -13.445916807465256,
+        "underprediction_rate": 1.0
+      }
+    ]
+  },
+  "future_rise_gt_5": [
+    {
+      "target": "PM2.5 6h",
+      "n": 161,
+      "MAE": 9.907118869283213,
+      "RMSE": 10.630833215602824,
+      "bias": -9.907118869283213,
+      "underprediction_rate": 1.0
+    },
+    {
+      "target": "PM10 6h",
+      "n": 173,
+      "MAE": 11.055021313226895,
+      "RMSE": 12.080358748701927,
+      "bias": -11.055021313226895,
+      "underprediction_rate": 1.0
+    },
+    {
+      "target": "PM2.5 12h",
+      "n": 234,
+      "MAE": 11.217679433287003,
+      "RMSE": 12.123741170234686,
+      "bias": -11.217679433287003,
+      "underprediction_rate": 1.0
+    },
+    {
+      "target": "PM10 12h",
+      "n": 245,
+      "MAE": 12.328592875572491,
+      "RMSE": 13.403936283971799,
+      "bias": -12.328592875572491,
+      "underprediction_rate": 1.0
+    },
+    {
+      "target": "PM2.5 24h",
+      "n": 208,
+      "MAE": 12.710621249700825,
+      "RMSE": 13.763590799725387,
+      "bias": -12.710621249700825,
+      "underprediction_rate": 1.0
+    },
+    {
+      "target": "PM10 24h",
+      "n": 229,
+      "MAE": 13.445916807465256,
+      "RMSE": 14.40161686583663,
+      "bias": -13.445916807465256,
+      "underprediction_rate": 1.0
+    }
+  ],
+  "target_order": [
+    "PM2.5 6h",
+    "PM10 6h",
+    "PM2.5 12h",
+    "PM10 12h",
+    "PM2.5 24h",
+    "PM10 24h"
+  ],
+  "test_first": "2026-09-13 04:45:00",
+  "test_last": "2026-09-30 00:00:00",
+  "shrinkage": [
+    0.025,
+    0.025,
+    0.025,
+    0.025,
+    0.225,
+    0.15000000000000002
+  ],
+  "independent_confirmation": false,
+  "selected_by_assessment": false
+}

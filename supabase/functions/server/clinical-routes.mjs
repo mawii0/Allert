@@ -21,6 +21,8 @@ export function installClinicalRoutes(app, authenticate, loadDiary, loadProfile)
       const device=await accessibleNode(client,user.id);
       if(device===undefined)return c.json({error:"Multiple active homes require node selection."},409);
       if(!device)return c.json({device:null,analysis:null});
+      if(!await currentNodeAccess(client,user.id,device))return c.json({error:"Node access changed. Refresh this screen."},409);
+      if(c.req.query("historical")!=="1")return c.json({device:{device_id:device.device_id},analysis:null,collection:"Seed-7 produces PM concentrations, not future environmental tiers. New tier-to-symptom associations are unavailable until a reviewed association protocol is agreed. Existing diary records and historical analyses are retained."});
       const epoch=device.owner_since || "1970-01-01T00:00:00Z";
       const [diary, profile, forecasts] = await Promise.all([
         loadDiary(user.id), loadProfile(user.id),
@@ -34,7 +36,7 @@ export function installClinicalRoutes(app, authenticate, loadDiary, loadProfile)
       if (!await currentNodeAccess(client,user.id,device)) return c.json({error:"Node ownership changed. Refresh this screen."},409);
       const analysis = correlateSymptoms(diary.logs, forecasts.data || [], { deviceId:device.device_id,ownerEpoch:epoch,accessSince:device.access_since,population:profile.demographic,horizon,days });
       return c.json({device:{device_id:device.device_id},analysis,history_truncated:diary.truncated || forecasts.data?.length >= 18001,
-        collection:"Verified live forecasts are saved by the enabled background collector and when Risk Monitor loads. Collection requires an available model and eligible input. Historical forecasts are not reconstructed."});
+        historical:true,collection:"Historical retired-model/policy analysis only; these rows are not seed-7 forecasts and are not reconstructed or relabelled."});
     } catch { return c.json({error:"Correlation could not be loaded. Check its migration and backend deployment."},503); }
   });
 }

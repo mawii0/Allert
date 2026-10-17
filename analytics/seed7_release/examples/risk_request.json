@@ -1,0 +1,6 @@
+{
+  "pm2_5": 20,
+  "pm10": 40,
+  "temperature_c": 30,
+  "humidity_percent": 70
+}

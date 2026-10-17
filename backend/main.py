@@ -16,6 +16,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import httpx
+try:
+    from .packet_v2 import normalize_packet_v2
+except ImportError:
+    from packet_v2 import normalize_packet_v2
 
 MAX_PACKET_BYTES = 4096
 TOKEN_PATTERN = re.compile(r"[a-fA-F0-9]{64}\Z")
@@ -142,15 +146,16 @@ def create_app(*, transport=None):
             body = json.loads(content)
         except (ValueError, UnicodeError, RecursionError, TimeoutError):
             return json_response({"error": "Invalid JSON"}, 400)
-        packet = normalize_packet(body)
+        version2 = isinstance(body,dict) and "packet_version" in body
+        packet = normalize_packet_v2(body,DEVICE_PATTERN) if version2 else normalize_packet(body)
         if packet is None:
             return json_response({"error": ERRORS[400]}, 400)
         device_id, reading = packet
         hashed_token = hashlib.sha256(token.encode("ascii")).hexdigest()
         try:
             async with asyncio.timeout(5):
-                response = await request.app.state.database.post("/rest/v1/rpc/ingest_allert_reading", json={
-                    "p_device_id": device_id, "p_token_hash": hashed_token, "p_reading": reading,
+                response = await request.app.state.database.post("/rest/v1/rpc/"+("ingest_allert_v2_packet" if version2 else "ingest_allert_reading"), json={
+                    "p_device_id": device_id, "p_token_hash": hashed_token, "p_packet" if version2 else "p_reading": reading,
                 })
             if response.status_code != 200:
                 return json_response({"error": RETRY_ERROR}, 503)
@@ -170,7 +175,7 @@ def create_app(*, transport=None):
         return json_response({
             "ok": True, "status": "success", "duplicate": duplicate,
             "message": "Sensor data already stored" if duplicate else "Sensor data stored",
-            "timestamp": reading["timestamp"],
+            "timestamp": reading["block_end" if version2 else "timestamp"],
         })
 
     return application

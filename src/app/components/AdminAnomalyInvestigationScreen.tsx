@@ -32,8 +32,8 @@ export function AdminAnomalyInvestigationScreen() {
   const metadata=[
     {label:"Anomaly ID",value:event?.id || "Select an event"},{label:"Timestamp",value:adminTime(event?.observed_at)},
     {label:"Triggering Node",value:event?.device_id || "—"},{label:"Detection Method",value:event?[...new Set(Object.values(metrics).flatMap((value:any)=>value.methods || []))].join(" + ") || "Recorded rule": "—"},
-    {label:"Z-Score",value:formatNumber(maximum("z")),badge:"#ef4444"},{label:"Velocity",value:formatNumber(maximum("velocity"),"µg/m³/h"),badge:"#ef4444"},
-    {label:"CUSUM Score",value:formatNumber(maximum("cusum")),badge:"#f59e0b"},{label:"Risk Output",value:"Observed measurement anomaly; no symptom probability",badge:"#6b7280"},
+    {label:"PM reference median",value:formatNumber(maximum("baseline"),"µg/m³"),badge:"#ef4444"},{label:"PM rise rate",value:formatNumber(maximum("rate_ugm3_per_minute"),"µg/m³/min"),badge:"#ef4444"},
+    {label:"Median absolute deviation",value:formatNumber(maximum("mad")),badge:"#f59e0b"},{label:"Risk Output",value:"Observed measurement anomaly; no symptom probability",badge:"#6b7280"},
   ];
   const comparisonRows=[{metric:"PM2.5",key:"pm2_5",unit:"µg/m³"},{metric:"PM10",key:"pm10",unit:"µg/m³"},{metric:"Temperature",key:"temperature",unit:"°C"},{metric:"Humidity",key:"humidity",unit:"%"}].map(item=>({
     metric:item.metric,forecast:formatNumber(metrics[item.key]?.mean,item.unit),observed:formatNumber(event?.reading?.[item.key],item.unit),
@@ -47,6 +47,7 @@ export function AdminAnomalyInvestigationScreen() {
         <header className="flex flex-col gap-4 rounded-2xl border border-[#2a2a2a] bg-[#141414] px-6 py-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="text-xs text-[#b0b0b0]">Anomaly Investigation</div>
+            {event && !event.policy_version?.startsWith("observed-pm-v1:76486e77:") && <p className="text-xs text-amber-300">Historical detector record under its original policy; it is not a current median/MAD event.</p>}
             <div className="text-lg font-semibold">{event ? `${event.severity.toUpperCase()} measurement event` : "Select an anomaly event"}</div>
           </div>
           <div className="flex flex-col gap-3 md:flex-row md:items-center">

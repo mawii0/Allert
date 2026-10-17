@@ -1,0 +1,17 @@
+# Retained project indicator; independent of neural forecasts and observed alerts.
+risk:
+  pm2_5_beta: 0.0104
+  pm10_beta: 0.0026
+  temp_baseline_c: 25.0
+  temp_beta: 0.012
+  humidity_baseline_pct: 60.0
+  humidity_beta: -0.004
+  baseline_prevalence_adult: 0.20
+  baseline_prevalence_pediatric: 0.22
+  adult_tiers: {low: 0.0, moderate: 0.15, high: 0.25, very_high: 0.40}
+  pediatric_tiers: {low: 0.0, moderate: 0.13, high: 0.23, very_high: 0.38}
+  sensitivity_perturbation_pct: 0.10
+  distributed_lag_active: false
+  # Inactive helper compatibility only; never used by current-risk pipeline.
+  distributed_lag_weights: [0.60, 0.25, 0.10, 0.05]
+  distributed_lag_hours: [0, 24, 48, 72]

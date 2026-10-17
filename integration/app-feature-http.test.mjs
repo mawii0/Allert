@@ -1,3 +1,4 @@
+import {automaticObservedReady} from '../supabase/functions/server/observed-dispatch.mjs';
 import {test,beforeEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {Hono} from 'hono';
@@ -38,9 +39,9 @@ test('admin overview returns actual registered nodes and real empty event totals
 test('an unavailable admin source cannot be converted into fabricated zero statistics',async()=>{
   tables.allert_admin_users=[{user_id:owner,active:true}];failTable='allert_anomaly_events';assert.equal((await request('/admin/overview')).status,503);
 });
-test('node detail uses the server-owned readings-table mapping and selected node filter',async()=>{
-  tables.allert_admin_users=[{user_id:owner,active:true}];tables.node_ingestion_credentials[0].readings_table='second_readings';tables.second_readings=[];
-  assert.equal((await request('/admin/nodes/NODE-A')).status,200);assert.equal(queries.filter(item=>item.table==='second_readings').length,2);assert.ok(queries.filter(item=>item.table==='second_readings').every(item=>item.filters.some(filter=>filter.key==='device_id'&&filter.value==='NODE-A')));
+test('node detail reads only the fixed canonical table with selected node and live stream filters',async()=>{
+  tables.allert_admin_users=[{user_id:owner,active:true}];tables.node_ingestion_credentials[0].readings_table='second_readings';tables.allert_v2_observations=[];
+  assert.equal((await request('/admin/nodes/NODE-A')).status,200);assert.equal(queries.filter(item=>item.table==='allert_v2_observations').length,2);assert.ok(queries.filter(item=>item.table==='allert_v2_observations').every(item=>item.filters.some(filter=>filter.key==='device_id'&&filter.value==='NODE-A')));
 });
 test('review mutations derive the actor from verified Auth and preserve the expected revision',async()=>{
   tables.allert_admin_users=[{user_id:owner,active:true}];const response=await request('/admin/anomalies/'+eventId,'PUT',{actor_id:other,revision:3,classification:'investigating',notes:'Check the sensor'});assert.equal(response.status,200);
@@ -52,12 +53,15 @@ test('invalid reviews are rejected before mutation and database conflicts remain
 });
 test('alert history is restricted to the verified current owner, device and ownership epoch',async()=>{
   tables.allert_anomaly_events=[{id:eventId,user_id:owner,device_id:'NODE-A',owner_epoch:epoch,observed_at:new Date().toISOString()},{id:'private',user_id:other,device_id:'NODE-A',owner_epoch:epoch},{id:'old-ownership',user_id:owner,device_id:'NODE-A',owner_epoch:'2020-01-01'}];
-  const result=await(await request('/alerts')).json();assert.equal(result.events.length,1);assert.equal(result.events[0].id,eventId);assert.equal(result.processorReady,false);
-  const revoked=await(await request('/alerts','GET',undefined,'other')).json();assert.equal(revoked.device,null);assert.equal(revoked.events.length,0);
+  const result=await(await request('/alerts?historical=1')).json();assert.equal(result.events.length,1);assert.equal(result.events[0].id,eventId);assert.equal(result.processorReady,false);
+  const revoked=await(await request('/alerts?historical=1','GET',undefined,'other')).json();assert.equal(revoked.device,null);assert.equal(revoked.events.length,0);
 });
-test('worker readiness requires an enabled processor and a recent error-free heartbeat',async()=>{
-  flags.ALLERT_ANOMALY_ALERTS_ENABLED='true';assert.equal((await(await request('/alerts')).json()).processorReady,true);tables.allert_alert_worker[0].summary.errors=1;assert.equal((await(await request('/alerts')).json()).processorReady,false);
-  tables.allert_alert_worker[0].summary.errors=0;tables.allert_alert_worker[0].last_success_at='2020-01-01';assert.equal((await(await request('/alerts')).json()).processorReady,false);
+test('selected processor readiness uses its own recent error-free heartbeat and an explicit enabled flag',async()=>{
+ tables.allert_v2_worker=[{id:1,last_finished_at:new Date().toISOString(),summary:{enabled:true,current_errors:0,forecast_errors:0}}];
+ assert.equal(await automaticObservedReady(client,env),false);flags.ALLERT_ANOMALY_ALERTS_ENABLED='true';assert.equal(await automaticObservedReady(client,env),true);
+ tables.allert_v2_worker[0].summary.current_errors=1;assert.equal(await automaticObservedReady(client,env),false);
+ tables.allert_v2_worker[0].summary.current_errors=0;tables.allert_v2_worker[0].last_finished_at='2020-01-01';assert.equal(await automaticObservedReady(client,env),false);
+ assert.equal((await(await request('/alerts?historical=1')).json()).processorReady,false);
 });
 test('ordinary bearer tokens cannot invoke the background processor',async()=>{
   flags.ALLERT_ALERT_WORKER_TOKEN='private-worker';for(const headers of [{},{'X-Allert-Worker-Token':'wrong'}])assert.equal((await request('/alerts/process','POST',{},'owner',headers)).status,401);assert.equal(rpcs.length,0);
@@ -71,5 +75,5 @@ test('an unlinked account gets no previous node coordinates and cannot select an
   tables.allert_node_locations=[{device_id:'NODE-A',user_id:owner,owner_epoch:epoch,latitude:10,longitude:120}];const result=await(await request('/node-location?userId='+owner,'GET',undefined,'other')).json();assert.deepEqual(result,{device:null,location:null});assert.equal(queries.some(item=>item.table==='allert_node_locations'),false);
 });
 test('multiple owned nodes require explicit future node selection rather than silently choosing a home',async()=>{
-  tables.sensor_devices.push({...tables.sensor_devices[0],device_id:'NODE-B'});assert.equal((await request('/node-location')).status,409);assert.equal((await request('/alerts')).status,409);
+  tables.sensor_devices.push({...tables.sensor_devices[0],device_id:'NODE-B'});assert.equal((await request('/node-location')).status,409);assert.equal((await request('/alerts?historical=1')).status,409);
 });

@@ -51,6 +51,7 @@ def compute(payload):
             'current': current, 'forecast': forecast, 'risk': risk, **measured_history(payload, current)}
 
 def main():
+    raise SystemExit("Retired publisher. Use analytics/app.py (Vercel); historical helpers remain for regression evidence only.")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--input', type=Path, required=True)
     parser.add_argument('--publish', action='store_true')

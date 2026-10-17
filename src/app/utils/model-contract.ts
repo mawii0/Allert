@@ -1,4 +1,4 @@
-// Proposed wire types for the partner API. These do not implement Supabase routes.
+// Selected seed-7 runtime types. Authorization and persistence live in server routes.
 export type Population = 'adult' | 'pediatric';
 export type Tier = 'low' | 'moderate' | 'high' | 'very_high';
 export type Pollutant = 'pm2_5' | 'pm10';
@@ -28,7 +28,7 @@ export interface ForecastValue {
 }
 export interface ForecastResponse {
   status: 'ok';
-  model_id: 'median-residual-single-v1';
+  model_id: 'median-residual-seed7-epoch15-20261013-v1';
   node_id: string;
   mode: 'live' | 'historical_fixture';
   forecast_origin: string;

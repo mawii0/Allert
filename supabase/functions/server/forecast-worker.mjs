@@ -1,3 +1,4 @@
+// Historical regression module; not installed by the selected application entrypoint.
 import { readingTableFor } from './sensor-routing.mjs';
 import { buildMonitor, modelPayload, modelInputStatus, validModelForecast, median } from './risk-monitor.mjs';
 import { forecastEvidence } from './clinical-correlation.mjs';

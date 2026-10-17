@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "total_cells": 21,
+  "executed_code_cells": 11,
+  "image_outputs": 9,
+  "errors": 0,
+  "new_training_or_calibration": false,
+  "active_master_notebook_changed": false
+}
