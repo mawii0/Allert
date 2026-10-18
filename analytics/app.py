@@ -16,10 +16,22 @@ _invocation = threading.Lock()
 _MAX_INTERNAL_BODY_BYTES = 64
 
 
+def _masked_wire_shape(prefix):
+    # Preserve syntax only. No original letters, numbers, or non-ASCII bytes.
+    punctuation = b'{}[],:"\' <>/\\=;+-_()\r\n\t'
+    return ''.join(chr(byte) if byte in punctuation else
+                   'a' if 65 <= byte <= 90 or 97 <= byte <= 122 else
+                   '#' if 48 <= byte <= 57 else '?' for byte in prefix)
+
+
 def _empty_request_error(request, prefix, bytes_seen, kind):
     # Diagnostic metadata only: never return body contents, field names or headers.
     length = request.headers.get('content-length', '')
+    encoding = request.headers.get('content-encoding', '').lower().strip()
     shape = {'bytes_seen': bytes_seen, 'kind': kind,
+             'syntax_mask': _masked_wire_shape(prefix),
+             'content_encoding': encoding if encoding in ('', 'identity', 'gzip', 'deflate', 'br') else 'other',
+             'gzip_signature': prefix.startswith(b'\x1f\x8b'),
              'prefix_sha256': hashlib.sha256(prefix).hexdigest(),
              'content_length': int(length) if length.isascii() and length.isdigit() and len(length) < 12 else None}
     return JSONResponse({'error': 'Only an empty request is accepted', 'request_shape': shape},

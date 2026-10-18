@@ -112,7 +112,38 @@ def test_request_diagnostics_do_not_return_private_values_or_field_names(client)
         assert response.status_code == 400
         for private in ('fixture-sensitive-value', 'private_field', TOKEN, 'authorization'):
             assert private not in response.text
-        assert set(response.json()['request_shape']) == {'bytes_seen', 'kind', 'prefix_sha256', 'content_length'}
+        assert set(response.json()['request_shape']) == {
+            'bytes_seen', 'kind', 'prefix_sha256', 'content_length',
+            'syntax_mask', 'content_encoding', 'gzip_signature'}
+        batch.assert_not_called()
+
+
+def test_wire_shape_masks_values_and_reports_only_known_encoding_names(client):
+    import json
+    body = b'{"private_field":"Secret123"}\x00'
+    headers = {'Authorization': 'Bearer ' + TOKEN, 'Content-Encoding': 'private-encoding-value'}
+    with patch.object(module.worker, 'run_batch') as batch:
+        response = client.post('/internal/tick', headers=headers, content=body)
+        assert response.status_code == 400
+        shape = response.json()['request_shape']
+        assert shape['syntax_mask'] == '{"aaaaaaa_aaaaa":"aaaaaa###"}?'
+        assert shape['content_encoding'] == 'other'
+        assert shape['gzip_signature'] is False
+        for secret in ('Secret123', 'private_field', 'private-encoding-value', TOKEN):
+            assert secret not in response.text
+        assert len(json.loads(response.text)['request_shape']['syntax_mask']) == len(body)
+        batch.assert_not_called()
+
+
+def test_gzip_wire_signature_is_diagnostic_and_never_processed(client):
+    import gzip
+    with patch.object(module.worker, 'run_batch') as batch:
+        response = client.post('/internal/tick', headers={
+            'Authorization': 'Bearer ' + TOKEN, 'Content-Encoding': 'gzip'},
+            content=gzip.compress(b'{}', mtime=0))
+        assert response.status_code == 400
+        assert response.json()['request_shape']['gzip_signature'] is True
+        assert response.json()['request_shape']['content_encoding'] == 'gzip'
         batch.assert_not_called()
 
 
