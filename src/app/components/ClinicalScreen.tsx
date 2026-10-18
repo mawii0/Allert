@@ -1,3 +1,4 @@
+import "../../styles/patient-settings.css";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -181,18 +182,18 @@ export function ClinicalScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 px-6 py-8 relative">
+    <div className="allert-ui clinical-screen min-h-screen bg-zinc-950 px-4 py-8 sm:px-6 relative">
       {/* Header with History Button */}
       <div className="mb-6 flex items-start justify-between">
         <div className="flex-1">
-          <div className="text-sm text-zinc-400 mb-1">
-            Clinical Health Suite
+          <div className="allert-eyebrow mb-2">
+            ALLERT · Your health
           </div>
           <h1 ref={heading} tabIndex={-1} className="text-2xl font-bold">
             Symptom Tracker
           </h1>
           <p className="text-sm text-zinc-400 mt-1">
-            Daily symptom logging & validation
+            Log how you feel and review your symptom history.
           </p>
         </div>
 
@@ -201,9 +202,9 @@ export function ClinicalScreen() {
           ref={historyButton}
           aria-label="Open symptom history"
           onClick={() => setShowHistory(true)}
-          className="w-12 h-12 rounded-full bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 flex items-center justify-center transition-all shadow-lg"
+          className="shrink-0 min-h-12 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-zinc-700 px-3 flex items-center justify-center gap-2 transition-colors"
         >
-          <BookOpen className="w-5 h-5 text-emerald-400" />
+          <BookOpen aria-hidden="true" className="w-5 h-5 text-emerald-400" /><span className="text-sm">History</span>
         </button>
       </div>
 
@@ -215,11 +216,11 @@ export function ClinicalScreen() {
 
       {/* Daily VAS Slider */}
       <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <h3 className="font-semibold mb-2">
+        <h2 className="font-semibold mb-2">
           Visual Analog Scale (VAS)
-        </h3>
+        </h2>
         <p className="text-xs text-zinc-500 mb-6">
-          Rate your overall symptom severity today
+          Rate your overall symptoms at the observation time below.
         </p>
 
         <div className="flex items-center justify-center mb-6">
@@ -276,12 +277,20 @@ export function ClinicalScreen() {
       {/* Symptom Checklist (TNSS) */}
       {scores ? <>
       <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <h3 className="font-semibold mb-2">
+        <h2 className="font-semibold mb-2">
           Total Nasal Symptom Score (TNSS)
-        </h3>
+        </h2>
         <p className="text-xs text-zinc-500 mb-6">
-          Rate the severity of each symptom
+          Rate each symptom from 0 (none) to 3 (severe). All four ratings contribute to your total.
         </p>
+
+        <div aria-label="Symptom ratings" className="grid grid-cols-2 gap-2 mb-5">
+          {symptoms.map((symptom, index) => <button key={symptom.id} type="button"
+            aria-label={`Rate ${symptom.label}`} aria-pressed={currentSymptomIndex === index} disabled={diary.busy}
+            onClick={() => setCurrentSymptomIndex(index)} className="allert-symptom-choice">
+            <span>{symptom.label}</span><span className="text-xs">{scores[symptom.id]}/3 · {getTnssLabel(scores[symptom.id])}</span>
+          </button>)}
+        </div>
 
         {/* Symptom Navigation with Arrows */}
         <div className="bg-zinc-800/50 rounded-xl p-5 border border-zinc-700/50 mb-6">
@@ -396,7 +405,7 @@ export function ClinicalScreen() {
       </div>
 
       </> : <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <h3 className="font-semibold mb-2">Total Nasal Symptom Score (TNSS)</h3>
+        <h2 className="font-semibold mb-2">Total Nasal Symptom Score (TNSS)</h2>
         <p className="text-xs text-zinc-500 mb-4">Only the total was recorded for this older entry. Individual symptom ratings remain unknown.</p>
         <label htmlFor="diary-total" className="block text-sm text-zinc-400 mb-2">Recorded TNSS total</label>
         <input id="diary-total" type="number" min={0} max={12} step={1} disabled={diary.busy} value={aggregate} onChange={event => setAggregate(Number(event.target.value))} className={inputClass} />
@@ -417,28 +426,47 @@ export function ClinicalScreen() {
         </div>
       </details>
 
-      <div className="bg-zinc-900/50 rounded-2xl p-6 border border-zinc-800">
-        <h3 className="font-semibold mb-2">Clinical Validation</h3>
-        <p className="text-xs text-zinc-400">Correlation analysis is awaiting matched environmental and symptom history. No clinical correlation has been calculated for your account.</p>
-      </div>
+      {/* Error Message */}
+      {saveError && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2"
+        >
+          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          <p role="alert" className="text-sm text-red-300">{saveError}</p>
+        </motion.div>
+      )}
+
+      {/* Save Button */}
+      <button
+        onClick={handleSaveEntry}
+        disabled={isSaving || diary.loading}
+        className="w-full mt-6 h-12 bg-gradient-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isSaving ? "Saving..." : editing ? "Save changes" : "Save Today's Entry"}
+      </button>
+
+
       {loadError && <div role="alert" className="text-sm text-amber-300 mt-4"><p>{loadError}</p><button disabled={diary.busy} onClick={diary.retry} className="underline mt-2">Refresh history</button></div>}
       {!isLoadingLogs && !loadError && diaryEntries.length === 0 && <p className="text-sm text-zinc-400 mt-4">No saved entries yet.</p>}
 
+      <div className="mt-8 mb-4"><h2 className="text-lg font-semibold">Your symptom patterns</h2><p className="text-sm text-zinc-400 mt-1">Review saved entries separately from the entry you are editing.</p></div>
       {/* Historical Trend Chart */}
       <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 border border-zinc-800 shadow-xl">
-        <h3 className="font-semibold mb-2">Historical Trend</h3>
+        <h2 className="font-semibold mb-2">Historical Trend</h2>
         <p className="text-xs text-zinc-500 mb-4">
           Last 7 days: daily VAS and TNSS averages
         </p>
 
         <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700/50">
-          <ResponsiveContainer width="100%" height={220}>
+          {historicalTrendData.length === 0 ? <p className="text-sm text-zinc-300 py-6">No entries in the last 7 days. Save an entry to start your trend.</p> : <ResponsiveContainer width="100%" height={220}>
             <LineChart
               data={historicalTrendData}
               margin={{
                 top: 5,
-                right: 30,
-                left: 20,
+                right: 0,
+                left: 0,
                 bottom: 5,
               }}
             >
@@ -447,23 +475,17 @@ export function ClinicalScreen() {
               <YAxis
                 yAxisId="left"
                 domain={[0, 12]}
-                stroke="#3b82f6"
-                label={{
-                  value: "TNSS Score",
-                  angle: -90,
-                  position: "insideLeft",
-                }}
+                stroke="#60a5fa"
+                width={32}
+                tick={{ fontSize: 12 }}
               />
               <YAxis
                 yAxisId="right"
                 orientation="right"
                 domain={[0, 10]}
-                stroke="#eab308"
-                label={{
-                  value: "Severity Score",
-                  angle: 90,
-                  position: "insideRight",
-                }}
+                stroke="#facc15"
+                width={32}
+                tick={{ fontSize: 12 }}
               />
               <Tooltip />
               <Legend />
@@ -489,30 +511,10 @@ export function ClinicalScreen() {
                 dot={{ r: 4 }}
               />
             </LineChart>
-          </ResponsiveContainer>
+          </ResponsiveContainer>}
         </div>
+        {trend.length > 0 && <details className="allert-disclosure mt-4"><summary>View daily values</summary><div className="overflow-x-auto"><table className="w-full text-sm mt-3"><caption className="sr-only">Daily symptom averages in Asia/Manila</caption><thead><tr><th scope="col">Day</th><th scope="col">VAS /10</th><th scope="col">TNSS /12</th></tr></thead><tbody>{trend.map(point => <tr key={point.day}><th scope="row">{point.day}</th><td>{point.vas.toFixed(1)}</td><td>{point.tnss.toFixed(1)}</td></tr>)}</tbody></table></div></details>}
       </div>
-
-      {/* Error Message */}
-      {saveError && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2"
-        >
-          <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <p role="alert" className="text-sm text-red-300">{saveError}</p>
-        </motion.div>
-      )}
-
-      {/* Save Button */}
-      <button
-        onClick={handleSaveEntry}
-        disabled={isSaving || diary.loading}
-        className="w-full mt-6 h-12 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isSaving ? "Saving..." : editing ? "Save changes" : "Save Today's Entry"}
-      </button>
 
       <ClinicalCorrelation diaryRevision={diary.entries.map(entry=>`${entry.id}:${entry.revision}`).join(",")} />
 
@@ -523,7 +525,7 @@ export function ClinicalScreen() {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
-            className="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-emerald-500 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-2 z-[70]"
+            className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-emerald-800 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-2 z-[70]"
           >
             <CheckCircle className="w-5 h-5" />
             <span role="status" className="font-semibold">
@@ -575,7 +577,7 @@ export function ClinicalScreen() {
                   setShowHistory(false);
                 }
               }}
-              className="fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 bg-zinc-900 rounded-t-3xl shadow-2xl max-h-[85vh] flex flex-col"
+              className="allert-history fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 bg-zinc-900 rounded-t-3xl shadow-2xl max-h-[85dvh] flex flex-col"
             >
               {/* Drag Handle */}
               <div className="w-full pt-4 pb-2 flex justify-center">

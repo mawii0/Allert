@@ -95,3 +95,24 @@ test('failed saves keep the same request identity when retried',async()=>{
   assert.equal(attempts.length,2);assert.equal(attempts[0].id,attempts[1].id);assert.deepEqual(attempts[0].fields,attempts[1].fields);
   await act(async()=>tree.unmount());
 });
+
+test('symptom overview supports direct selection and preserves all four ratings when saving',async()=>{
+  fixture([]);let saved,tree;diaryState.create=async fields=>{saved=fields;return true;};
+  await act(async()=>{tree=TestRenderer.create(React.createElement(ClinicalScreen));});
+  for(const [label,score] of [['Congestion',3],['Sneezing',1],['Runny Nose',2],['Itchy Nose',1]]){
+    await act(async()=>tree.root.findByProps({'aria-label':`Rate ${label}`}).props.onClick());
+    assert.equal(tree.root.findByProps({'aria-label':`Rate ${label}`}).props['aria-pressed'],true);
+    await act(async()=>tree.root.findByProps({'aria-label':`${label} severity`}).props.onValueChange([score]));
+  }
+  assert.equal(tree.root.findAllByProps({'aria-pressed':true}).length,1);
+  await act(async()=>button(tree,"Save Today's Entry").props.onClick());
+  assert.equal(saved.tnssScore,7);assert.deepEqual(saved.symptomSeverities,{sneezing:1,'itchy-nose':1,'runny-nose':2,congestion:3});
+  await act(async()=>tree.unmount());
+});
+test('save is before analysis and an empty week is explained without a fabricated trend',async()=>{
+  fixture([]);let tree;await act(async()=>{tree=TestRenderer.create(React.createElement(ClinicalScreen));});
+  const content=text(tree.toJSON());
+  assert.ok(content.indexOf("Save Today's Entry")<content.indexOf('Your symptom patterns'));
+  assert.match(content,/No entries in the last 7 days/);
+  await act(async()=>tree.unmount());
+});
