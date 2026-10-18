@@ -53,12 +53,11 @@ test('name correction persists and survives remount while email and membership r
   assert.equal(saved.name,'Updated name');assert.ok(text(tree.toJSON()).includes('Profile saved.'));assert.ok(text(tree.toJSON()).includes('account-a@example.invalid'));assert.equal(saved.createdAt,'2026-10-01T00:00:00Z');
   await act(async()=>tree.unmount());tree=null;await mount(app.SettingsScreen);assert.ok(text(tree.toJSON()).includes('Updated name'));
 });
-test('category change requires explicit confirmation and updates the mounted dashboard immediately',async()=>{
+test('Settings has no category selector while the dashboard shows both risk scores',async()=>{
   function Screens(){return React.createElement(React.Fragment,null,React.createElement(app.SettingsScreen),React.createElement(app.DashboardScreen));}
-  await mount(Screens);assert.ok(text(tree.toJSON()).includes('12.3'));await click('Edit profile');await act(async()=>tree.root.findByType('select').props.onChange({target:{value:'pediatric'}}));
-  assert.equal(button('Save profile').props.disabled,true);await submit();assert.equal(requests.filter(request=>request.options.method==='POST').length,0);
-  await act(async()=>form().findByProps({type:'checkbox'}).props.onChange({target:{checked:true}}));assert.equal(button('Save profile').props.disabled,false);await submit();
-  assert.equal(saved.demographic,'pediatric');assert.ok(text(tree.toJSON()).includes('45.6'));assert.ok(text(tree.toJSON()).includes('Current pediatric environmental indicator'));
+  await mount(Screens);assert.ok(text(tree.toJSON()).includes('Adult 12.3Pediatric 45.6'));await click('Edit profile');
+  assert.equal(form().findAllByType('select').length,0);assert.equal(form().findAllByProps({type:'checkbox'}).length,0);
+  assert.equal(requests.filter(request=>request.options.method==='POST').length,0);
 });
 test('switching categories again resets the confirmation and cancel keeps the saved category',async()=>{
   await harness();await act(async()=>state.begin());await act(async()=>{state.setDemographic('pediatric');state.setConfirmed(true);});assert.equal(state.canSave,true);
@@ -112,10 +111,9 @@ test('leaving Settings aborts its in-flight save and does not update the cache f
   finish(response({profile:{...saved,name:'Late name'}}));assert.equal(await saving,false);assert.equal(localStorage.getItem('allert_user_name'),'Original name');
 });
 
-test('Settings section shortcuts resolve to unique sections and node details are shown once',async()=>{
+test('Settings omits shortcut buttons and shows node details once',async()=>{
   await mount(app.SettingsScreen);
-  const nav=tree.root.findByProps({'aria-label':'Settings sections'});
-  for(const link of nav.findAllByType('a'))assert.equal(tree.root.findAllByProps({id:link.props.href.slice(1)}).length,1);
+  assert.equal(tree.root.findAllByProps({'aria-label':'Settings sections'}).length,0);
   assert.equal(tree.root.findAllByType('dd').filter(node=>text(node)==='ALLERT-NODE-001').length,1);
   assert.equal(button('Logout').props.disabled,undefined);
 });

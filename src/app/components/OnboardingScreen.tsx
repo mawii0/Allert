@@ -1,7 +1,7 @@
 import { pendingNodeSharePath } from "../utils/pending-node-share";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { User, Users, MapPin, Bell, ChevronRight, Loader2 } from "lucide-react";
+import { MapPin, Bell, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 import { useNotificationPreferences } from "../utils/useNotificationPreferences";
@@ -10,8 +10,6 @@ import logoImage from "../../imports/AllertLogoTransparent1.png";
 
 export function OnboardingScreen() {
   const navigate = useNavigate();
-  const [demographic, setDemographic] = useState<"adult" | "pediatric">("adult");
-  const [locationEnabled, setLocationEnabled] = useState(false);
   const notifications = useNotificationPreferences();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -30,7 +28,7 @@ export function OnboardingScreen() {
     try {
       // Save profile to Supabase
       const userName = localStorage.getItem("allert_user_name") || "";
-      const result = await saveProfile(demographic, userName);
+      const result = await saveProfile("adult", userName);
 
       if (!result.success) {
         throw new Error(result.error || "Failed to save profile");
@@ -38,7 +36,7 @@ export function OnboardingScreen() {
 
       // Store onboarding data in localStorage
       localStorage.setItem("allert_onboarding_complete", "true");
-      localStorage.setItem("allert_demographic", demographic);
+      localStorage.setItem("allert_demographic", "adult");
 
       navigate(pendingNodeSharePath() || "/app/dashboard");
     } catch (err: any) {
@@ -70,46 +68,6 @@ export function OnboardingScreen() {
           </p>
         </div>
 
-      {/* Demographic Toggle */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
-            <User className="w-5 h-5 text-emerald-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-[#ffffff]">Patient Profile</h3>
-            <p className="text-xs text-zinc-500">Select your age group</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setDemographic("adult")}
-            className={`p-4 rounded-xl border transition-all ${
-              demographic === "adult"
-                ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
-                : "bg-zinc-800/50 border-zinc-700 text-zinc-400"
-            }`}
-          >
-            <User className="w-6 h-6 mx-auto mb-2" />
-            <div className="text-sm font-medium">Adult</div>
-            <div className="text-xs opacity-70">Adult indicator profile</div>
-          </button>
-          <button
-            onClick={() => setDemographic("pediatric")}
-            className={`p-4 rounded-xl border transition-all ${
-              demographic === "pediatric"
-                ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
-                : "bg-zinc-800/50 border-zinc-700 text-zinc-400"
-            }`}
-          >
-            <Users className="w-6 h-6 mx-auto mb-2" />
-            <div className="text-sm font-medium">Pediatric</div>
-            <div className="text-xs opacity-70">Pediatric indicator profile</div>
-          </button>
-        </div>
-      </div>
-
       {/* Permissions */}
       <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-zinc-800 shadow-xl">
         <h3 className="font-semibold mb-4 text-[#ffffff]">Permissions</h3>
@@ -131,7 +89,6 @@ export function OnboardingScreen() {
               disabled
               aria-label="Location services unavailable"
               checked={false}
-              onCheckedChange={setLocationEnabled}
             />
           </div>
 
@@ -152,9 +109,9 @@ export function OnboardingScreen() {
               onCheckedChange={value => { void notifications.changeEnabled(value); }}
             />
           </div>
-          {notifications.enabled && notifications.permission === "default" && <button type="button" disabled={notifications.loading || notifications.saving} onClick={() => { void notifications.changeEnabled(true); }} className="text-xs text-emerald-400 underline disabled:opacity-50">Allow in this browser</button>}
+          {notifications.enabled && notifications.permission === "default" && <button type="button" disabled={notifications.loading || notifications.saving} onClick={() => { void notifications.changeEnabled(true); }} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-emerald-300 disabled:opacity-50">Allow in this browser</button>}
           {notifications.error && <p role="alert" className="text-xs text-red-300">{notifications.error}</p>}
-          <button type="button" disabled={notifications.loading || notifications.saving} onClick={notifications.retry} className="text-xs text-zinc-400 underline disabled:opacity-50">Refresh notification settings</button>
+          <button type="button" disabled={notifications.loading || notifications.saving} onClick={notifications.retry} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-300 disabled:opacity-50">Refresh notification settings</button>
         </div>
       </div>
 

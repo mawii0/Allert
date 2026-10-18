@@ -96,15 +96,14 @@ test('failed saves keep the same request identity when retried',async()=>{
   await act(async()=>tree.unmount());
 });
 
-test('symptom overview supports direct selection and preserves all four ratings when saving',async()=>{
+test('TNSS uses the symptom carousel without four selection boxes and saves all ratings',async()=>{
   fixture([]);let saved,tree;diaryState.create=async fields=>{saved=fields;return true;};
   await act(async()=>{tree=TestRenderer.create(React.createElement(ClinicalScreen));});
-  for(const [label,score] of [['Congestion',3],['Sneezing',1],['Runny Nose',2],['Itchy Nose',1]]){
-    await act(async()=>tree.root.findByProps({'aria-label':`Rate ${label}`}).props.onClick());
-    assert.equal(tree.root.findByProps({'aria-label':`Rate ${label}`}).props['aria-pressed'],true);
+  assert.equal(tree.root.findAllByProps({'aria-label':'Symptom ratings'}).length,0);
+  for(const [label,score] of [['Sneezing',1],['Itchy Nose',1],['Runny Nose',2],['Congestion',3]]){
     await act(async()=>tree.root.findByProps({'aria-label':`${label} severity`}).props.onValueChange([score]));
+    await act(async()=>tree.root.findByProps({'aria-label':'Next symptom'}).props.onClick());
   }
-  assert.equal(tree.root.findAllByProps({'aria-pressed':true}).length,1);
   await act(async()=>button(tree,"Save Today's Entry").props.onClick());
   assert.equal(saved.tnssScore,7);assert.deepEqual(saved.symptomSeverities,{sneezing:1,'itchy-nose':1,'runny-nose':2,congestion:3});
   await act(async()=>tree.unmount());

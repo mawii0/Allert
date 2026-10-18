@@ -17,7 +17,6 @@ import { Label } from "./ui/label";
 import { DeploymentCheck } from "./DeploymentCheck";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { storeSession, getProfile } from "../utils/auth";
-// import logoImage from "../../imports/AllertLogoTransparent.png";
 import logoImage from "../../imports/AllertLogoTransparent1.png";
 
 
@@ -68,10 +67,23 @@ export function AuthScreen() {
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.verification_required) {
+          navigate("/verify-email", { state: { email: email.trim() } });
+          return;
+        }
         throw new Error(
           data.error ||
             `${mode === "register" ? "Registration" : "Login"} failed`,
         );
+      }
+
+      if (data.pending_verification) {
+        navigate("/verify-email", { state: { email: email.trim() } });
+        return;
+      }
+
+      if (mode === "register" && data.access_token) {
+        throw new Error("Email confirmation is not enabled on the connected service. Registration is paused until the server is updated.");
       }
 
       if (data.access_token) {
