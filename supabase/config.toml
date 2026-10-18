@@ -1,5 +1,8 @@
 project_id = "allert"
 
+[auth.email]
+enable_confirmations = true
+
 [functions.make-server-a473accf]
 entrypoint = "./functions/server/index.tsx"
 # Authentication is enforced in the handlers using Supabase Auth / worker tokens.

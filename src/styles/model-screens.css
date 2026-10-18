@@ -7,6 +7,12 @@
 .model-screen .subtitle { color: #a1a1aa; font-size: 12px; margin-top: 6px; }
 .model-card { border: 1px solid #27272a; border-radius: 16px; background: rgba(24,24,27,.65); }
 .model-gauge { width: 256px; height: 256px; position: relative; margin: 0 auto 24px; }
+.model-home .model-gauge { margin-bottom: 4px; }
+.population-scores { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; font-size: 11px; color: #a1a1aa; }
+.population-scores span { padding: 5px 9px; border-radius: 999px; background: #05291f; }
+.population-scores strong { color: #6ee7b7; margin-left: 4px; }
+.population-scores span:last-child strong { color: #5eead4; }
+.readings-title { margin-bottom: 8px !important; }
 .model-gauge svg { width: 100%; height: 100%; }
 .model-gauge circle { transition: stroke-dashoffset .7s; }
 .gauge-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -38,6 +44,7 @@
 .forecast-row { padding: 12px 0; border-bottom: 1px solid #27272a; }
 .forecast-row > span { font-size: 12px; color: #a1a1aa; }
 .forecast-row strong { float: right; }
+.forecast-category { padding-top: 10px; color: #6ee7b7; font-size: 12px; font-weight: 600; }
 .forecast-row p { clear: both; padding-top: 6px; font-size: 11px; color: #a1a1aa; }
 .telemetry-notice { display: flex; gap: 12px; padding: 16px; margin-bottom: 16px; border-color: #065f46; background: #05261d; }
 .telemetry-notice > svg { color: #34d399; flex-shrink: 0; margin-top: 2px; }

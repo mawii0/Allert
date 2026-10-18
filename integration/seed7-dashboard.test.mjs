@@ -19,14 +19,14 @@ function value(optional=false){const pm=currentIndicator(25,35,25,60);return{dat
 afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
 test('horizon controls show paired PM forecasts while the gauge remains the current indicator',async()=>{
  globalThis.population='adult';globalThis.monitor=value();await act(async()=>{tree=Renderer.create(React.createElement(DashboardScreen));});
- const buttons=tree.root.findAllByType('button');assert.deepEqual(buttons.map(buttonLabel),['6h','12h','24h']);assert.equal(buttons[1].props['aria-pressed'],true);
- const initial=text(tree.toJSON());assert.ok(initial.indexOf('PM2.5')<initial.indexOf('Forecast Timeline'));assert.ok(initial.indexOf('PM10')<initial.indexOf('Forecast Timeline'));assert.match(initial,/PM forecasts - 12h/);
+ const buttons=tree.root.findAllByType('button');assert.deepEqual(buttons.map(buttonLabel),['6h','12h','24h']);assert.equal(buttons[0].props['aria-pressed'],true);
+ const initial=text(tree.toJSON());assert.ok(initial.indexOf('PM2.5')<initial.indexOf('Forecast Timeline'));assert.ok(initial.indexOf('PM10')<initial.indexOf('Forecast Timeline'));assert.match(initial,/PM estimates - 6h/);assert.match(initial,/Adult 20\.0Pediatric 22\.0/);
  await act(async()=>buttons[0].props.onClick());
- const content=text(tree.toJSON());assert.match(content,/20\.0/);assert.match(content,/Current environmental indicator/);assert.match(content,/PM forecasts - 6h/);assert.match(content,/25\.00/);assert.match(content,/35\.00/);assert.doesNotMatch(content,/Forecast PM indicator \(/);assert.doesNotMatch(content,/weather.*median|Median estimate/);
+ const content=text(tree.toJSON());assert.match(content,/20\.0/);assert.match(content,/Current environmental indicator/);assert.match(content,/PM estimates - 6h/);assert.match(content,/25\.0/);assert.match(content,/35\.0/);assert.doesNotMatch(content,/Forecast PM indicator/);assert.doesNotMatch(content,/weather.*median|Median estimate/);
 });
 test('optional PM score switches population without changing the paired network concentrations',async()=>{
- globalThis.population='adult';globalThis.monitor=value(true);await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));await act(async()=>tree.root.findAllByType('button').find(b=>buttonLabel(b)==='6h').props.onClick());assert.match(text(tree.toJSON()),/Forecast PM indicator \(adult\)/);
- globalThis.population='pediatric';await act(async()=>tree.update(React.createElement(DashboardScreen)));const content=text(tree.toJSON());assert.match(content,/Forecast PM indicator \(pediatric\)/);assert.match(content,/22\.0/);assert.match(content,/moderate/);assert.match(content,/25\.00/);assert.match(content,/35\.00/);
+ globalThis.population='adult';globalThis.monitor=value(true);await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));await act(async()=>tree.root.findAllByType('button').find(b=>buttonLabel(b)==='6h').props.onClick());assert.match(text(tree.toJSON()),/Forecast PM indicator/);
+ globalThis.population='pediatric';await act(async()=>tree.update(React.createElement(DashboardScreen)));const content=text(tree.toJSON());assert.match(content,/Forecast PM indicator/);assert.match(content,/22\.0/);assert.match(content,/moderate/);assert.match(content,/25\.0/);assert.match(content,/35\.0/);
 });
 test('missing weather leaves a visibly unavailable current gauge even when PM measurements exist',async()=>{
  globalThis.population='adult';globalThis.monitor=value();monitor.data.current.risk=null;monitor.data.current.temperature=null;monitor.data.current.humidity=null;monitor.data.model_status='warming_up';monitor.data.forecasts=[];

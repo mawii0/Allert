@@ -30,19 +30,14 @@ export function SettingsScreen() {
       <h1 className="text-2xl font-bold mt-2">Settings</h1>
       <p className="text-sm text-zinc-400 mt-2">Manage your profile, home node, and notifications.</p>
     </header>
-    <nav aria-label="Settings sections" className="allert-section-nav mb-6">
-      <a href="#settings-profile">Profile</a><a href="#settings-node">Home node</a>
-      <a href="#settings-notifications">Notifications</a><a href="#settings-location">Location</a>
-    </nav>
-
     <section id="settings-profile" aria-labelledby="settings-profile-title" className="allert-card">
-      <div className="allert-section-heading"><UserRound aria-hidden="true" /><div><h2 id="settings-profile-title">Your profile</h2><p>Choose the patient category used by Risk Monitor.</p></div></div>
+      <div className="allert-section-heading"><UserRound aria-hidden="true" /><div><h2 id="settings-profile-title">Your profile</h2><p>Manage your display name and account details.</p></div></div>
       {isLoadingProfile ? <p role="status" className="text-sm text-zinc-300 py-4">Loading profile…</p> : userProfile ? <>
         <div className="flex items-start gap-3 mb-5">
-          <div aria-hidden="true" className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center font-bold">{userProfile.demographic === "adult" ? "A" : "P"}</div>
+          <div aria-hidden="true" className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center font-bold">{(userProfile.name || "A").slice(0,1).toUpperCase()}</div>
           <div className="min-w-0"><p className="font-semibold text-lg break-words">{userProfile.name || "Patient Profile"}</p>
             <p className="text-sm text-zinc-300 break-words">{userProfile.email}</p>
-            <p className="text-xs text-zinc-400 mt-2">{userProfile.demographic === "adult" ? "Adult" : "Pediatric"}{joinDate ? ` · Member since ${joinDate}` : " · Profile loaded locally"}</p>
+            <p className="text-xs text-zinc-400 mt-2">{joinDate ? `Member since ${joinDate}` : "Profile loaded locally"}</p>
           </div>
         </div>
         <ProfileEditor settings={profileSettings} />
@@ -94,7 +89,7 @@ export function SettingsScreen() {
         <div><dt>App version</dt><dd>1.1.0</dd></div>
       </dl><p className="text-sm text-zinc-300 mt-4">Environmental forecasting model. Reference-case verification does not establish clinical accuracy.</p></details>
       <AdminAccessLink />
-      <p className="text-xs text-zinc-400 mt-4">ALLERT · Allergic Rhinitis Environmental Monitoring<br />© 2026 Research Prototype</p>
+      <p className="text-xs text-zinc-400 mt-4">ALLERT · Allergic Rhinitis Environmental Monitoring<br />© 2026 ALLERT</p>
     </section>
     <button type="button" onClick={handleLogout} className="allert-signout w-full flex items-center justify-center gap-2"><LogOut aria-hidden="true" className="w-4 h-4" />Logout</button>
   </div>;

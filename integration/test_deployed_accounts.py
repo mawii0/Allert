@@ -48,12 +48,13 @@ try:
     sessions = []
     for number in range(2):
         email, password = f'allert-qa-{secrets.token_hex(10)}@example.invalid', secrets.token_urlsafe(32)
-        status, data = endpoint('/signup', anon, {'email':email,'password':password,'name':'Synthetic QA'}, 'POST')
-        if data and data.get('user'): users.append(data['user']['id'])
-        expect(f'synthetic signup {number}', status == 200 and bool(data.get('refresh_token')))
+        status, data = call(base + '/auth/v1/admin/users', admin, {'email':email,'password':password,'email_confirm':True,'user_metadata':{'name':'Synthetic QA'}}, 'POST')
+        expect(f'verified synthetic account {number}', status in (200,201) and bool(data.get('id')))
+        users.append(data['id'])
         expect(f'wrong password {number} rejected', endpoint('/login', anon, {'email':email,'password':'incorrect-password'}, 'POST')[0] == 401)
         status, data = endpoint('/login', anon, {'email':email,'password':password}, 'POST')
         expect(f'login {number}', status == 200 and bool(data.get('refresh_token')))
+        expect(f'profile initialization {number}', endpoint('/profile', {'Authorization':'Bearer ' + data['access_token']}, {'demographic':'adult','name':'Synthetic QA'}, 'POST')[0] == 200)
         status, refreshed = call(base + '/auth/v1/token?grant_type=refresh_token', {'apikey':creds['anon_key']}, {'refresh_token':data['refresh_token']}, 'POST')
         expect(f'refresh {number}', status == 200 and bool(refreshed.get('access_token')))
         sessions.append({'Authorization':'Bearer ' + refreshed['access_token']})

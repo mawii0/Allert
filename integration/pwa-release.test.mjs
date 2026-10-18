@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 const manifest=JSON.parse(await readFile('public/manifest.webmanifest','utf8')),source=await readFile('public/allert-sw.js','utf8');
-test('manifest launches only this origin with both installation icon sizes and the existing logo',async()=>{
+test('manifest launches only this origin with crisp vector installation icons',async()=>{
   assert.equal(manifest.start_url,'/');assert.equal(manifest.scope,'/');assert.equal(manifest.display,'standalone');
   const original=await readFile('src/imports/AllertLogoTransparent1.png');assert.deepEqual(await readFile('public/icons/allert.png'),original);
-  for(const size of [192,512]){const icon=manifest.icons.find(item=>item.sizes===`${size}x${size}`);assert.ok(icon);const svg=await readFile('public'+icon.src,'utf8');assert.ok(svg.includes(`width="${size}"`));assert.ok(svg.includes(original.toString('base64')));}
+  for(const size of [192,512]){const icon=manifest.icons.find(item=>item.sizes===`${size}x${size}`);assert.ok(icon);const svg=await readFile('public'+icon.src,'utf8');assert.ok(svg.includes(`width="${size}"`));assert.match(svg,/<path /);assert.ok(!svg.includes('data:image/png'));}
   const html=await readFile('index.html','utf8');assert.ok(html.includes('rel="manifest"'));assert.ok(html.includes('rel="apple-touch-icon"'));
 });
 function worker(transport){const listeners={};const context=vm.createContext({URL,Response,Date,fetch:transport,self:{location:{origin:'https://allert.example'},addEventListener:(event,handler)=>{listeners[event]=handler;}}});vm.runInContext(source,context);return listeners.fetch;}

@@ -4,6 +4,7 @@ const JoinNodeScreen = lazy(() => import("./components/JoinNodeScreen").then(mod
 import { Root } from "./components/Root";
 const AuthScreen = lazy(() => import("./components/AuthScreen").then(module => ({ default: module.AuthScreen })));
 const PasswordRecoveryScreen = lazy(() => import("./components/PasswordRecoveryScreen").then(module => ({ default: module.PasswordRecoveryScreen })));
+const VerifyEmailScreen = lazy(() => import("./components/VerifyEmailScreen").then(module => ({ default: module.VerifyEmailScreen })));
 const OnboardingScreen = lazy(() => import("./components/OnboardingScreen").then(module => ({ default: module.OnboardingScreen })));
 const DashboardScreen = lazy(() => import("./components/DashboardScreen").then(module => ({ default: module.DashboardScreen })));
 const EnvironmentalScreen = lazy(() => import("./components/EnvironmentalScreen").then(module => ({ default: module.EnvironmentalScreen })));
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
   {
     path: "/forgot-password",
     Component: PasswordRecoveryScreen,
+  },
+  {
+    path: "/verify-email",
+    Component: VerifyEmailScreen,
   },
   {
     path: "/onboarding",

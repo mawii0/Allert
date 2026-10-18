@@ -76,15 +76,11 @@ app.post("/make-server-a473accf/signup", async (c) => {
       return c.json({ error: "Email and password are required" }, 400);
     }
 
-    const supabase = getSupabaseClient();
-
-    // Create user with Supabase Auth
-    const { data, error } = await supabase.auth.admin.createUser({
+    const authClient = getSupabaseAuthClient();
+    const { data, error } = await authClient.auth.signUp({
       email,
       password,
-      user_metadata: { name: name || "" },
-      // Automatically confirm email since email server hasn't been configured
-      email_confirm: true,
+      options: { data: { name: name || "" } },
     });
 
     if (error) {
@@ -92,37 +88,32 @@ app.post("/make-server-a473accf/signup", async (c) => {
       return c.json({ error: error.message }, 400);
     }
 
-    // Store user profile in KV store
-    if (data.user) {
-      await kv.set(`profile:${data.user.id}`, {
-        userId: data.user.id,
-        email: data.user.email,
-        name: name || "",
-        demographic: "adult",
-        createdAt: new Date().toISOString(),
-      });
-    }
-
-    // Sign in the user to get access token
-    const authClient = getSupabaseAuthClient();
-    const { data: sessionData, error: signInError } = await authClient.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError || !sessionData.session) {
-      return c.json({ error: "User created but login failed. Please try logging in." }, 500);
-    }
-
-    return c.json({
-      user: data.user,
-      access_token: sessionData.session.access_token,
-      refresh_token: sessionData.session.refresh_token,
-    });
+    if (data.session || data.user?.email_confirmed_at) return c.json({ error: "Email confirmation must be enabled in Supabase Auth before registration can be used." }, 503);
+    return c.json({ pending_verification: true, email });
   } catch (error: any) {
     console.log("Signup error:", error);
     return c.json({ error: error.message || "Signup failed" }, 500);
   }
+});
+
+app.post("/make-server-a473accf/verify-email", async (c) => {
+  try {
+    const { email, token } = await c.req.json();
+    if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || typeof token !== "string" || !/^\d{6,10}$/.test(token)) return c.json({ error: "Enter the email address and verification code." }, 400);
+    const { data, error } = await getSupabaseAuthClient().auth.verifyOtp({ email, token, type: "email" });
+    if (error || !data.user?.email_confirmed_at || !data.session) return c.json({ error: "The verification code is invalid or expired." }, 400);
+    return c.json({ user: data.user, access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+  } catch { return c.json({ error: "Email verification failed. Please try again." }, 500); }
+});
+
+app.post("/make-server-a473accf/resend-verification", async (c) => {
+  try {
+    const { email } = await c.req.json();
+    if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return c.json({ error: "Enter a valid email address." }, 400);
+    const { error } = await getSupabaseAuthClient().auth.resend({ type: "signup", email });
+    if (error) return c.json({ error: error.message }, 429);
+    return c.json({ sent: true });
+  } catch { return c.json({ error: "Unable to resend confirmation. Please try again." }, 500); }
 });
 
 // User Login
@@ -150,6 +141,8 @@ app.post("/make-server-a473accf/login", async (c) => {
     if (!data.session) {
       return c.json({ error: "Login failed - no session created" }, 401);
     }
+
+    if (!data.user?.email_confirmed_at) return c.json({ error: "Verify your email before signing in.", verification_required: true }, 403);
 
     return c.json({
       user: data.user,

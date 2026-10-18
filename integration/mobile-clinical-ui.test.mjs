@@ -5,7 +5,8 @@ import TestRenderer,{act} from 'react-test-renderer';
 import {build} from 'esbuild';
 await build({stdin:{contents:`export * from './src/app/components/ClinicalCorrelation';export * from './src/app/components/AppInstallation';export * from './src/app/utils/pwa-install';`,resolveDir:process.cwd(),loader:'ts'},outfile:'integration/test-output/mobile-clinical.mjs',bundle:true,format:'esm',platform:'node',jsx:'automatic',external:['react','react/jsx-runtime'],plugins:[{name:'fixture',setup(b){
   b.onResolve({filter:/private-api$/},()=>({path:'api',namespace:'fixture'}));b.onResolve({filter:/(?:^|\/)auth$/},()=>({path:'auth',namespace:'fixture'}));
-  b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='api'?'export const privateApi=(...args)=>globalThis.readClinical(...args);':'export const getCurrentUser=()=>({id:globalThis.currentAccount});',loader:'js'}));
+  b.onResolve({filter:/^recharts$/},()=>({path:'chart',namespace:'fixture'}));
+  b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:args.path==='api'?'export const privateApi=(...args)=>globalThis.readClinical(...args);':args.path==='chart'?'export const CartesianGrid=()=>null;export const Legend=()=>null;export const Line=()=>null;export const LineChart=()=>null;export const ResponsiveContainer=()=>null;export const Tooltip=()=>null;export const XAxis=()=>null;export const YAxis=()=>null;':'export const getCurrentUser=()=>({id:globalThis.currentAccount});',loader:'js'}));
 }}]});
 const app=await import('./test-output/mobile-clinical.mjs');
 globalThis.window=new EventTarget();window.setInterval=setInterval;window.clearInterval=clearInterval;window.setTimeout=(...args)=>setTimeout(...args).unref();

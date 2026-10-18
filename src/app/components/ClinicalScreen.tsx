@@ -30,8 +30,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  BarChart,
-  Bar,
 } from "recharts";
 
 const symptoms = [
@@ -46,7 +44,6 @@ export function ClinicalScreen() {
   const diary = useDiary();
   const [showHistory, setShowHistory] = useState(false);
   const [currentSymptomIndex, setCurrentSymptomIndex] = useState(0);
-  const [detailsOpen, setDetailsOpen] = useState(false);
   const [editing, setEditing] = useState<DiaryEntry | null>(null);
   const [vas, setVas] = useState(5);
   const [scores, setScores] = useState<Record<string, number> | null>(emptySymptoms);
@@ -73,7 +70,7 @@ export function ClinicalScreen() {
   function newEntry() {
     setEditing(null); setVas(5); setScores(emptySymptoms()); setAggregate(0); setNotes("");
     setObserved(manilaInput(Date.now())); setFormError(""); pending.current = null;
-    setCurrentSymptomIndex(0); setDetailsOpen(false);
+    setCurrentSymptomIndex(0);
   }
   useEffect(() => {
     const reset = () => { newEntry(); setQuery(""); setDays(30); setDeleting(null); setNotice(""); setShowHistory(false); };
@@ -92,7 +89,7 @@ export function ClinicalScreen() {
   function edit(entry: DiaryEntry) {
     setEditing(entry); setVas(entry.vasScore); setScores(entry.symptomSeverities ? { ...entry.symptomSeverities } : null);
     setAggregate(entry.tnssScore); setNotes(entry.notes || ""); setObserved(entry.observedAt ? manilaInput(entry.observedAt) : "");
-    setShowHistory(false); setDetailsOpen(true); setCurrentSymptomIndex(0); setNotice(""); setFormError(""); pending.current = null;
+    setShowHistory(false); setCurrentSymptomIndex(0); setNotice(""); setFormError(""); pending.current = null;
     window.setTimeout(() => { heading.current?.focus(); heading.current?.scrollIntoView({ block: "start", behavior: "smooth" }); }, 0);
   }
   async function handleSaveEntry() {
@@ -103,7 +100,7 @@ export function ClinicalScreen() {
     }
     const time = observed ? new Date(`${observed}:00+08:00`) : null;
     if ((!time && (!editing || editing.observedAt)) || (time && (!Number.isFinite(time.getTime()) || time.getTime() > Date.now() + 60000))) {
-      setDetailsOpen(true); setFormError("Choose a valid observation time that is not in the future."); return;
+      setFormError("Choose a valid observation time that is not in the future."); return;
     }
     const observedAt = editing?.observedAt && observed === manilaInput(editing.observedAt) ? editing.observedAt : time?.toISOString();
     const fields: DiaryFields = { vasScore: vas, tnssScore: tnss, notes: notes.trim(), ...(observedAt && { observedAt }), ...(scores && { symptomSeverities: scores }) };
@@ -211,7 +208,7 @@ export function ClinicalScreen() {
       {editing && <div className="bg-zinc-900/50 rounded-xl p-4 mb-6 border border-emerald-500/30">
         <p className="font-semibold text-sm">Editing saved entry</p>
         <p className="text-xs text-zinc-400 mt-1">Its original creation time is retained.</p>
-        <button type="button" disabled={diary.busy} onClick={() => { newEntry(); setShowHistory(true); }} className="text-xs text-emerald-400 underline mt-3">Cancel editing</button>
+        <button type="button" disabled={diary.busy} onClick={() => { newEntry(); setShowHistory(true); }} className="allert-secondary mt-3">Cancel editing</button>
       </div>}
 
       {/* Daily VAS Slider */}
@@ -283,14 +280,6 @@ export function ClinicalScreen() {
         <p className="text-xs text-zinc-500 mb-6">
           Rate each symptom from 0 (none) to 3 (severe). All four ratings contribute to your total.
         </p>
-
-        <div aria-label="Symptom ratings" className="grid grid-cols-2 gap-2 mb-5">
-          {symptoms.map((symptom, index) => <button key={symptom.id} type="button"
-            aria-label={`Rate ${symptom.label}`} aria-pressed={currentSymptomIndex === index} disabled={diary.busy}
-            onClick={() => setCurrentSymptomIndex(index)} className="allert-symptom-choice">
-            <span>{symptom.label}</span><span className="text-xs">{scores[symptom.id]}/3 · {getTnssLabel(scores[symptom.id])}</span>
-          </button>)}
-        </div>
 
         {/* Symptom Navigation with Arrows */}
         <div className="bg-zinc-800/50 rounded-xl p-5 border border-zinc-700/50 mb-6">
@@ -411,8 +400,8 @@ export function ClinicalScreen() {
         <input id="diary-total" type="number" min={0} max={12} step={1} disabled={diary.busy} value={aggregate} onChange={event => setAggregate(Number(event.target.value))} className={inputClass} />
       </div>}
 
-      <details open={detailsOpen} onToggle={event => setDetailsOpen(event.currentTarget.open)} className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <summary className="font-semibold cursor-pointer">Entry details &amp; notes</summary>
+      <section aria-labelledby="entry-details-title" className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
+        <h2 id="entry-details-title" className="font-semibold">Entry details &amp; notes</h2>
         <div className="mt-5 space-y-4">
           <div><label htmlFor="diary-time" className="block text-sm text-zinc-400 mb-2">Observation time</label>
             <input id="diary-time" type="datetime-local" disabled={diary.busy} required={!editing || Boolean(editing.observedAt)} value={observed} max={manilaInput(now)} onChange={event => setObserved(event.target.value)} className={inputClass} />
@@ -424,7 +413,7 @@ export function ClinicalScreen() {
             <p className="text-xs text-zinc-500 mt-1">{notes.length}/2000 characters</p>
           </div>
         </div>
-      </details>
+      </section>
 
       {/* Error Message */}
       {saveError && (
@@ -448,7 +437,7 @@ export function ClinicalScreen() {
       </button>
 
 
-      {loadError && <div role="alert" className="text-sm text-amber-300 mt-4"><p>{loadError}</p><button disabled={diary.busy} onClick={diary.retry} className="underline mt-2">Refresh history</button></div>}
+      {loadError && <div role="alert" className="text-sm text-amber-300 mt-4"><p>{loadError}</p><button disabled={diary.busy} onClick={diary.retry} className="allert-secondary mt-2">Refresh history</button></div>}
       {!isLoadingLogs && !loadError && diaryEntries.length === 0 && <p className="text-sm text-zinc-400 mt-4">No saved entries yet.</p>}
 
       <div className="mt-8 mb-4"><h2 className="text-lg font-semibold">Your symptom patterns</h2><p className="text-sm text-zinc-400 mt-1">Review saved entries separately from the entry you are editing.</p></div>
@@ -615,7 +604,7 @@ export function ClinicalScreen() {
                   <select id="diary-window" value={days} onChange={event => setDays(Number(event.target.value))} className={inputClass}><option value={7}>Last 7 days</option><option value={30}>Last 30 days</option><option value={0}>All loaded entries</option></select>
                   <div className="mt-4 flex items-center justify-between gap-3"><p className="text-xs text-zinc-400">{filtered.length} matching {filtered.length === 1 ? "entry" : "entries"}</p><button disabled={!filtered.length || diary.loading} onClick={exportHistory} className="rounded-lg bg-zinc-700/50 p-2 text-xs text-emerald-400 disabled:opacity-50"><Download className="inline w-4 h-4 mr-1" />Export CSV</button></div>
                   {diary.truncated && <p className="mt-3 text-xs text-amber-300">Up to 500 records are loaded. Export contains the filtered loaded entries.</p>}
-                  {diary.error && <div role="alert" className="text-xs text-amber-300 mt-3"><p>{diary.error}</p><button disabled={diary.busy} onClick={diary.retry} className="underline mt-2">Refresh history</button></div>}
+                  {diary.error && <div role="alert" className="text-xs text-amber-300 mt-3"><p>{diary.error}</p><button disabled={diary.busy} onClick={diary.retry} className="allert-secondary mt-2">Refresh history</button></div>}
                 </div>
 
                 {/* Historical Trend Chart */}
@@ -629,7 +618,7 @@ export function ClinicalScreen() {
                       width="100%"
                       height={200}
                     >
-                      <BarChart
+                      <LineChart
                         data={historicalTrendData}
                         margin={{
                           top: 5,
@@ -660,15 +649,16 @@ export function ClinicalScreen() {
                             fontSize: "12px",
                           }}
                         />
-                        <Bar
+                        <Line
                           dataKey="tnss"
-                          fill="#3b82f6"
-                          radius={[6, 6, 0, 0]}
+                          stroke="#3b82f6"
+                          strokeWidth={2}
                           name="TNSS /12"
+                          dot={{ r: 4 }}
                         />
-                        <Bar dataKey="severity" fill="#eab308" radius={[6, 6, 0, 0]} name="VAS /10" />
+                        <Line dataKey="severity" stroke="#eab308" strokeWidth={2} name="VAS /10" dot={{ r: 4 }} />
                         <Legend />
-                      </BarChart>
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
@@ -697,19 +687,6 @@ export function ClinicalScreen() {
                             <div className="text-xs text-zinc-500 mt-0.5">
                               {entry.observedAt ? "Observed" : "Recorded"} · TNSS: {entry.tnssScore}/12
                             </div>
-                          </div>
-                          <div
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              entry.riskLevel < 15
-                                ? "bg-emerald-500/20 text-emerald-300"
-                                : entry.riskLevel < 25
-                                  ? "bg-yellow-500/20 text-yellow-300"
-                                  : entry.riskLevel < 40
-                                    ? "bg-orange-500/20 text-orange-300"
-                                    : "bg-red-500/20 text-red-300"
-                            }`}
-                          >
-                            {entry.riskLevel}/50 Summary
                           </div>
                         </div>
 
