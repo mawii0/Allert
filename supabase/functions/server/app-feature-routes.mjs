@@ -1,5 +1,5 @@
 import { ANOMALY_POLICY } from "./anomaly-policy.mjs";
-import { processAnomalyBatch } from "./anomaly-worker.mjs";
+import { dispatchObservedPush } from "./observed-dispatch.mjs";
 import { adminOverview, nodeSnapshot } from "./admin-monitoring.mjs";
 import { normalizeNodeLocation } from "./location-policy.mjs";
 import { accessibleNode, currentNodeAccess } from "./node-ownership.mjs";
@@ -30,11 +30,13 @@ export function installAppFeatureRoutes(app, authenticate, createClient, env, se
       const a=await digest(expected),b=await digest(actual);let different=0;for(let i=0;i<a.length;i++)different|=a[i]^b[i];
       if (different) return c.json({error:"Unauthorized"},401);
       if (env.get("ALLERT_ANOMALY_ALERTS_ENABLED")!=="true") return c.json({outcome:"disabled"});
-      const response=await processAnomalyBatch(createClient(),env,send);
+      const response=await dispatchObservedPush(createClient(),env,send);
       return c.json(response,response.outcome==="partial_failure"?503:200);
     } catch { return c.json({error:"Alert processing failed. Check the worker configuration and migrations."},503); }
   });
   app.get(`${root}/alerts`,guard(async(c,{client,user})=>{
+    // Kept only as an explicitly requested historical audit view.
+    if(c.req.query("historical")!=="1")return c.json({error:"Use /analytics-events for current observed PM notices."},410);
     const device=await ownedDevice(client,user);
     if(device===undefined)return c.json({error:"Multiple active nodes require node selection."},409);
     const heartbeat=await client.from("allert_alert_worker").select("last_finished_at,last_success_at,summary").eq("id",1).maybeSingle();
@@ -49,7 +51,7 @@ export function installAppFeatureRoutes(app, authenticate, createClient, env, se
     ]);
     if(events.error || state.error)throw Error("Alert history unavailable.");
     if(!await currentNodeAccess(client,user.id,device))return c.json({error:"Node ownership changed. Refresh this screen."},409);
-    return c.json({device:{device_id:device.device_id},events:events.data || [],detector:state.data,processorReady:ready,policy:ANOMALY_POLICY});
+    return c.json({historical:true,device:{device_id:device.device_id},events:events.data || [],detector:state.data,processorReady:false,policy:ANOMALY_POLICY});
   }));
   app.get(`${root}/admin/access`,guard(async(c,{client,user})=>{
     const response=await client.from("allert_admin_users").select("user_id").eq("user_id",user.id).eq("active",true).maybeSingle();

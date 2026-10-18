@@ -15,6 +15,7 @@ RUNTIME = Path(__file__).resolve().parents[2] / "model/runtime/allert_model_part
 sys.path.insert(0, str(RUNTIME))
 
 def main():
+    raise SystemExit("Retired publisher. Use analytics/app.py (Vercel); historical helpers remain for regression evidence only.")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--publish", action="store_true", help="Otherwise write JSON to stdout only")

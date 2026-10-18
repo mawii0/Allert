@@ -1,3 +1,4 @@
+// Analytics contract: seed7-epoch15-v1. No model-result cache; preserve push bindings.
 // Generic offline navigation fallback only. No cached responses, tokens, or health records.
 const offlineDocument = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ALLERT — Offline</title><body style="background:#09090b;color:#f4f4f5;font:16px system-ui;padding:32px;max-width:480px;margin:auto"><h1>ALLERT</h1><h2>You are offline</h2><p>Connect to the internet and reload to open your account and current readings.</p><p>No diary save or account change has been confirmed on this page.</p><button onclick="location.reload()" style="padding:12px">Try again</button></body></html>';
 self.addEventListener("fetch", event => {
@@ -49,7 +50,7 @@ self.addEventListener("message", event => {
 self.addEventListener("push", event => event.waitUntil((async () => {
   let message;
   try { message = event.data?.json(); } catch { return; }
-  if (message?.version !== 1 || !["test", "anomaly", "forecast"].includes(message.kind) || !Number.isFinite(message.sentAt) ||
+  if (message?.version !== 1 || !["test", "anomaly"].includes(message.kind) || !Number.isFinite(message.sentAt) ||
       ((message.kind === "anomaly" || message.kind === "forecast") && (typeof message.eventId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(message.eventId))) ||
       Date.now() - message.sentAt > 120000 || message.sentAt - Date.now() > 30000) return;
   const binding = await state("read");
@@ -57,7 +58,7 @@ self.addEventListener("push", event => event.waitUntil((async () => {
   // Text and destination are fixed locally: the payload cannot inject health data or URLs.
   const anomaly = message.kind === "anomaly", forecast = message.kind === "forecast";
   await self.registration.showNotification(anomaly ? "ALLERT sensor notice" : forecast ? "ALLERT forecast notice" : "ALLERT test notification", {
-    body: anomaly ? "An unusual change was detected in your sensor measurements. Open ALLERT to review." : forecast ? "A verified environmental forecast reached an alert tier. Open ALLERT to review." : "Browser push is working. This is a test notification.",
+    body: anomaly ? "An observed PM notice is available. Open ALLERT to review its phase." : forecast ? "A verified environmental forecast reached an alert tier. Open ALLERT to review." : "Browser push is working. This is a test notification.",
     tag: anomaly ? `allert-anomaly-${message.eventId}` : forecast ? `allert-forecast-${message.eventId}` : "allert-test", data: { bindingId: binding.id, kind: message.kind },
   });
 })()));

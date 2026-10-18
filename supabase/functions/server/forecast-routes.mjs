@@ -1,3 +1,4 @@
+// Historical regression module; not installed by the selected application entrypoint.
 import { processForecastBatch } from './forecast-worker.mjs';
 import { accessibleNode,currentNodeAccess } from './node-ownership.mjs';
 

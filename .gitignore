@@ -18,3 +18,8 @@ index-main-reference.txt
 
 # Vercel builds the app from source.
 /dist/
+
+# Separate model environment; frozen release bytes remain tracked.
+.venv-model/
+analytics/.env
+analytics/outputs/

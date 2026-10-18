@@ -41,6 +41,7 @@ beforeEach(()=>{
     if(path==='/admin/overview')return structuredClone(overview);
     if(path.startsWith('/admin/nodes/'))return structuredClone(node);
     if(path.startsWith('/admin/anomalies/')){if(options.method==='PUT'){event={...event,classification:options.body.classification,review_notes:options.body.notes,review_revision:event.review_revision+1};return{event:structuredClone(event)};}return{event:structuredClone(event),reviews:[],deliveries:[]};}
+    if(path==='/analytics-events')return{device:{device_id:'NODE-A'},events:[{id:eventId,phase:'INITIAL',observed_at:now,event:{peaks:{pm2_5:18,pm10:20}}}],detector:{decision:{state:'INITIAL'}},processorReady:true,fresh:true};
     if(path==='/alerts')return{device:{device_id:'NODE-A'},events:[structuredClone(event)],detector:{status:'ready',baseline_count:12},processorReady:true};
     throw Error('Unexpected request '+path);
   };
@@ -109,7 +110,7 @@ test('resource state clears after an account switch and ignores a late previous-
   const pending=[];globalThis.api=(path,options)=>new Promise(resolve=>pending.push({resolve,options}));function Harness(){state=app.usePrivateResource('/alerts');return null;}await mount(Harness);await act(async()=>{account='account-b';window.dispatchEvent(new Event('allert-session-changed'));});assert.equal(pending[0].options.signal.aborted,true);await act(async()=>pending[1].resolve({events:['B']}));await act(async()=>pending[0].resolve({events:['A']}));assert.deepEqual(state.data,{events:['B']});
 });
 test('sensor notices use stored events and explicitly describe observed rather than forecast data',async()=>{
-  await mount(app.SensorNotices);const content=text(tree.toJSON());assert.match(content,/Observed particulate changes/);assert.match(content,/warning measurement change/);assert.match(content,/18.00/);assert.match(content,/unreviewed/);assert.ok(!content.includes('85.3%'));
+  await mount(app.SensorNotices);const content=text(tree.toJSON());assert.match(content,/Observed particulate changes/);assert.match(content,/INITIAL observed PM event/);assert.match(content,/18.00/);assert.match(content,/median\/MAD/);assert.ok(!content.includes('85.3%'));
 });
 test('actual chart paths leave a missing sample gap empty',async()=>{
   const now=Date.now(),rows=[0,1,3,4].map(index=>({timestamp:new Date(now-(4-index)*300000).toISOString(),pm2_5:10+index}));await mount(app.AdminReadingChart,{rows,end:now});assert.equal(tree.root.findAllByType('polyline').length,2);

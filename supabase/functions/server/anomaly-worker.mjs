@@ -1,3 +1,4 @@
+// Historical regression module; not installed by the selected application entrypoint.
 import { detectObservedAnomalies } from "./anomaly-policy.mjs";
 import { readingTableFor } from "./sensor-routing.mjs";
 import { pushConfiguration } from "./push-policy.mjs";

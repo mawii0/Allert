@@ -1,0 +1,10 @@
+[
+  "pm2_5",
+  "pm10",
+  "temperature",
+  "humidity",
+  "temperature_roll_1h",
+  "humidity_roll_1h",
+  "temperature_roll_6h",
+  "humidity_roll_6h"
+]

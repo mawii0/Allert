@@ -37,6 +37,7 @@ function Badge({ label }: { label: string }) {
   );
 }
 
+const maximumMetric=(metrics:any,key:string)=>{const values=[metrics?.pm2_5?.[key],metrics?.pm10?.[key]].filter(Number.isFinite);return values.length?Math.max(...values):null;};
 export function AdminOverviewScreen() {
   const resource=usePrivateResource<any>("/admin/overview"),navigate=useNavigate();
   const [search,setSearch]=useState("");
@@ -45,7 +46,7 @@ export function AdminOverviewScreen() {
   const total=nodes.length,online=nodes.filter((node:any)=>node.online).length;
   const coverage=total && nodes.every((node:any)=>node.coverage!==null)?nodes.reduce((sum:number,node:any)=>sum+node.coverage,0)/total:null;
   const kpis=[
-    {label:"Recent Sensors",value:data?`${online} / ${total}`:"—",subtext:"Recent complete readings · loaded nodes",accent:"#00c853",icon:Radio},
+    {label:"Recent Sensors",value:data?`${online} / ${total}`:"—",subtext:"Recent valid PM readings · loaded nodes",accent:"#00c853",icon:Radio},
     {label:"Verified Blocks (24h)",value:coverage===null?"—":`${coverage.toFixed(1)}%`,subtext:"Receipt-verified coverage · loaded nodes",accent:"#00c853",icon:Database},
     {label:"Push Accepted (24h)",value:data?String(data.accepted_deliveries):"—",subtext:"Transport accepted; display is not confirmed",accent:"#ffd600",icon:Bell},
     {label:"Anomaly Events (24h)",value:data?String(data.anomaly_count):"—",subtext:"Stored measurement anomalies",accent:"#ff9100",icon:AlertTriangle},
@@ -56,9 +57,9 @@ export function AdminOverviewScreen() {
     telemetry:[formatNumber(node.latest?.pm2_5,"µg/m³"),formatNumber(node.latest?.temperature,"°C"),formatNumber(node.latest?.humidity,"%"),formatNumber(node.latest?.pm10,"µg/m³")],
   }));
   const anomalies=(data?.events || []).filter((event:any)=>`${event.device_id} ${event.severity} ${event.classification}`.toLowerCase().includes(search.toLowerCase())).map((event:any)=>({
-    id:event.id,time:adminTime(event.observed_at),node:event.device_id,type:event.severity.toUpperCase(),
-    z:formatNumber(Math.max(event.metrics.pm2_5?.z || 0,event.metrics.pm10?.z || 0)),
-    velocity:formatNumber(Math.max(event.metrics.pm2_5?.velocity || 0,event.metrics.pm10?.velocity || 0),"µg/m³/h"),status:event.classification.replaceAll("_"," "),
+    id:event.id,time:adminTime(event.observed_at),node:event.device_id,type:(event.reading?.notice_kind || "historical").toUpperCase(),
+    reference:formatNumber(maximumMetric(event.metrics,"baseline")),
+    velocity:formatNumber(maximumMetric(event.metrics,"rate_ugm3_per_minute"),"µg/m³/min"),status:event.classification.replaceAll("_"," "),
   }));
 
   return (
@@ -203,8 +204,8 @@ export function AdminOverviewScreen() {
                   <span>Time</span>
                   <span>Node</span>
                   <span>Type</span>
-                  <span>Z-Score</span>
-                  <span>Velocity</span>
+                  <span>PM Median</span>
+                  <span>Rise/min</span>
                   <span>Status</span>
                 </div>
                 {data && !anomalies.length && <p className="text-sm text-zinc-400">No matching stored anomaly events.</p>}
@@ -216,7 +217,7 @@ export function AdminOverviewScreen() {
                     <button onClick={()=>navigate(`/admin/anomaly-investigation?event=${entry.id}`)} className="font-mono text-[#00bfa5] underline text-left">{entry.time}</button>
                     <span className="font-mono">{entry.node}</span>
                     <Badge label={entry.type} />
-                    <span>{entry.z}</span>
+                    <span>{entry.reference}</span>
                     <span>{entry.velocity}</span>
                     <span className="text-white">{entry.status}</span>
                   </div>

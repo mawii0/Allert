@@ -1,0 +1,18 @@
+{
+  "python": "3.12.14",
+  "platform": "Windows",
+  "libraries": {
+    "torch": "2.11.0+cu128",
+    "numpy": "2.5.2",
+    "pandas": "3.0.5",
+    "scikit-learn": "1.9.0",
+    "scipy": "1.18.1",
+    "joblib": "1.6.0",
+    "PyYAML": "6.0.3"
+  },
+  "cuda_available": true,
+  "torch_cuda_runtime": "12.8",
+  "cpu_mode_tested_on_cuda_capable_torch_wheel": true,
+  "api_test_dependencies": "isolated original study API-test dependencies; see pinned package requirements",
+  "fresh_cpu_wheel_or_other_os_tested": false
+}

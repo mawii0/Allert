@@ -11,7 +11,8 @@
     "test:firmware": "python3 integration/test_firmware_logic.py",
     "test:push": "node --test integration/push-database.test.mjs integration/push-http.test.mjs integration/push-session.test.mjs integration/push-ui.test.mjs integration/push-worker.test.mjs integration/push-browser.test.mjs",
     "test:notifications": "node --test integration/notification-preferences.test.mjs integration/notification-http.test.mjs integration/notification-session.test.mjs integration/notification-ui.test.mjs",
-    "audit:release": "node scripts/audit-release.mjs"
+    "audit:release": "node scripts/audit-release.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -64,7 +65,7 @@
     "react-popper": "2.3.0",
     "react-resizable-panels": "2.1.7",
     "react-responsive-masonry": "2.7.1",
-    "react-router": "7.13.0",
+    "react-router": "7.18.4",
     "react-slick": "0.31.0",
     "recharts": "2.15.2",
     "sonner": "2.0.3",
@@ -79,7 +80,10 @@
     "hono": "^4.13.13",
     "react-test-renderer": "^18.3.1",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "vite": "6.4.4",
+    "typescript": "7.0.2",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7"
   },
   "peerDependencies": {
     "react": "18.3.1",
@@ -95,7 +99,7 @@
   },
   "pnpm": {
     "overrides": {
-      "vite": "6.3.5"
+      "vite": "6.4.4"
     }
   }
 }

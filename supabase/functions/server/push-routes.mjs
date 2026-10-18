@@ -1,5 +1,5 @@
 import { defaultQuietHours, validQuietHours, validPushId, validPushSubscription, pushConfiguration } from "./push-policy.mjs";
-import { automaticAnomalyReady } from "./anomaly-worker.mjs";
+import { automaticObservedReady as automaticAnomalyReady } from "./observed-dispatch.mjs";
 
 export function installPushRoutes(app, authenticate, env, send) {
   const root = "/make-server-a473accf/push";

@@ -1,5 +1,7 @@
 # Clinical correlation, ownership protections, and mobile installation
 
+**Seed7 revision:** deployment and policy instructions below describe the previous implementation. See [the seed7 Vercel integration](model_seed7/VERCEL_SETUP.md) for the proposed replacement. The default correlation card now explains that a new forecast-to-symptom protocol is pending; prior-policy analysis remains available through an explicit historical option.
+
 Historical implementation notes. Current deployment and acceptance status: [Release completion](RELEASE_COMPLETION.md).
 
 Prepared against merged main `e5bfbcb3a2ec604d86536497aced91cb962009f9`.

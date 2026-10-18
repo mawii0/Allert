@@ -1,0 +1,161 @@
+{
+  "status": "passed",
+  "selected_seed": 42,
+  "selected_epoch": 1,
+  "independent_raw_rebuild_sampled_origins": 26,
+  "input_max_difference": 0.0,
+  "anchor_max_difference": 0.0,
+  "all_targets_verified_against_revised_source": true,
+  "training_scaler_reproduced": true,
+  "residual_targets_reproduced": true,
+  "checkpoint_checks": [
+    {
+      "seed": 42,
+      "best_epoch": 1,
+      "completed_epochs": 21,
+      "best_weights_match_epoch_checkpoint": true,
+      "full_resume_state_verified": true,
+      "software_only_restore_roundtrip_passed_without_training": true,
+      "scheduler_last_epoch": 21
+    },
+    {
+      "seed": 7,
+      "best_epoch": 15,
+      "completed_epochs": 35,
+      "best_weights_match_epoch_checkpoint": true,
+      "full_resume_state_verified": true,
+      "software_only_restore_roundtrip_passed_without_training": true,
+      "scheduler_last_epoch": 35
+    },
+    {
+      "seed": 123,
+      "best_epoch": 1,
+      "completed_epochs": 21,
+      "best_weights_match_epoch_checkpoint": true,
+      "full_resume_state_verified": true,
+      "software_only_restore_roundtrip_passed_without_training": true,
+      "scheduler_last_epoch": 21
+    },
+    {
+      "seed": 2026,
+      "best_epoch": 1,
+      "completed_epochs": 21,
+      "best_weights_match_epoch_checkpoint": true,
+      "full_resume_state_verified": true,
+      "software_only_restore_roundtrip_passed_without_training": true,
+      "scheduler_last_epoch": 21
+    },
+    {
+      "seed": 314,
+      "best_epoch": 1,
+      "completed_epochs": 21,
+      "best_weights_match_epoch_checkpoint": true,
+      "full_resume_state_verified": true,
+      "software_only_restore_roundtrip_passed_without_training": true,
+      "scheduler_last_epoch": 21
+    }
+  ],
+  "independent_metric_checks": [
+    {
+      "seed": 42,
+      "block": "development_assessment",
+      "MAE": 3.2706535652962825,
+      "mean_per_output_RMSE": 4.238312409697078,
+      "pooled_RMSE_not_primary_aggregate": 4.323896729199787
+    },
+    {
+      "seed": 7,
+      "block": "development_assessment",
+      "MAE": 3.2724821343728157,
+      "mean_per_output_RMSE": 4.222738097402243,
+      "pooled_RMSE_not_primary_aggregate": 4.308663603330801
+    },
+    {
+      "seed": 123,
+      "block": "development_assessment",
+      "MAE": 3.289815915155535,
+      "mean_per_output_RMSE": 4.255765397144494,
+      "pooled_RMSE_not_primary_aggregate": 4.345897594578711
+    },
+    {
+      "seed": 2026,
+      "block": "development_assessment",
+      "MAE": 3.2693983370769355,
+      "mean_per_output_RMSE": 4.233766252149049,
+      "pooled_RMSE_not_primary_aggregate": 4.318046671955371
+    },
+    {
+      "seed": 314,
+      "block": "development_assessment",
+      "MAE": 3.2605845773282147,
+      "mean_per_output_RMSE": 4.223660026560276,
+      "pooled_RMSE_not_primary_aggregate": 4.307294127624766
+    },
+    {
+      "seed": 42,
+      "block": "test",
+      "MAE": 4.342609576502195,
+      "mean_per_output_RMSE": 6.234336240993435,
+      "pooled_RMSE_not_primary_aggregate": 6.289666691334693
+    },
+    {
+      "seed": 7,
+      "block": "test",
+      "MAE": 4.336536605715959,
+      "mean_per_output_RMSE": 6.205049276127657,
+      "pooled_RMSE_not_primary_aggregate": 6.2612078431254385
+    },
+    {
+      "seed": 123,
+      "block": "test",
+      "MAE": 4.358468382539345,
+      "mean_per_output_RMSE": 6.244276505284582,
+      "pooled_RMSE_not_primary_aggregate": 6.299863721233207
+    },
+    {
+      "seed": 2026,
+      "block": "test",
+      "MAE": 4.327357908799622,
+      "mean_per_output_RMSE": 6.2029387700448995,
+      "pooled_RMSE_not_primary_aggregate": 6.256206883847253
+    },
+    {
+      "seed": 314,
+      "block": "test",
+      "MAE": 4.327078069725558,
+      "mean_per_output_RMSE": 6.215258647369271,
+      "pooled_RMSE_not_primary_aggregate": 6.269486896146622
+    }
+  ],
+  "preexisting_regression": {
+    "cases": 200,
+    "failures": [
+      "tests.integration.test_model_pipeline::test_frozen_bundle_and_sampled_inference_replay",
+      "tests.integration.test_model_single_run::test_original_epoch15_checkpoint_calibration_and_frozen_integrity",
+      "tests.integration.test_model_single_run::test_own_predictions_metrics_and_matched_arima",
+      "tests.integration.test_model_single_run::test_scaler_reconstruction_uses_original_training_rows",
+      "tests.integration.test_recorded_metrics::test_frozen_metric_record_is_present_and_immutable",
+      "tests.integration.test_repository_layout::test_data_directory_contains_only_the_two_canonical_csvs"
+    ],
+    "failure_count": 6,
+    "passed": 194
+  },
+  "postrun_regression": {
+    "cases": 200,
+    "failures": [
+      "tests.integration.test_model_pipeline::test_frozen_bundle_and_sampled_inference_replay",
+      "tests.integration.test_model_single_run::test_original_epoch15_checkpoint_calibration_and_frozen_integrity",
+      "tests.integration.test_model_single_run::test_own_predictions_metrics_and_matched_arima",
+      "tests.integration.test_model_single_run::test_scaler_reconstruction_uses_original_training_rows",
+      "tests.integration.test_recorded_metrics::test_frozen_metric_record_is_present_and_immutable",
+      "tests.integration.test_repository_layout::test_data_directory_contains_only_the_two_canonical_csvs"
+    ],
+    "failure_count": 6,
+    "passed": 194
+  },
+  "introduced_failures": [],
+  "protected_file_changes": {},
+  "active_model_promoted": false,
+  "manuscript_written_by_this_workflow": false,
+  "final_utc": "2026-10-12T17:24:05.514683+00:00"
+}

@@ -8,8 +8,7 @@ import {
   type SensorReading,
 } from "../utils/telemetry";
 
-import { useEnvironment, displayTime } from "../utils/environment";
-import { selectEnvironmentSource } from "../utils/environment-source.mjs";
+import { displayTime } from "../utils/environment";
 import { EnvironmentNotice } from "./EnvironmentNotice";
 
 import { summarizeHistory, metricTrend } from "../utils/telemetry-analysis.mjs";
@@ -83,7 +82,7 @@ function ReadingChart({
 }
 
 export function EnvironmentalScreen() {
-  const { snapshot, status, retry } = useEnvironment();
+  const status = "unavailable";
   const [attempt, setAttempt] = useState(0);
   const [telemetry, setTelemetry] = useState<SensorTelemetry | null>(null);
   const [error, setError] = useState("");
@@ -145,10 +144,10 @@ export function EnvironmentalScreen() {
     };
   }, [attempt]);
 
-  const view = selectEnvironmentSource(telemetry, snapshot, status);
-  const replay = view.source === "historical_replay";
+  const view = {source:"sensor",latest:telemetry?.latest ?? null,history:telemetry?.history ?? [],device:telemetry?.device ?? null};
+  const replay = false;
   const latest = view.latest;
-  const retryAll = () => { retry(); setAttempt(value => value + 1); };
+  const retryAll = () => { setAttempt(value => value + 1); };
   const age = latest ? now - Date.parse(latest.timestamp) : null;
   const recent = age !== null && age >= 0 && age <= 10 * 60 * 1000;
 

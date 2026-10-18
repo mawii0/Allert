@@ -1,0 +1,30 @@
+{
+  "seed": 7,
+  "completed_epochs": 35,
+  "best_epoch": 15,
+  "epoch1_stopping_loss": 2.1688848692795326,
+  "best_stopping_loss": 2.110111390722209,
+  "improvement_after_epoch1_absolute": 0.05877347855732351,
+  "improvement_after_epoch1_pct": 2.709847783522372,
+  "last_stopping_loss": 2.374848957719474,
+  "later_epochs": 20,
+  "later_epochs_worse_than_best": 20,
+  "last_minus_best_loss": 0.2647375669972649,
+  "checkpoint_sha256": "4253e73515d8d2a3d4a4463065f8bfb2192c9454e161da560fd928a4051672c4",
+  "multipliers": [
+    0.025,
+    0.025,
+    0.025,
+    0.025,
+    0.225,
+    0.15000000000000002
+  ],
+  "calibration_block_count": 385,
+  "calibration_criterion": "earlier per-output MAE, ascending grid ties",
+  "finished_utc": "2026-10-12T16:58:45.210013+00:00",
+  "training_and_calibration_seconds_this_invocation": 618.0560551000017,
+  "train_from_scratch": true,
+  "resumed_own_run": false,
+  "assessment_scored": false,
+  "selected_by_assessment": false
+}

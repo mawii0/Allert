@@ -1,0 +1,208 @@
+{
+  "policy_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+  "policy_hash": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+  "tolerance_points": 1e-10,
+  "fixture_kind": "synthetic_calculation_checks_not_sensor_or_participant_data",
+  "cases": [
+    {
+      "input": {
+        "pm2_5": 0,
+        "pm10": 0,
+        "temperature_c": 25,
+        "humidity_percent": 60
+      },
+      "expected": {
+        "status": "calculation_only",
+        "rule_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+        "rule_sha256": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+        "not_a_symptom_probability": true,
+        "adult": {
+          "indicator_0_1": 0.2,
+          "score_0_100": 20.0,
+          "tier": "low"
+        },
+        "pediatric": {
+          "indicator_0_1": 0.22000000000000003,
+          "score_0_100": 22.000000000000004,
+          "tier": "moderate"
+        },
+        "policy_status": "development_pending_domain_review"
+      }
+    },
+    {
+      "input": {
+        "pm2_5": 11,
+        "pm10": 13,
+        "temperature_c": 35.6,
+        "humidity_percent": 92.8
+      },
+      "expected": {
+        "status": "calculation_only",
+        "rule_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+        "rule_sha256": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+        "not_a_symptom_probability": true,
+        "adult": {
+          "indicator_0_1": 0.22407164227106538,
+          "score_0_100": 22.407164227106538,
+          "tier": "low"
+        },
+        "pediatric": {
+          "indicator_0_1": 0.24573938766918646,
+          "score_0_100": 24.573938766918644,
+          "tier": "moderate"
+        },
+        "policy_status": "development_pending_domain_review"
+      }
+    },
+    {
+      "input": {
+        "pm2_5": 66.2,
+        "pm10": 97.7,
+        "temperature_c": 35.9,
+        "humidity_percent": 86.8
+      },
+      "expected": {
+        "status": "calculation_only",
+        "rule_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+        "rule_sha256": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+        "not_a_symptom_probability": true,
+        "adult": {
+          "indicator_0_1": 0.396470242161925,
+          "score_0_100": 39.6470242161925,
+          "tier": "very_high"
+        },
+        "pediatric": {
+          "indicator_0_1": 0.425663490251956,
+          "score_0_100": 42.5663490251956,
+          "tier": "very_high"
+        },
+        "policy_status": "development_pending_domain_review"
+      }
+    },
+    {
+      "input": {
+        "pm2_5": 20,
+        "pm10": 40,
+        "temperature_c": 30,
+        "humidity_percent": 70
+      },
+      "expected": {
+        "status": "calculation_only",
+        "rule_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+        "rule_sha256": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+        "not_a_symptom_probability": true,
+        "adult": {
+          "indicator_0_1": 0.2584013186471613,
+          "score_0_100": 25.84013186471613,
+          "tier": "moderate"
+        },
+        "pediatric": {
+          "indicator_0_1": 0.2821814792014808,
+          "score_0_100": 28.21814792014808,
+          "tier": "high"
+        },
+        "policy_status": "development_pending_domain_review"
+      }
+    },
+    {
+      "input": {
+        "pm2_5": 5,
+        "pm10": 8,
+        "temperature_c": -10,
+        "humidity_percent": 100
+      },
+      "expected": {
+        "status": "calculation_only",
+        "rule_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+        "rule_sha256": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+        "not_a_symptom_probability": true,
+        "adult": {
+          "indicator_0_1": 0.13084655776458123,
+          "score_0_100": 13.084655776458124,
+          "tier": "low"
+        },
+        "pediatric": {
+          "indicator_0_1": 0.1451862294827788,
+          "score_0_100": 14.518622948277878,
+          "tier": "low"
+        },
+        "policy_status": "development_pending_domain_review"
+      }
+    },
+    {
+      "input": {
+        "pm2_5": 1000,
+        "pm10": 1000,
+        "temperature_c": 60,
+        "humidity_percent": 0
+      },
+      "expected": {
+        "status": "calculation_only",
+        "rule_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+        "rule_sha256": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+        "not_a_symptom_probability": true,
+        "adult": {
+          "indicator_0_1": 0.9999953270047555,
+          "score_0_100": 99.99953270047554,
+          "tier": "very_high"
+        },
+        "pediatric": {
+          "indicator_0_1": 0.9999958580247428,
+          "score_0_100": 99.99958580247427,
+          "tier": "very_high"
+        },
+        "policy_status": "development_pending_domain_review"
+      }
+    },
+    {
+      "input": {
+        "pm2_5": 0,
+        "pm10": 0,
+        "temperature_c": 25,
+        "humidity_percent": 0
+      },
+      "expected": {
+        "status": "calculation_only",
+        "rule_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+        "rule_sha256": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+        "not_a_symptom_probability": true,
+        "adult": {
+          "indicator_0_1": 0.24116658387203965,
+          "score_0_100": 24.116658387203966,
+          "tier": "moderate"
+        },
+        "pediatric": {
+          "indicator_0_1": 0.263925130257906,
+          "score_0_100": 26.3925130257906,
+          "tier": "moderate"
+        },
+        "policy_status": "development_pending_domain_review"
+      }
+    },
+    {
+      "input": {
+        "pm2_5": 15,
+        "pm10": 50,
+        "temperature_c": 35,
+        "humidity_percent": 80
+      },
+      "expected": {
+        "status": "calculation_only",
+        "rule_id": "environmental-indicator-adult22p5-30-37p5-pediatric20p5-28-35p5-20261014",
+        "rule_sha256": "03f97ad4b2737e85cfe01969fed8a059668dcf5e76c5508ee3279d1c5e6aa5c0",
+        "not_a_symptom_probability": true,
+        "adult": {
+          "indicator_0_1": 0.25725320592360634,
+          "score_0_100": 25.725320592360635,
+          "tier": "moderate"
+        },
+        "pediatric": {
+          "indicator_0_1": 0.2809677385418884,
+          "score_0_100": 28.09677385418884,
+          "tier": "high"
+        },
+        "policy_status": "development_pending_domain_review"
+      }
+    }
+  ]
+}

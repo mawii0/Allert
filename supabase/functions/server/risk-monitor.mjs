@@ -1,3 +1,4 @@
+// Historical regression module; not installed by the selected application entrypoint.
 import { POLICY, classifyFraction } from "./environment-policy.mjs";
 import { POLICY_HASH } from "./environment-policy-hash.mjs";
 import { CHECKPOINT } from "./environment-validation.mjs";
