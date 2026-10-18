@@ -1,5 +1,7 @@
 """Vercel ASGI entrypoint. Only authenticated, bounded durable-job processing."""
 import hmac
+import hashlib
+import json
 import os
 import threading
 from fastapi import FastAPI, Request
@@ -11,6 +13,17 @@ from seed7_host.policy import INDICATOR_HASH
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 _invocation = threading.Lock()
+_MAX_INTERNAL_BODY_BYTES = 64
+
+
+def _empty_request_error(request, prefix, bytes_seen, kind):
+    # Diagnostic metadata only: never return body contents, field names or headers.
+    length = request.headers.get('content-length', '')
+    shape = {'bytes_seen': bytes_seen, 'kind': kind,
+             'prefix_sha256': hashlib.sha256(prefix).hexdigest(),
+             'content_length': int(length) if length.isascii() and length.isdigit() and len(length) < 12 else None}
+    return JSONResponse({'error': 'Only an empty request is accepted', 'request_shape': shape},
+                        status_code=400, headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
 
 
 @app.middleware('http')
@@ -28,11 +41,19 @@ async def protect_internal(request: Request, call_next):
             return JSONResponse({'error': 'Query parameters are not accepted'}, status_code=400)
         body = b''
         async for chunk in request.stream():
+            if len(body) + len(chunk) > _MAX_INTERNAL_BODY_BYTES:
+                prefix = body + chunk[:_MAX_INTERNAL_BODY_BYTES - len(body)]
+                return _empty_request_error(request, prefix, len(body) + len(chunk), 'body_limit')
             body += chunk
-            if len(body) > 2:
-                return JSONResponse({'error': 'Only an empty request is accepted'}, status_code=400)
-        if body not in (b'', b'{}'):
-            return JSONResponse({'error': 'Only an empty request is accepted'}, status_code=400)
+        if body.strip():
+            try:
+                value = json.loads(body.decode('utf-8-sig'))
+            except (ValueError, UnicodeError):
+                return _empty_request_error(request, body, len(body), 'invalid_json')
+            if type(value) is not dict or value:
+                kind = {dict: 'nonempty_object', list: 'json_array', str: 'json_string',
+                        type(None): 'json_null', bool: 'json_boolean', int: 'json_number', float: 'json_number'}[type(value)]
+                return _empty_request_error(request, body, len(body), kind)
     response = await call_next(request)
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'

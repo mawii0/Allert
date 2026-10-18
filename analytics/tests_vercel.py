@@ -74,3 +74,67 @@ def test_authenticated_readiness_checks_runtime_but_not_database(client):
         assert response.status_code==200 and response.json()['status']=='runtime_loaded'
         assert response.json()['database_readiness_verified'] is False
         runtime.assert_called_once();batch.assert_not_called()
+
+
+@pytest.mark.parametrize('body', [b'', b'{}', b'{ }', b' \r\n{\n}\t', b'\xef\xbb\xbf{}\r\n', b' ' * 64])
+def test_empty_json_formatting_preserves_fixed_server_selected_jobs(client, body):
+    with patch.object(module.worker, 'run_batch', return_value={'processed': 0, 'errors': 0}) as batch:
+        response = client.post('/internal/tick', headers={'Authorization': 'Bearer ' + TOKEN}, content=body)
+        assert response.status_code == 200
+        batch.assert_called_once_with(budget_seconds=45, stream='live')
+
+
+@pytest.mark.parametrize('body,kind', [
+    (b'{"stream":"replay"}', 'nonempty_object'),
+    (b'[]', 'json_array'), (b'"{}"', 'json_string'),
+    (b'null', 'json_null'), (b'false', 'json_boolean'), (b'0', 'json_number'),
+    (b'{}{}', 'invalid_json'), (b'\x01{}', 'invalid_json'),
+    (b'{}\x00', 'invalid_json'), (b'\xff', 'invalid_json'),
+    (b' ' * 65, 'body_limit'), (b'x' * 4096, 'body_limit'),
+])
+def test_body_diagnostics_never_accept_parameters_or_unbounded_bodies(client, body, kind):
+    import hashlib
+    with patch.object(module.worker, 'run_batch') as batch:
+        response = client.post('/internal/tick', headers={'Authorization': 'Bearer ' + TOKEN}, content=body)
+        assert response.status_code == 400
+        shape = response.json()['request_shape']
+        assert shape['kind'] == kind
+        assert shape['bytes_seen'] == len(body)
+        assert shape['prefix_sha256'] == hashlib.sha256(body[:64]).hexdigest()
+        assert response.headers['cache-control'] == 'no-store'
+        batch.assert_not_called()
+
+
+def test_request_diagnostics_do_not_return_private_values_or_field_names(client):
+    body = b'{"private_field":"fixture-sensitive-value"}'
+    with patch.object(module.worker, 'run_batch') as batch:
+        response = client.post('/internal/tick', headers={'Authorization': 'Bearer ' + TOKEN}, content=body)
+        assert response.status_code == 400
+        for private in ('fixture-sensitive-value', 'private_field', TOKEN, 'authorization'):
+            assert private not in response.text
+        assert set(response.json()['request_shape']) == {'bytes_seen', 'kind', 'prefix_sha256', 'content_length'}
+        batch.assert_not_called()
+
+
+@pytest.mark.parametrize('chunks,expected', [([b'{', b' ', b'}', b'\r\n'], 200), ([b' ' * 32, b' ' * 33], 400)])
+def test_streamed_request_limit_counts_all_chunks(chunks, expected, monkeypatch):
+    import anyio
+    from starlette.requests import Request
+    from fastapi.responses import JSONResponse
+    monkeypatch.setenv('ALLERT_WORKER_TOKEN', TOKEN)
+    async def exercise():
+        messages = iter([{'type': 'http.request', 'body': chunk, 'more_body': True} for chunk in chunks]
+                        + [{'type': 'http.request', 'body': b'', 'more_body': False}])
+        async def receive():
+            return next(messages)
+        request = Request({'type': 'http', 'method': 'POST', 'path': '/internal/tick', 'query_string': b'',
+                           'headers': [(b'authorization', ('Bearer ' + TOKEN).encode())],
+                           'scheme': 'https', 'server': ('testserver', 443)}, receive)
+        calls = []
+        async def next_handler(_request):
+            calls.append(True)
+            return JSONResponse({'ok': True})
+        response = await module.protect_internal(request, next_handler)
+        assert response.status_code == expected
+        assert bool(calls) == (expected == 200)
+    anyio.run(exercise)
