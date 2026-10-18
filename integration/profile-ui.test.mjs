@@ -111,3 +111,11 @@ test('leaving Settings aborts its in-flight save and does not update the cache f
   globalThis.fetch=(_url,options)=>{signal=options.signal;return new Promise(resolve=>finish=resolve);};let saving;await act(async()=>{saving=state.save();});await act(async()=>tree.unmount());tree=null;assert.equal(signal.aborted,true);
   finish(response({profile:{...saved,name:'Late name'}}));assert.equal(await saving,false);assert.equal(localStorage.getItem('allert_user_name'),'Original name');
 });
+
+test('Settings section shortcuts resolve to unique sections and node details are shown once',async()=>{
+  await mount(app.SettingsScreen);
+  const nav=tree.root.findByProps({'aria-label':'Settings sections'});
+  for(const link of nav.findAllByType('a'))assert.equal(tree.root.findAllByProps({id:link.props.href.slice(1)}).length,1);
+  assert.equal(tree.root.findAllByType('dd').filter(node=>text(node)==='ALLERT-NODE-001').length,1);
+  assert.equal(button('Logout').props.disabled,undefined);
+});

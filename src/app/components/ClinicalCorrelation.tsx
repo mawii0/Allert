@@ -33,6 +33,6 @@ export function ClinicalCorrelation({ diaryRevision }: {diaryRevision?:string}) 
       {value.history_truncated&&<p className="text-xs text-amber-300 mt-2">History is limited to loaded records; this is a partial analysis.</p>}
     </>}
     {!resource.loading && !resource.error && value?.device && !analysis && <p role="status" className="text-xs text-zinc-400 mt-4">{value.collection}</p>}
-    <div className="flex flex-wrap gap-4 mt-4"><button type="button" onClick={resource.retry} disabled={resource.loading} className="text-xs text-emerald-400 underline disabled:opacity-50">Refresh correlation</button><button type="button" onClick={download} disabled={resource.loading||!!resource.error||!analysis?.pairs.length} className="text-xs text-emerald-400 underline disabled:opacity-50">Export matched pairs</button></div>
+    <div className="flex flex-wrap gap-4 mt-4"><button type="button" onClick={resource.retry} disabled={resource.loading} className="allert-text-action disabled:opacity-50">Refresh correlation</button><button type="button" onClick={download} disabled={resource.loading||!!resource.error||!analysis?.pairs.length} className="allert-text-action disabled:opacity-50">Export matched pairs</button></div>
   </section>;
 }

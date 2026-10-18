@@ -9,9 +9,10 @@ export function BrowserPushControls({ enabled }: { enabled: boolean }) {
   const disabled = push.loading || push.busy;
   const buttonStyle = "text-xs text-emerald-400 underline disabled:opacity-50";
   return <div className="space-y-3 pt-2 text-xs" aria-label="Browser push settings">
-    <p className="text-zinc-400">{push.loading ? "Checking browser push…" : push.error ? "Browser push settings need attention. Refresh below." : !push.supported ? "Push is unavailable here. On iPhone (iOS 16.4 or later), use Safari → Share → Add to Home Screen, then open ALLERT from its icon." :
-      !push.configured ? "Push keys need to be configured in Supabase." : push.connected ? "This browser is connected." : "This browser is not connected."}</p>
-    <div className="flex flex-wrap gap-x-4 gap-y-2">
+    <h3 className="font-medium text-sm text-zinc-100">This browser</h3>
+    <p role="status" className="text-zinc-300">{push.loading ? "Checking browser push…" : push.error ? "Browser push settings need attention. Refresh below." : !push.supported ? "Push is unavailable here. On iPhone (iOS 16.4 or later), use Safari → Share → Add to Home Screen, then open ALLERT from its icon." :
+      !push.configured ? "Notifications are temporarily unavailable. Please try again later." : push.connected ? "This browser is connected." : "This browser is not connected."}</p>
+    <div className="flex flex-wrap gap-2">
       {!push.connected && <button type="button" className={buttonStyle} disabled={disabled || !enabled || !push.supported || !push.configured} onClick={() => { void push.connect(); }}>Connect this browser</button>}
       {push.connected && <>
         <button type="button" className={buttonStyle} disabled={disabled || !enabled} onClick={() => { void push.test(); }}>Send test notification</button>
@@ -34,7 +35,7 @@ export function BrowserPushControls({ enabled }: { enabled: boolean }) {
     </details>
     {push.message && <p role="status" className="text-emerald-300">{push.message}</p>}
     {push.error && <p role="alert" className="text-red-300">{push.error}</p>}
-    <p className="text-zinc-500">{push.automaticAlertsReady?"Automatic sensor notices are connected to the running processor.":"Automatic sensor notices are not confirmed active."}</p>
+    <p className="text-zinc-500">{push.automaticAlertsReady?"Sensor notice calculations are ready. Delivery also depends on your preferences and the delivery worker.":"Automatic sensor notices are not confirmed active."}</p>
     <ForecastNotices compact />
   </div>;
 }
