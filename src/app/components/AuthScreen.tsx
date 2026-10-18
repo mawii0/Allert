@@ -17,7 +17,7 @@ import { Label } from "./ui/label";
 import { DeploymentCheck } from "./DeploymentCheck";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { storeSession, getProfile } from "../utils/auth";
-const logoImage = "/allert-logo.svg";
+import logoImage from "../../imports/AllertLogoTransparent1.png";
 
 
 type AuthMode = "login" | "register";
@@ -257,7 +257,7 @@ export function AuthScreen() {
                     </div>
                   </div>
 
-                  {mode === "login" && <button type="button" disabled={isLoading} onClick={() => navigate("/forgot-password", { state: { email: email.trim() } })} className="rounded-lg border border-zinc-700 bg-zinc-900/70 px-3 py-2 text-sm text-emerald-300 hover:border-emerald-500 disabled:opacity-50">Forgot password?</button>}
+                  {mode === "login" && <button type="button" disabled={isLoading} onClick={() => navigate("/forgot-password", { state: { email: email.trim() } })} className="text-sm text-emerald-400 hover:text-emerald-300 underline disabled:opacity-50">Forgot password?</button>}
 
                   {/* Error Message */}
                   {error && (

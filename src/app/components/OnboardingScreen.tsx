@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
 import { useNotificationPreferences } from "../utils/useNotificationPreferences";
 import { saveProfile, isAuthenticated } from "../utils/auth";
-const logoImage = "/allert-logo.svg";
+import logoImage from "../../imports/AllertLogoTransparent1.png";
 
 export function OnboardingScreen() {
   const navigate = useNavigate();

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import { MailCheck } from "lucide-react";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import { storeSession } from "../utils/auth";
-const logoImage = "/allert-logo.svg";
+import logoImage from "../../imports/AllertLogoTransparent1.png";
 
 export function VerifyEmailScreen() {
   const navigate = useNavigate();

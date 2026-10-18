@@ -13,21 +13,17 @@ import { summarizeHistory, metricTrend } from "../utils/telemetry-analysis.mjs";
 
 import { HistoryExplorer as SampleHistoryTable } from "./HistoryExplorer";
 import { formatMeasurement } from "../utils/sample-history.mjs";
+import { RiskHistoryChart } from "./RiskHistoryChart";
 
 const metrics = [
-  { key: "pm2_5", label: "PM2.5", unit: "μg/m³", icon: Wind, color: "#ff9800" },
-  { key: "pm10", label: "PM10", unit: "μg/m³", icon: Wind, color: "#ff9800" },
+  { key: "pm2_5", label: "Particulate matter 2.5", unit: "μg/m³", icon: Wind, color: "#ff9800" },
+  { key: "pm10", label: "Particulate matter 10", unit: "μg/m³", icon: Wind, color: "#ff9800" },
   { key: "temperature", label: "Temperature", unit: "°C", icon: Thermometer, color: "#60a5fa" },
   { key: "humidity", label: "Humidity", unit: "%", icon: Droplets, color: "#22d3ee" },
 ] as const;
 
 // Uses actual timestamps; long gaps break the chart line.
-function ReadingChart({
-  readings,
-  field,
-  now,
-  color,
-}: {
+function ReadingChart({ readings, field, now, color }: {
   readings: SensorReading[];
   field: (typeof metrics)[number]["key"];
   now: number;
@@ -37,49 +33,22 @@ function ReadingChart({
   const points = readings.flatMap((reading) => {
     const value = reading[field];
     const time = Date.parse(reading.timestamp);
-
-    return typeof value === "number" &&
-      Number.isFinite(value) &&
-      time >= start &&
-      time <= now
-      ? [{ value, time }]
-      : [];
+    return typeof value === "number" && Number.isFinite(value) && time >= start && time <= now
+      ? [{ value, time }] : [];
   });
-
-  if (points.length < 2) {
-    return <p className="text-sm text-zinc-500">Waiting for more readings.</p>;
-  }
-
+  if (points.length < 2) return <p className="text-sm text-zinc-500">Waiting for more readings.</p>;
   const min = Math.min(...points.map((point) => point.value));
   const max = Math.max(...points.map((point) => point.value));
   const range = max - min || 1;
-
   const path = points.map((point, index) => {
     const x = ((point.time - start) / (now - start)) * 300;
     const y = 55 - ((point.value - min) / range) * 45;
-    const gap = index > 0 &&
-      point.time - points[index - 1].time > 10 * 60 * 1000;
-
+    const gap = index > 0 && point.time - points[index - 1].time > 10 * 60 * 1000;
     return `${index === 0 || gap ? "M" : "L"} ${x},${y}`;
   }).join(" ");
-
-  return (
-    <svg
-      viewBox="0 0 300 65"
-      className="w-full h-20"
-      style={{ color }}
-      role="img"
-      aria-label={`${field} readings over the last 24 hours`}
-    >
-      <path
-        d={path}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
+  return <svg viewBox="0 0 300 65" className="w-full h-20" style={{ color }} role="img" aria-label={`${field} readings over the last 24 hours`}>
+    <path d={path} fill="none" stroke="currentColor" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+  </svg>;
 }
 
 export function EnvironmentalScreen() {
@@ -201,12 +170,13 @@ export function EnvironmentalScreen() {
             </section>;
           })}
         </div>
+        <RiskHistoryChart readings={view.history} end={chartEnd} deviceId={latest.device_id} />
         <SampleHistoryTable readings={view.history} end={chartEnd} deviceId={latest.device_id} replay={replay} />
         <section className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-4">
           <h2 className="text-sm font-semibold mb-2">Pollutant Accumulation Patterns</h2>
           <dl className="text-xs">
             <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">Peak Hours</dt><dd>{summary.coverage >= 95 ? summary.peaks.map(hourLabel).join(", ") : "Awaiting full history"}</dd></div>
-            <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">{summary.coverage >= 95 ? "Average Daily PM2.5" : "Available History PM2.5"}</dt><dd>{summary.average === null ? "Unavailable" : `${summary.average.toFixed(1)} μg/m³`}</dd></div>
+            <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">{summary.coverage >= 95 ? "Average daily particulate matter 2.5" : "Available history particulate matter 2.5"}</dt><dd>{summary.average === null ? "Unavailable" : `${summary.average.toFixed(1)} μg/m³`}</dd></div>
             <div className="flex justify-between gap-3 pt-3"><dt className="text-zinc-400">History Coverage</dt><dd className="text-emerald-400">{summary.coverage.toFixed(1)}%</dd></div>
           </dl>
           <p className="mt-3 text-[10px] text-zinc-500">Peak hours use recorded hourly averages (Manila). Coverage is available five-minute blocks out of 288.</p>

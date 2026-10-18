@@ -24,7 +24,7 @@ const button=(tree,label)=>tree.root.findAllByType('button').find(node=>text(nod
 function fixture(extra={}){globalThis.recovery={email:'person@example.com',code:'',password:'',confirmation:'',stage:'email',busy:false,error:'',notice:'',remaining:0,setEmail(){},setCode(){},setPassword(){},setConfirmation(){},useExistingCode(){},send:async()=>{},verify:async()=>{},save:async()=>{},changeEmail(){},...extra};globalThis.navigate=()=>{};}
 test('sign-in retains its design and adds a login-only recovery link with email in router state',async()=>{
   fixture();let destination,tree;globalThis.navigate=(...args)=>destination=args;await act(async()=>{tree=TestRenderer.create(React.createElement(AuthScreen));});
-  assert.equal(tree.toJSON().props.className,'min-h-screen bg-zinc-950 text-white');assert.equal(tree.root.findByType('img').props.src,'/allert-logo.svg');
+  assert.equal(tree.toJSON().props.className,'min-h-screen bg-zinc-950 text-white');assert.equal(tree.root.findByType('img').props.src,'logo.png');
   await act(async()=>tree.root.findByProps({id:'email'}).props.onChange({target:{value:' person@example.com '}}));
   await act(async()=>button(tree,'Forgot password?').props.onClick());assert.deepEqual(destination,['/forgot-password',{state:{email:'person@example.com'}}]);
   await act(async()=>button(tree,'Register').props.onClick());assert.equal(button(tree,'Forgot password?'),undefined);assert.ok(tree.root.findByProps({id:'name'}));await act(async()=>tree.unmount());

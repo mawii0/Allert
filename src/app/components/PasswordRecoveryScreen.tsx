@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { usePasswordRecovery } from "../utils/usePasswordRecovery";
-const logoImage = "/allert-logo.svg";
+import logoImage from "../../imports/AllertLogoTransparent1.png";
 
 export function PasswordRecoveryScreen() {
   const navigate = useNavigate(), location = useLocation();
