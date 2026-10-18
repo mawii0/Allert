@@ -1,5 +1,3 @@
-import { ForecastNotices } from "./ForecastNotices";
-import { SensorNotices } from "./SensorNotices";
 import { useEffect, useState } from "react";
 import { Wind, Thermometer, Droplets, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
@@ -215,8 +213,6 @@ export function EnvironmentalScreen() {
         </section>
         <p className="mt-3 text-[10px] text-zinc-500">{latest.device_id} - {replay ? "Recorded window ended" : "Last reading"} {displayTime(latest.timestamp)} (Manila).</p>
       </>}
-      <ForecastNotices />
-      <SensorNotices />
     </div>
   );
 }

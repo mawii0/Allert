@@ -7,6 +7,7 @@ const PasswordRecoveryScreen = lazy(() => import("./components/PasswordRecoveryS
 const OnboardingScreen = lazy(() => import("./components/OnboardingScreen").then(module => ({ default: module.OnboardingScreen })));
 const DashboardScreen = lazy(() => import("./components/DashboardScreen").then(module => ({ default: module.DashboardScreen })));
 const EnvironmentalScreen = lazy(() => import("./components/EnvironmentalScreen").then(module => ({ default: module.EnvironmentalScreen })));
+const SensorNoticesScreen = lazy(() => import("./components/SensorNoticesScreen").then(module => ({ default: module.SensorNoticesScreen })));
 const ClinicalScreen = lazy(() => import("./components/ClinicalScreen").then(module => ({ default: module.ClinicalScreen })));
 const SettingsScreen = lazy(() => import("./components/SettingsScreen").then(module => ({ default: module.SettingsScreen })));
 const DeviceConnectionScreen = lazy(() => import("./components/DeviceConnectionScreen").then(module => ({ default: module.DeviceConnectionScreen })));
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
       { index: true, Component: DashboardScreen },
       { path: "dashboard", Component: DashboardScreen },
       { path: "environmental", Component: EnvironmentalScreen },
+      { path: "sensor-notices", Component: SensorNoticesScreen },
       { path: "clinical", Component: ClinicalScreen },
       { path: "settings", Component: SettingsScreen },
     ],

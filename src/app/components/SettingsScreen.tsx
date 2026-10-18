@@ -77,6 +77,7 @@ export function SettingsScreen() {
       {notifications.error && <p role="alert" className="text-sm text-red-300 mt-3">{notifications.error}</p>}
       <button type="button" disabled={notifications.loading || notifications.saving} onClick={notifications.retry} className="allert-text-action">Refresh notification settings</button>
       <BrowserPushControls enabled={notifications.enabled && !notifications.loading && !notifications.saving} />
+      <button type="button" className="allert-text-action" onClick={() => navigate("/app/sensor-notices")}>View sensor notices</button>
     </section>
 
     <section id="settings-location" aria-labelledby="settings-location-title" className="allert-card">
