@@ -5,6 +5,7 @@ import threading
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from seed7_host import worker
+from seed7_host import replay_acceptance
 from seed7_host.identity import MODEL_ID, CHECKPOINT, OBSERVED_HASH
 from seed7_host.policy import INDICATOR_HASH
 
@@ -70,5 +71,21 @@ def tick():
         return JSONResponse(result, status_code=503 if result.get('errors', 0) else 200)
     except Exception:
         return JSONResponse({'error': 'Analytics batch failed; jobs remain retryable'}, status_code=503)
+    finally:
+        _invocation.release()
+
+
+@app.post('/internal/replay-forecast')
+def replay_forecast():
+    # Temporary staging acceptance only: no caller-selected stream or readings.
+    if not replay_acceptance.enabled():
+        return JSONResponse({'error': 'Staging replay acceptance is disabled'}, status_code=404)
+    if not _invocation.acquire(blocking=False):
+        return JSONResponse({'outcome': 'busy'}, status_code=409)
+    try:
+        result = replay_acceptance.run_one()
+        return JSONResponse(result, status_code=503 if result.get('errors', 0) else 200)
+    except Exception:
+        return JSONResponse({'error': 'Staging forecast acceptance failed', 'errors': 1}, status_code=503)
     finally:
         _invocation.release()
