@@ -1,0 +1,90 @@
+{
+  "title": "Selected revised-data 48-hour median-residual BiLSTM",
+  "status": "researcher_selected_app_handoff_not_live_deployed",
+  "created_utc": "2026-10-12T18:45:59.829861+00:00",
+  "seed": 7,
+  "best_epoch": 15,
+  "epochs_run": 35,
+  "max_epochs": 100,
+  "patience": 20,
+  "shrinkage": [
+    0.025,
+    0.025,
+    0.025,
+    0.025,
+    0.225,
+    0.15000000000000002
+  ],
+  "source_checkpoint_sha256": "4253e73515d8d2a3d4a4463065f8bfb2192c9454e161da560fd928a4051672c4",
+  "source_sha256": "71dcd02d1c5fa77b35cc362982454ddec6295c1ed4a717c4dab84bdf5e68c6cf",
+  "processed_sha256": "326a1822beb5b042b89d7efb335776da9d7a486003c90a28c86184d60bb0251a",
+  "blocks": {
+    "train": {
+      "first": "2026-06-04 00:00:00",
+      "last": "2026-08-23 21:30:00",
+      "count": 7767
+    },
+    "stop": {
+      "first": "2026-08-25 21:45:00",
+      "last": "2026-08-30 16:45:00",
+      "count": 461
+    },
+    "cal": {
+      "first": "2026-09-01 05:00:00",
+      "last": "2026-09-05 05:00:00",
+      "count": 385
+    },
+    "development_assessment": {
+      "first": "2026-09-06 05:00:00",
+      "last": "2026-09-11 04:45:00",
+      "count": 480
+    },
+    "test": {
+      "first": "2026-09-13 04:45:00",
+      "last": "2026-09-30 00:00:00",
+      "count": 1614
+    }
+  },
+  "feature_order": [
+    "pm2_5",
+    "pm10",
+    "temperature",
+    "humidity",
+    "temperature_roll_1h",
+    "humidity_roll_1h",
+    "temperature_roll_6h",
+    "humidity_roll_6h"
+  ],
+  "target_order": [
+    "PM2.5 6h",
+    "PM10 6h",
+    "PM2.5 12h",
+    "PM10 12h",
+    "PM2.5 24h",
+    "PM10 24h"
+  ],
+  "feature_scaler_fit_last": "2026-08-23 21:30:00",
+  "arima_order": [
+    2,
+    1,
+    2
+  ],
+  "arima_fit_last": "2026-08-23 21:25:00",
+  "independent_confirmation": false,
+  "retrained": true,
+  "frozen_application_changed": false,
+  "selection_disclosure": "User-selected seed 7 after reviewing completed runs; original predeclared winner remains seed 42",
+  "selection_uses_assessment": null,
+  "all_seeds_attempted": [
+    42,
+    7,
+    123,
+    2026,
+    314
+  ],
+  "model_id": "median-residual-seed7-epoch15-20261013-v1",
+  "spike_head": false,
+  "choice_made_after_assessment_review": true,
+  "predeclared_validation_winner": false,
+  "researcher_selected": true
+}

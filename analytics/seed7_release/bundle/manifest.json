@@ -1,0 +1,32 @@
+{
+  "seed": 7,
+  "best_epoch": 15,
+  "files": {
+    "arima/development_evaluation.json": "104add3fcc4b3e2dcedd66b0bcc5532a599bb12a6cb042b283f1a79426759f7d",
+    "arima/development_predictions.npz": "1a3b1a1fca0f9179171cef0ff1262897b6f76dc8f35e5812c496989583518e75",
+    "arima/fit_record.json": "8cf2c578e7ab722a529a63623acfc992210e374654fd687a9d1095fce4f1ec32",
+    "arima/later_evaluation.json": "84c7455f3a17c098977bfcfd9bc81a3225a1814fa4fe839d3b99b9f2d5ff1e47",
+    "arima/later_predictions.npz": "f7324d8a69fb23970473d200b2e85a1667dd093a16182f31298a1b8a7255de5f",
+    "calibration_source.npz": "6f879490633050d271a6818c837364001c4b9473d3896ed00f18db8a1e327a97",
+    "development_evaluation.json": "05d58e8424124262f2414229f15f5311c89a860f4737dbf0b1b2918871f891a3",
+    "development_predictions.npz": "6f9827ea41d9bfecdc9cc980ea48be5d9e349a727259fef8f8f1e87bd92757a5",
+    "feature_scaler.joblib": "6109ec1d759fd2d3d98f10663be91f0ecc99cafb5a28e7edea91681fbb8cf7a1",
+    "historical_pretraining_protocol.json": "e5091acc41b1aee0ce4905762c5cbe6ee2834330be8c52b79fd7d03c4115e4b0",
+    "historical_seed42_selection_lock.json": "bfa3883b44bd40ae2054dca6afc0b9e96400028318214ad9abd6a2a28cd714aa",
+    "later_evaluation.json": "c2c73cdb3bdfbcab755ea5bf60398075d79232529050a01c81ef5e703230994e",
+    "later_predictions.npz": "97c031c9fb84e3298f3bafd0ee2cf9de8c976cfa2aec494e899109aee19cf9ef",
+    "model/best_model.pt": "4253e73515d8d2a3d4a4463065f8bfb2192c9454e161da560fd928a4051672c4",
+    "model/feature_cols.json": "2a6ef4a9942d40b9dddddd9f3be1e8b3892ef79652b72f77063e71f0edffc7b6",
+    "model/model_config.json": "e650bde05fccd2e7f4898d54c5d4b23461741478eda7a1ed644f192dfd8a4fa8",
+    "model/target_scaler.joblib": "7ec7fb68070a1bbadd13796d37579c0f966479d76a15d139bc8330c928f54477",
+    "model/training_results.json": "98eafa907c2829ebcff4ccc347761360853d925f68d018ac56bc6df2327e6a25",
+    "protocol.json": "03f6d3f6a71a4019daa82a55d679ca3a6f96c8cf583ea1cdd082acfcb87a9ba5",
+    "resolved_config.json": "c6708c464e48b4fd3f278a7aeb30a920fe913ae64383126b1f739fecb5603944",
+    "scaler_scope.json": "1ba2506f3c45471c2029f4ada91f990b26b0e4da2c5201b3bd5b3add0eaaa370",
+    "selected_stopping_diagnostics.json": "9387a157b3f37f34d2d6de4e180be2b9d656dd5e70e6e7f1bc4f6c1522402761",
+    "selection_decision.json": "1408e7c41f153070f3f8dde0d8d2ef47fdaee67108992ed175a442bb31ef71cf",
+    "training_and_calibration.json": "6bbd83ba604917366ea0d3be7b5c0e94c8dd7af28fffa972567eda6e092dcdb4",
+    "training_progress.json": "eaf29768e55bd37e2e0e84b5fb6af37e2973efd6074629a1ff2788d9040f17de",
+    "untrained_diagnostics.json": "a2aee61b6b412c5a44209a4b27abe021e384720b9dde02c11fdfb3d1116c7f3b"
+  }
+}

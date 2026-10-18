@@ -1,0 +1,171 @@
+{
+  "status": "locked_before_training",
+  "recorded_utc": "2026-10-12T16:40:10.704604+00:00",
+  "run_count": 5,
+  "fixed_seed_order": [
+    42,
+    7,
+    123,
+    2026,
+    314
+  ],
+  "selection_rule": "lowest stopping-validation weighted Huber loss; exact ties use fixed seed order",
+  "selection_uses_assessment": false,
+  "untrained_eligible": false,
+  "ensemble": false,
+  "blocks": {
+    "train": {
+      "first": "2026-06-04 00:00:00",
+      "last": "2026-08-23 21:30:00",
+      "count": 7767
+    },
+    "stop": {
+      "first": "2026-08-25 21:45:00",
+      "last": "2026-08-30 16:45:00",
+      "count": 461
+    },
+    "cal": {
+      "first": "2026-09-01 05:00:00",
+      "last": "2026-09-05 05:00:00",
+      "count": 385
+    },
+    "development_assessment": {
+      "first": "2026-09-06 05:00:00",
+      "last": "2026-09-11 04:45:00",
+      "count": 480
+    },
+    "test": {
+      "first": "2026-09-13 04:45:00",
+      "last": "2026-09-30 00:00:00",
+      "count": 1614
+    }
+  },
+  "feature_order": [
+    "pm2_5",
+    "pm10",
+    "temperature",
+    "humidity",
+    "temperature_roll_1h",
+    "humidity_roll_1h",
+    "temperature_roll_6h",
+    "humidity_roll_6h"
+  ],
+  "target_order": [
+    "PM2.5 6h",
+    "PM10 6h",
+    "PM2.5 12h",
+    "PM10 12h",
+    "PM2.5 24h",
+    "PM10 24h"
+  ],
+  "target_semantics": "five-minute horizon-end row at issue+horizon-5min; naive Asia/Manila block-start convention",
+  "source_hashes": {
+    "node_1": "71dcd02d1c5fa77b35cc362982454ddec6295c1ed4a717c4dab84bdf5e68c6cf",
+    "node_2": "e43d5b0f3f5ed9ebfb492ecd8ae05434bc7fb7cf6061743a337807d2f5944d7b",
+    "node_3": "c3891e4dfede80477de46d8835487548f90d492486cf741fb2a198e1d418d7c2"
+  },
+  "old_single_protocol_sha256": "2c31682493b1e8d841dc9d70221dd189bdf42adc313b2dabd1e5da3917a02807",
+  "origin_metadata_sha256": "163ce6a41422b13215b22e558bdb778a74cfb630a2e00cb3585de4f2f1066d1b",
+  "common_manifest_sha256": "31a98c52649d793b0f2c11929730adc23fdf79ad6be68cccce94c35c84464a11",
+  "effective_model_settings": {
+    "sequence_length": 576,
+    "n_lstm_layers": 2,
+    "lstm_units_layer1": 64,
+    "lstm_units_layer2": 96,
+    "dropout_rate": 0.43,
+    "l2_lambda": 9.46e-06,
+    "learning_rate": 0.000363,
+    "batch_size": 16,
+    "max_epochs": 100,
+    "gradient_clip_norm": 0.5,
+    "use_attention": true,
+    "attention_units": 64,
+    "attention_type": "vector",
+    "use_layer_norm": true,
+    "use_spike_head": false,
+    "mixed_precision": true,
+    "loss_weights": [
+      0.5,
+      0.3,
+      0.2
+    ],
+    "optimizer": "adam",
+    "scheduler": "cosine",
+    "scheduler_max_epochs": 100,
+    "loss_type": "huber",
+    "loss_alpha": 0.0
+  },
+  "parameters": 225671,
+  "stopping_monitor": "arithmetic mean of validation minibatch weighted Huber losses, L2 excluded",
+  "optimization_objective": "weighted Huber plus manual L2",
+  "calibration_grid": {
+    "first": 0.0,
+    "last": 1.0,
+    "step": 0.025
+  },
+  "calibration_rule": "per-output calibration MAE minimum; first ascending-grid minimum wins ties",
+  "arima_order": [
+    2,
+    1,
+    2
+  ],
+  "arima_fit_last": "2026-08-23 21:25:00",
+  "independent_confirmation": false,
+  "revised_data_is_not_architecture_change": true,
+  "active_artifacts_changed": false,
+  "code_hashes": {
+    "src\\model_architecture.py": "33745e13c1d494459f5383e312f8d6d32948ad5a43e7e070538141c3a47409e1",
+    "src\\model_training.py": "1ea5672064ebdfd76507eb21e54aa728f4432beb83c727e014613fe7bbf083d6",
+    "src\\model_pipeline.py": "a5eb5958100ee560db9716997a6715d29266ca64625ff318ff1c23927972cbdf",
+    "src\\model_evaluation.py": "c824a022e863f1127afbc4e08ee7f74c845a80e6e3779f6dbe4502bc60624538",
+    "src\\model_metrics.py": "816777a90eb2728a460448d46858ec31dd1ec5e2dc9c9640685734b198406a72",
+    "src\\model_arima_baseline.py": "f5dbce75062bccbe95cf1802930dedc37d1c5a82507a34edd2f08cf9998bcb17",
+    "src\\target_scaling.py": "913e72ca81bd820ba160c53e8b2fd703f9c4ecbc502f6e09cd0b1b0e5bcef09a",
+    "src\\observed_pm_alerts.py": "b68f404ed0b2979769fed3bee9843695c0e64084c67b3f05b5fa3a897f81f37b",
+    "src\\observed_pm_replay.py": "a1f1a32d31090e5a186eeeb82c6faf1fe6125f825fae446e41f2b04cd2bb1ebc",
+    "src\\risk_engine.py": "4730cc430c96383944ef075690588a12be030612723f2902a00befbb957d9eb6",
+    "src\\training_utils.py": "6e7d0279ebfa1647725c71f929278ca5cbd0d3195240050edc97501c92aae636",
+    "scripts\\run_revised_model_study.py": "d2ac7ab992796e26bbc0c5006e6e4e0f8e88f80a599606eddd6bd27ac83db772"
+  },
+  "environment": {
+    "recorded_utc": "2026-10-12T16:39:59.724530+00:00",
+    "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+    "executable": "C:\\Users\\USER\\Codes\\allert_rebuild\\.venv\\Scripts\\python.exe",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "torch": "2.11.0+cu128",
+    "cuda_runtime": "12.8",
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "vram_GB": 5.99658203125,
+    "available_ram_GB": 1.8069076538085938,
+    "free_disk_GB": 74.24101257324219,
+    "packages": {
+      "numpy": "2.5.2",
+      "pandas": "3.0.5",
+      "scikit-learn": "1.9.0",
+      "statsmodels": "0.15.0",
+      "scipy": "1.18.1",
+      "joblib": "1.6.0",
+      "nbformat": "5.11.1",
+      "nbclient": "0.11.0"
+    },
+    "deterministic_algorithms": false,
+    "cudnn_deterministic": false,
+    "cudnn_benchmark": false,
+    "cudnn_version": 91900,
+    "float32_matmul_precision": "highest",
+    "cuda_matmul_allow_tf32": false,
+    "sequential_runs": true,
+    "training_amp": true,
+    "inference_amp": false
+  },
+  "preparation_seconds": 11.62213519999932,
+  "excluded_existing_origins": 239,
+  "unused_inherited_fields": [
+    "generic gap filling/outlier/smoothing settings",
+    "generic feature expansion",
+    "recurrent_dropout",
+    "legacy risk lag",
+    "smooth_spike_weighting for Huber"
+  ]
+}

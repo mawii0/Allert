@@ -10,3 +10,16 @@ integration/test-output*/
 .venv/
 
 .vercel
+
+firmware/**/node_secrets.h
+firmware/**/tls_roots.h
+firmware/**/data/
+index-main-reference.txt
+
+# Vercel builds the app from source.
+/dist/
+
+# Separate model environment; frozen release bytes remain tracked.
+.venv-model/
+analytics/.env
+analytics/outputs/

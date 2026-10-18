@@ -1,3 +1,4 @@
+import { pendingNodeSharePath } from "../utils/pending-node-share";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
@@ -79,7 +80,7 @@ export function AuthScreen() {
         if (profile.success && profile.profile?.updatedAt) {
           localStorage.setItem("allert_demographic", profile.profile.demographic);
           localStorage.setItem("allert_onboarding_complete", "true");
-          navigate("/app/dashboard");
+          navigate(pendingNodeSharePath() || "/app/dashboard");
         } else {
           navigate("/onboarding");
         }
@@ -243,6 +244,8 @@ export function AuthScreen() {
                       />
                     </div>
                   </div>
+
+                  {mode === "login" && <button type="button" disabled={isLoading} onClick={() => navigate("/forgot-password", { state: { email: email.trim() } })} className="text-sm text-emerald-400 hover:text-emerald-300 underline disabled:opacity-50">Forgot password?</button>}
 
                   {/* Error Message */}
                   {error && (

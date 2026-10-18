@@ -1,0 +1,22 @@
+{
+  "model_id": "median-residual-seed7-epoch15-20261013-v1",
+  "seed": 7,
+  "best_epoch": 15,
+  "recorded_epochs": 35,
+  "user_instruction": "7 35 15 2.110111 select this configuration and package it",
+  "decision_recorded_utc": "2026-10-12T18:45:59.830366+00:00",
+  "decision_stage": "after review of all five completed runs and assessment results",
+  "reason": "explicit researcher request; no additional statistical selection criterion inferred",
+  "historical_predeclared_winner": {
+    "seed": 42,
+    "best_epoch": 1,
+    "best_stopping_loss": 2.0856454331299354
+  },
+  "own_best_stopping_loss": 2.110111390722209,
+  "checkpoint_sha256": "4253e73515d8d2a3d4a4463065f8bfb2192c9454e161da560fd928a4051672c4",
+  "new_training_or_calibration": false,
+  "original_records_rewritten": false,
+  "independent_confirmation": false,
+  "historical_evaluation_selected_flags": "copied unchanged; false records the original seed-42 selection",
+  "active_artifacts_or_manuscript_overwritten": false
+}

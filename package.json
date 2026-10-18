@@ -6,7 +6,13 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "test": "node --test integration/account-validation.test.mjs integration/environment-validation.test.mjs integration/auth-session.test.mjs integration/node-access.test.mjs integration/telemetry-session.test.mjs integration/environment-source.test.mjs integration/telemetry-analysis.test.mjs integration/risk-monitor.test.mjs integration/sample-history.test.mjs integration/sample-history-render.test.mjs integration/history-explorer.test.mjs"
+    "test": "node scripts/test-app.mjs",
+    "test:app-features": "node --test integration/anomaly-policy.test.mjs integration/app-feature-database.test.mjs integration/app-feature-http.test.mjs integration/app-feature-ui.test.mjs integration/worker-schedule.test.mjs",
+    "test:firmware": "python3 integration/test_firmware_logic.py",
+    "test:push": "node --test integration/push-database.test.mjs integration/push-http.test.mjs integration/push-session.test.mjs integration/push-ui.test.mjs integration/push-worker.test.mjs integration/push-browser.test.mjs",
+    "test:notifications": "node --test integration/notification-preferences.test.mjs integration/notification-http.test.mjs integration/notification-session.test.mjs integration/notification-ui.test.mjs",
+    "audit:release": "node scripts/audit-release.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -68,10 +74,16 @@
     "vaul": "1.1.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
     "@tailwindcss/vite": "4.1.12",
     "@vitejs/plugin-react": "4.7.0",
+    "hono": "^4.13.13",
+    "react-test-renderer": "^18.3.1",
     "tailwindcss": "4.1.12",
-    "vite": "6.4.4"
+    "vite": "6.4.4",
+    "typescript": "7.0.2",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7"
   },
   "peerDependencies": {
     "react": "18.3.1",
@@ -91,4 +103,3 @@
     }
   }
 }
-

@@ -4,11 +4,15 @@ import { Search } from "lucide-react";
 interface AdminSearchBarProps {
   className?: string;
   placeholder?: string;
+  value?: string;
+  onChange?: (value:string)=>void;
 }
 
 export function AdminSearchBar({
   className = "",
   placeholder = "Search nodes, alerts, metrics...",
+  value,
+  onChange,
 }: AdminSearchBarProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -37,6 +41,9 @@ export function AdminSearchBar({
       <input
         ref={inputRef}
         type="search"
+        value={value}
+        onChange={event=>onChange?.(event.target.value)}
+        aria-label="Search admin records"
         placeholder={`${placeholder} (/ to focus)`}
         className="w-full rounded-xl border border-[#2a2a2a] bg-[#0f0f0f] px-10 py-2 text-sm text-white placeholder:text-[#6b7280] focus:outline-none focus:ring-2 focus:ring-[#00bfa5]/60"
       />

@@ -1,363 +1,100 @@
-import { useState, useEffect } from "react";
+import "../../styles/patient-settings.css";
+import { AdminAccessLink } from "./AdminLiveTools";
+import { AppInstallation } from "./AppInstallation";
+import { NodeLocationControls } from "./NodeLocationControls";
+import { useNodeTelemetry } from "../utils/useNodeTelemetry";
 import { useNavigate } from "react-router";
-import {
-  Cpu,
-  Database,
-  MapPin,
-  User,
-  Bell,
-  Palette,
-  Info,
-  ChevronRight,
-  Activity,
-  Clock,
-  CheckCircle2,
-  LogOut,
-  Wifi,
-  Zap,
-} from "lucide-react";
-import { useEnvironment, displayTime } from "../utils/environment";
+import { Bell, Cpu, MapPin, LogOut, UserRound, Radio } from "lucide-react";
+import { useRiskMonitor } from "../utils/risk-monitor";
 import { Switch } from "./ui/switch";
+import { useNotificationPreferences } from "../utils/useNotificationPreferences";
+import { BrowserPushControls } from "./BrowserPushControls";
 import { Button } from "./ui/button";
-import { logout, getCurrentUser, getProfile, type UserProfile } from "../utils/auth";
+import { logout } from "../utils/auth";
+import { useProfileSettings } from "../utils/useProfileSettings";
+import { ProfileEditor } from "./ProfileEditor";
 
 export function SettingsScreen() {
   const navigate = useNavigate();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [locationEnabled, setLocationEnabled] = useState(false);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [nodeConnected, setNodeConnected] = useState(false);
-  const [nodeId, setNodeId] = useState("");
-  const [nodeNetwork, setNodeNetwork] = useState("");
+  const notifications = useNotificationPreferences();
+  const profileSettings = useProfileSettings();
+  const { profile: userProfile, loading: isLoadingProfile } = profileSettings;
+  const { device, latest, loading: nodeLoading, error: nodeError, nodeStatus, lastReading, retry } = useNodeTelemetry();
+  const { data: monitor, status: monitorStatus } = useRiskMonitor();
+  const handleLogout = () => { logout(); navigate("/"); };
+  const joinDate = userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString("en-PH", { month: "long", year: "numeric" }) : null;
 
-  const { snapshot, status } = useEnvironment();
-  // Only display verified model metadata; device health is unavailable without telemetry.
-  const systemData = {
-    nodeId: snapshot?.node_id || "Unassigned",
-    uptime: "Not available",
-    lastSync: snapshot ? displayTime(snapshot.forecast.generated_at) : "Not available",
-    algorithmVersion: snapshot?.forecast.model_id || "Not available",
-    modelAccuracy: "See model validation report",
-    dataPoints: "Not available",
-  };
+  return <div className="allert-ui settings-screen min-h-screen bg-zinc-950 px-4 py-8 sm:px-6">
+    <header className="mb-6">
+      <p className="allert-eyebrow">ALLERT · Your preferences</p>
+      <h1 className="text-2xl font-bold mt-2">Settings</h1>
+      <p className="text-sm text-zinc-400 mt-2">Manage your profile, home node, and notifications.</p>
+    </header>
+    <nav aria-label="Settings sections" className="allert-section-nav mb-6">
+      <a href="#settings-profile">Profile</a><a href="#settings-node">Home node</a>
+      <a href="#settings-notifications">Notifications</a><a href="#settings-location">Location</a>
+    </nav>
 
-  // Load user profile from Supabase
-  useEffect(() => {
-    const loadProfile = async () => {
-      setIsLoadingProfile(true);
-      try {
-        const result = await getProfile();
-        if (result.success && result.profile) {
-          setUserProfile(result.profile);
-        } else {
-          console.error("Failed to load profile:", result.error);
-          // Fallback to localStorage
-          const localUser = getCurrentUser();
-          if (localUser.id) {
-            setUserProfile({
-              userId: localUser.id,
-              email: localUser.email || "",
-              name: localUser.name || "",
-              demographic: (localStorage.getItem("allert_demographic") as "adult" | "pediatric") || "adult",
-              createdAt: "",
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error loading profile:", error);
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
+    <section id="settings-profile" aria-labelledby="settings-profile-title" className="allert-card">
+      <div className="allert-section-heading"><UserRound aria-hidden="true" /><div><h2 id="settings-profile-title">Your profile</h2><p>Choose the patient category used by Risk Monitor.</p></div></div>
+      {isLoadingProfile ? <p role="status" className="text-sm text-zinc-300 py-4">Loading profile…</p> : userProfile ? <>
+        <div className="flex items-start gap-3 mb-5">
+          <div aria-hidden="true" className="w-12 h-12 shrink-0 rounded-2xl bg-emerald-500/15 text-emerald-300 flex items-center justify-center font-bold">{userProfile.demographic === "adult" ? "A" : "P"}</div>
+          <div className="min-w-0"><p className="font-semibold text-lg break-words">{userProfile.name || "Patient Profile"}</p>
+            <p className="text-sm text-zinc-300 break-words">{userProfile.email}</p>
+            <p className="text-xs text-zinc-400 mt-2">{userProfile.demographic === "adult" ? "Adult" : "Pediatric"}{joinDate ? ` · Member since ${joinDate}` : " · Profile loaded locally"}</p>
+          </div>
+        </div>
+        <ProfileEditor settings={profileSettings} />
+      </> : <div className="py-3"><p role="alert" className="text-sm text-red-300">{profileSettings.error || "Failed to load profile"}</p><button type="button" onClick={profileSettings.retry} className="allert-secondary mt-3">Retry profile</button></div>}
+    </section>
 
-    loadProfile();
-
-    // Browser flags cannot establish a hardware connection.
-    setNodeConnected(false);
-  }, []);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/");
-  };
-
-  const formatJoinDate = (isoDate: string) => {
-    const date = new Date(isoDate);
-    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  };
-
-  const handleDisconnectNode = () => {
-    if (confirm("Are you sure you want to disconnect your Node device?")) {
-      localStorage.removeItem("allert_node_connected");
-      localStorage.removeItem("allert_node_id");
-      localStorage.removeItem("allert_node_network");
-      setNodeConnected(false);
-      setNodeId("");
-      setNodeNetwork("");
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-zinc-950 px-6 py-8">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="text-sm text-zinc-400 mb-1">System Status & Profile</div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-sm text-zinc-400 mt-1">System health & configuration</p>
+    <section id="settings-node" aria-labelledby="settings-node-title" className="allert-card">
+      <div className="allert-section-heading"><Radio aria-hidden="true" /><div><h2 id="settings-node-title">Home node</h2><p>Sensor Node Status</p></div></div>
+      <p role="status" className="allert-state mb-4">{nodeLoading ? "Checking node…" : nodeStatus}</p>
+      {nodeError && <p role="alert" className="text-sm text-red-300 mb-4">{nodeError}{device ? " Previously fetched device details are shown below." : ""}</p>}
+      {device && <dl className="allert-data-list mb-5">
+        <div><dt>Node ID</dt><dd className="font-mono">{device.device_id}</dd></div>
+        <div><dt>Location</dt><dd>{device.location_label || "Home"}</dd></div>
+        <div><dt>Last reading</dt><dd>{lastReading}<span className="block text-xs text-zinc-400 mt-1">Asia/Manila (UTC+8)</span></dd></div>
+        <div><dt>Latest block</dt><dd>{latest ? `${latest.sample_count ?? "—"} / ${latest.expected_samples ?? "—"} samples` : "No readings yet"}</dd></div>
+      </dl>}
+      {!device && !nodeLoading && !nodeError && <p className="text-sm text-zinc-300 mb-4">No active node is assigned to this account. Link a node to start monitoring your home.</p>}
+      <div className="allert-actions">
+        <Button onClick={retry} disabled={nodeLoading} variant="outline">{nodeLoading ? "Checking…" : "Check Node"}</Button>
+        <Button onClick={() => navigate(device ? "/app/environmental" : "/device-connection")} className="bg-emerald-600">{device ? "View Sensor Readings" : "Node Setup"}</Button>
       </div>
+      {device && <Button onClick={() => navigate("/device-connection")} variant="outline" className="w-full mt-3 whitespace-normal">Node Setup &amp; Wi-Fi Instructions</Button>}
+    </section>
 
-      {/* User Profile Card */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        {isLoadingProfile ? (
-          <div className="text-center py-8">
-            <div className="w-12 h-12 border-4 border-t-emerald-400 border-zinc-700 rounded-full animate-spin mx-auto mb-2" />
-            <div className="text-sm text-zinc-400">Loading profile...</div>
-          </div>
-        ) : userProfile ? (
-          <>
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-2xl font-bold">
-                {userProfile.demographic === "adult" ? "A" : "P"}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">{userProfile.name || "Patient Profile"}</h3>
-                <p className="text-sm text-zinc-400">
-                  {userProfile.email}
-                </p>
-                <p className="text-xs text-zinc-500 capitalize mt-1">
-                  {userProfile.demographic} • {userProfile.createdAt ? `Member since ${formatJoinDate(userProfile.createdAt)}` : "Profile loaded locally"}
-                </p>
-              </div>
-            </div>
-
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="w-full mt-4 flex items-center justify-center gap-2 py-3 px-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-lg text-red-400 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm font-medium">Logout</span>
-            </button>
-          </>
-        ) : (
-          <div className="text-center py-8 text-zinc-400">
-            Failed to load profile
-          </div>
-        )}
+    <section id="settings-notifications" aria-labelledby="settings-notifications-title" className="allert-card">
+      <div className="allert-section-heading"><Bell aria-hidden="true" /><div><h2 id="settings-notifications-title">Notifications</h2><p>Choose what this browser can receive.</p></div></div>
+      <div className="flex items-center justify-between gap-4 py-2">
+        <div className="min-w-0"><p id="push-preference-title" className="text-sm font-medium">Push Notifications</p><p id="push-preference-help" className="text-sm text-zinc-300 mt-1">{notifications.status}</p></div>
+        <Switch disabled={notifications.toggleDisabled} aria-label="Push notifications" aria-describedby="push-preference-help" checked={notifications.enabled} onCheckedChange={value => { void notifications.changeEnabled(value); }} />
       </div>
+      {notifications.enabled && notifications.permission === "default" && <button type="button" disabled={notifications.loading || notifications.saving} onClick={() => { void notifications.changeEnabled(true); }} className="allert-secondary mt-3">Allow in this browser</button>}
+      {notifications.error && <p role="alert" className="text-sm text-red-300 mt-3">{notifications.error}</p>}
+      <button type="button" disabled={notifications.loading || notifications.saving} onClick={notifications.retry} className="allert-text-action">Refresh notification settings</button>
+      <BrowserPushControls enabled={notifications.enabled && !notifications.loading && !notifications.saving} />
+    </section>
 
-      {/* Node Device Connection */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-purple-400" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold">Node Device</h3>
-            <p className="text-xs text-zinc-500">Connect your sensor node</p>
-          </div>
-        </div>
+    <section id="settings-location" aria-labelledby="settings-location-title" className="allert-card">
+      <div className="allert-section-heading"><MapPin aria-hidden="true" /><div><h2 id="settings-location-title">Node location</h2><p>Label where the sensor is installed.</p></div></div>
+      <NodeLocationControls />
+    </section>
 
-        {nodeConnected ? (
-          <div className="space-y-4">
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <span className="text-sm font-medium text-emerald-400">Connected</span>
-                </div>
-                <span className="text-xs text-zinc-500">Just now</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">Node ID</span>
-                  <span className="font-mono">{nodeId}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-400">Network</span>
-                  <div className="flex items-center gap-1">
-                    <Wifi className="w-3 h-3 text-purple-400" />
-                    <span>{nodeNetwork}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => navigate("/app/dashboard")}
-                className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700"
-              >
-                View Live Data
-                <ChevronRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button
-                onClick={handleDisconnectNode}
-                variant="outline"
-                className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-              >
-                Disconnect
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-6">
-            <p className="text-sm text-zinc-400 mb-4">
-              No device connected. Connect your Node to start monitoring.
-            </p>
-            <Button
-              onClick={() => navigate("/device-connection")}
-              className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-            >
-              <Zap className="w-4 h-4 mr-2" />
-              Connect Node Device
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Sensor Node Status */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-            <Database className="w-5 h-5 text-blue-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Sensor Node Status</h3>
-            <p className="text-xs text-zinc-500">Hardware not connected · stored model results</p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex justify-between items-center py-2 border-b border-zinc-800">
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-zinc-500" />
-              <span className="text-sm text-zinc-400">Node ID</span>
-            </div>
-            <span className="text-sm font-medium">{systemData.nodeId}</span>
-          </div>
-
-          <div className="flex justify-between items-center py-2 border-b border-zinc-800">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-zinc-500" />
-              <span className="text-sm text-zinc-400">Uptime</span>
-            </div>
-            <span className="text-sm font-medium text-emerald-400">
-              {systemData.uptime}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center py-2">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-zinc-500" />
-              <span className="text-sm text-zinc-400">Last Sync</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-medium">{systemData.lastSync}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Algorithm Information */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-            <Cpu className="w-5 h-5 text-purple-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold">LSTM Prediction Model</h3>
-            <p className="text-xs text-zinc-500">PM2.5 and PM10 forecasting</p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex justify-between items-center py-2 border-b border-zinc-800">
-            <span className="text-sm text-zinc-400">Algorithm Version</span>
-            <span className="text-sm font-mono font-medium bg-zinc-800 px-2 py-1 rounded">
-              {systemData.algorithmVersion}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center py-2 border-b border-zinc-800">
-            <span className="text-sm text-zinc-400">Validation</span>
-            <span className="text-sm font-medium text-emerald-400">
-              {systemData.modelAccuracy}
-            </span>
-          </div>
-
-          <div className="flex justify-between items-center py-2">
-            <span className="text-sm text-zinc-400">Live Readings</span>
-            <span className="text-sm font-medium">{systemData.dataPoints}</span>
-          </div>
-        </div>
-
-        <div className="mt-4 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-          <div className="flex items-start gap-2">
-            <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-blue-300">
-              Environmental forecasting model. Twelve supplied reference cases passed cloud verification; this does not establish clinical accuracy.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Permissions & Notifications */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-            <Bell className="w-5 h-5 text-orange-400" />
-          </div>
-          <div>
-            <h3 className="font-semibold">Permissions</h3>
-            <p className="text-xs text-zinc-500">App access controls</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <div className="text-sm font-medium">Push Notifications</div>
-              <div className="text-xs text-zinc-500">Not connected yet</div>
-            </div>
-            <Switch
-              disabled
-              aria-label="Push notifications unavailable"
-              checked={false}
-              onCheckedChange={setNotificationsEnabled}
-            />
-          </div>
-
-          <div className="h-px bg-zinc-800" />
-
-          <div className="flex items-center justify-between py-2">
-            <div>
-              <div className="text-sm font-medium">Location Services</div>
-              <div className="text-xs text-zinc-500">Not connected yet</div>
-            </div>
-            <Switch
-              disabled
-              aria-label="Location services unavailable"
-              checked={false}
-              onCheckedChange={setLocationEnabled}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* App Info */}
-      <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 border border-zinc-800 shadow-xl">
-        <div className="text-center text-sm text-zinc-500 space-y-1">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span className="font-medium text-emerald-400">{snapshot?.mode === "historical_fixture" ? "Historical Replay Available" : status === "ready" ? "Stored Measurements Available" : "Measurements Unavailable"}</span>
-          </div>
-          <div>ALLERT System • Version 1.0.0</div>
-          <div>Allergic Rhinitis Environmental Monitoring</div>
-          <div className="text-xs pt-2">© 2026 Research Prototype</div>
-        </div>
-      </div>
-    </div>
-  );
+    <section aria-labelledby="settings-about-title" className="allert-card">
+      <div className="allert-section-heading"><Cpu aria-hidden="true" /><div><h2 id="settings-about-title">About ALLERT</h2><p>App installation and system information.</p></div></div>
+      <AppInstallation />
+      <details className="allert-disclosure mt-4"><summary>Model &amp; app details</summary><dl className="allert-data-list mt-3">
+        <div><dt>Model status</dt><dd>{monitor?.model_status?.replaceAll("_", " ") || (monitorStatus === "loading" ? "Checking…" : "Unavailable")}</dd></div>
+        <div><dt>Model version</dt><dd className="font-mono">{monitor?.model_id || "No neural output available"}</dd></div>
+        <div><dt>App version</dt><dd>1.1.0</dd></div>
+      </dl><p className="text-sm text-zinc-300 mt-4">Environmental forecasting model. Reference-case verification does not establish clinical accuracy.</p></details>
+      <AdminAccessLink />
+      <p className="text-xs text-zinc-400 mt-4">ALLERT · Allergic Rhinitis Environmental Monitoring<br />© 2026 Research Prototype</p>
+    </section>
+    <button type="button" onClick={handleLogout} className="allert-signout w-full flex items-center justify-center gap-2"><LogOut aria-hidden="true" className="w-4 h-4" />Logout</button>
+  </div>;
 }

@@ -1,0 +1,6 @@
+{
+  "score_tolerance": 1e-9,
+  "adult": [[0,"low"],[22.499999,"low"],[22.5,"moderate"],[22.500001,"moderate"],[29.999999,"moderate"],[30,"high"],[30.000001,"high"],[37.499999,"high"],[37.5,"very_high"],[37.500001,"very_high"],[100,"very_high"],[22.49,"low"],[37.49,"high"]],
+  "pediatric": [[0,"low"],[12.999999,"low"],[13,"moderate"],[13.000001,"moderate"],[22.999999,"moderate"],[23,"high"],[23.000001,"high"],[37.999999,"high"],[38,"very_high"],[38.000001,"very_high"],[100,"very_high"]],
+  "readings": [{"input":[0,0,25,60],"adult_score":20,"adult_tier":"low","pediatric_score":22,"pediatric_tier":"moderate"},{"input":[11,13,35.6,92.8],"adult_score":22.4071642271,"adult_tier":"low"}]
+}

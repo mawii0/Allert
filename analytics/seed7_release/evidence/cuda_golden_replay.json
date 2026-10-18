@@ -1,0 +1,53 @@
+{
+  "status": "passed_selected_model_golden_replay",
+  "device": "cuda",
+  "cases": 12,
+  "max_abs_difference_ugm3": 3.5136938087987346e-06,
+  "mean_one_origin_seconds_on_this_machine": 0.046932749998328895,
+  "model_id": "median-residual-seed7-epoch15-20261013-v1",
+  "checkpoint_sha256": "4253e73515d8d2a3d4a4463065f8bfb2192c9454e161da560fd928a4051672c4",
+  "weights_or_calibration_changed": false,
+  "assessment_rescored": false,
+  "timing_is_not_a_service_level_guarantee": true,
+  "metadata": {
+    "model_id": "median-residual-seed7-epoch15-20261013-v1",
+    "seed": 7,
+    "best_epoch": 15,
+    "recorded_epochs": 35,
+    "input_shape": [
+      576,
+      8
+    ],
+    "lookback_hours": 48,
+    "history_fetch_hours": 54,
+    "feature_order": [
+      "pm2_5",
+      "pm10",
+      "temperature",
+      "humidity",
+      "temperature_roll_1h",
+      "humidity_roll_1h",
+      "temperature_roll_6h",
+      "humidity_roll_6h"
+    ],
+    "horizons_hours": [
+      6,
+      12,
+      24
+    ],
+    "checkpoint_sha256": "4253e73515d8d2a3d4a4463065f8bfb2192c9454e161da560fd928a4051672c4",
+    "spike_head": false,
+    "device": "cuda",
+    "calibration": [
+      0.025,
+      0.025,
+      0.025,
+      0.025,
+      0.225,
+      0.15000000000000002
+    ],
+    "model_source_dataset": "Node 1 June\u2013September 2026",
+    "uncertainty_intervals_available": false
+  },
+  "cpu_test_uses_cuda_capable_torch_wheel": false
+}

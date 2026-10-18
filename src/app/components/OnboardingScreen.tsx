@@ -1,8 +1,10 @@
+import { pendingNodeSharePath } from "../utils/pending-node-share";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { User, Users, MapPin, Bell, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Switch } from "./ui/switch";
+import { useNotificationPreferences } from "../utils/useNotificationPreferences";
 import { saveProfile, isAuthenticated } from "../utils/auth";
 import logoImage from "../../imports/AllertLogoTransparent1.png";
 
@@ -10,7 +12,7 @@ export function OnboardingScreen() {
   const navigate = useNavigate();
   const [demographic, setDemographic] = useState<"adult" | "pediatric">("adult");
   const [locationEnabled, setLocationEnabled] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const notifications = useNotificationPreferences();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,7 +40,7 @@ export function OnboardingScreen() {
       localStorage.setItem("allert_onboarding_complete", "true");
       localStorage.setItem("allert_demographic", demographic);
 
-      navigate("/app/dashboard");
+      navigate(pendingNodeSharePath() || "/app/dashboard");
     } catch (err: any) {
       console.error("Onboarding save error:", err);
       setError(err.message || "Failed to save profile. Please try again.");
@@ -121,7 +123,7 @@ export function OnboardingScreen() {
               <div>
                 <div className="text-sm font-medium text-[#ffffff]">Location Services</div>
                 <div className="text-xs text-zinc-500">
-                  Not connected yet
+                  Configure node location in Settings after linking your node.
                 </div>
               </div>
             </div>
@@ -140,18 +142,19 @@ export function OnboardingScreen() {
               </div>
               <div>
                 <div className="text-sm font-medium text-[#ffffff]">Push Notifications</div>
-                <div className="text-xs text-zinc-500">
-                  Not connected yet
-                </div>
+                <div className="text-xs text-zinc-500 max-w-[210px]">{notifications.status}</div>
               </div>
             </div>
             <Switch
-              disabled
-              aria-label="Push notifications unavailable"
-              checked={false}
-              onCheckedChange={setNotificationsEnabled}
+              disabled={notifications.toggleDisabled}
+              aria-label="Push notifications"
+              checked={notifications.enabled}
+              onCheckedChange={value => { void notifications.changeEnabled(value); }}
             />
           </div>
+          {notifications.enabled && notifications.permission === "default" && <button type="button" disabled={notifications.loading || notifications.saving} onClick={() => { void notifications.changeEnabled(true); }} className="text-xs text-emerald-400 underline disabled:opacity-50">Allow in this browser</button>}
+          {notifications.error && <p role="alert" className="text-xs text-red-300">{notifications.error}</p>}
+          <button type="button" disabled={notifications.loading || notifications.saving} onClick={notifications.retry} className="text-xs text-zinc-400 underline disabled:opacity-50">Refresh notification settings</button>
         </div>
       </div>
 
@@ -165,7 +168,7 @@ export function OnboardingScreen() {
         {/* Continue Button */}
         <Button
           onClick={handleComplete}
-          disabled={isLoading}
+          disabled={isLoading || notifications.saving}
           className="w-full h-14 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all text-base font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (

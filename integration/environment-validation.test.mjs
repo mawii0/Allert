@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CHECKPOINT, RULE_HASH, validSnapshot } from "../supabase/functions/server/environment-validation.mjs";
+import { POLICY } from "../supabase/functions/server/environment-policy.mjs";
+import { POLICY_HASH } from "../supabase/functions/server/environment-policy-hash.mjs";
 function fixture() {
   const origin = "2026-09-12T20:45:00+00:00";
   const indicator = { score_0_100: 25, indicator_0_1: 0.25, tier: "high" };
@@ -12,6 +14,17 @@ function fixture() {
   };
 }
 test("accepts a correctly identified six-output replay", () => assert.equal(validSnapshot(fixture()), true));
+test("accepts versioned adult policy without changing pediatric categories", () => {
+  const s=fixture();
+  s.risk={...s.risk,rule_id:POLICY.id,rule_sha256:POLICY_HASH,adult:{score_0_100:25,indicator_0_1:.25,tier:'moderate'}};
+  assert.equal(validSnapshot(s),true);
+  s.risk.adult.tier='high';
+  assert.equal(validSnapshot(s),false);
+});
+test("never accepts legacy adult policy as a current live policy", () => {
+  const s=fixture();s.mode='live';s.forecast.mode='live';s.current.received_at=new Date().toISOString();
+  assert.equal(validSnapshot(s),false);
+});
 for (const [label, mutate] of [
   ["another checkpoint", s => s.forecast.checkpoint_sha256 = "0".repeat(64)],
   ["another risk rule", s => s.risk.rule_sha256 = "0".repeat(64)],

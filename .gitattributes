@@ -1,0 +1,5 @@
+# Canonical policy hashes and the archived scheduler require stable file bytes.
+/supabase/functions/server/indicator-policy.json -text
+/analytics/indicator-policy.json -text
+/docs/archive/20261017/schedule-forecast-worker-v1.sql -text
+# The supplied release has its own unchanged .gitattributes preserving source bytes.

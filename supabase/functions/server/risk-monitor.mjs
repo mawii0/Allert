@@ -1,4 +1,7 @@
-import { CHECKPOINT, RULE_HASH } from "./environment-validation.mjs";
+// Historical regression module; not installed by the selected application entrypoint.
+import { POLICY, classifyFraction } from "./environment-policy.mjs";
+import { POLICY_HASH } from "./environment-policy-hash.mjs";
+import { CHECKPOINT } from "./environment-validation.mjs";
 const finite = value => typeof value === "number" && Number.isFinite(value);
 export function validReading(r) {
   return !!r && Number.isFinite(Date.parse(r.timestamp)) &&
@@ -16,13 +19,13 @@ export function median(values) {
 export function indicator(pm25,pm10,temperature,humidity) {
   if (![pm25,pm10,temperature,humidity].every(finite) || pm25<0 || pm10<0 || humidity<0 || humidity>100) return null;
   const contribution=pm25*.0104+pm10*.0026+(temperature-25)*.012+(humidity-60)*-.004;
-  const result={rule_id:"environmental-indicator-v1",rule_sha256:RULE_HASH,not_a_symptom_probability:true};
+  const result={rule_id:POLICY.id,rule_sha256:POLICY_HASH,not_a_symptom_probability:true};
   for (const population of ["adult","pediatric"]) {
     const baseline=population==="adult" ? .20 : .22;
     const logit=Math.log(baseline/(1-baseline))+contribution;
     const value=logit>=0 ? 1/(1+Math.exp(-logit)) : Math.exp(logit)/(1+Math.exp(logit));
-    const cuts=population==="adult" ? [.15,.25,.40] : [.13,.23,.38];
-    result[population]={score_0_100:value*100,indicator_0_1:value,tier:value>=cuts[2]?"very_high":value>=cuts[1]?"high":value>=cuts[0]?"moderate":"low"};
+
+    result[population]={score_0_100:value*100,indicator_0_1:value,tier:classifyFraction(value,population)};
   }
   return result;
 }
@@ -89,4 +92,24 @@ export function modelPayload(readings,origin,now) {
     history.push(normalized.get(end));
   }
   return {node_id:"node-1",mode:"live",forecast_origin:new Date(origin).toISOString(),history};
+}
+
+export function modelInputStatus(readings, origin, now) {
+  const slots = new Set();
+  let missingReceipts = 0, duplicateBlocks = 0;
+  for (const row of readings) {
+    if (!validReading(row)) continue;
+    const timestamp = Date.parse(row.timestamp);
+    const end = Math.floor(timestamp / 300000) * 300000;
+    if (timestamp > now || end > origin || end <= origin - 54 * 3600000) continue;
+    const received = Date.parse(row.created_at);
+    if (!Number.isFinite(received) || received > now) { missingReceipts++; continue; }
+    if (slots.has(end)) duplicateBlocks++;
+    slots.add(end);
+  }
+  return {
+    status: missingReceipts ? "missing_server_receipt_times" : duplicateBlocks ? "duplicate_blocks" : slots.size < 648 ? "warming_up" : "input_ready",
+    eligible_blocks: slots.size, required_blocks: 648,
+    missing_receipts: missingReceipts, duplicate_blocks: duplicateBlocks,
+  };
 }

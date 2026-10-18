@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {median,indicator,buildMonitor,modelPayload,validModelForecast} from "../supabase/functions/server/risk-monitor.mjs";
+import {median,indicator,buildMonitor,modelPayload,validModelForecast,modelInputStatus} from "../supabase/functions/server/risk-monitor.mjs";
 import {CHECKPOINT} from "../supabase/functions/server/environment-validation.mjs";
 const now=Date.parse("2026-10-12T00:00:01Z");
 const row=(i=0)=>({device_id:"sensor-a",timestamp:new Date(now-i*300000).toISOString(),created_at:new Date(now-i*300000).toISOString(),pm2_5:10+i,pm10:20+i,temperature:25,humidity:60,sample_count:30,expected_samples:30,data_quality_status:"VALID"});
@@ -9,7 +9,7 @@ test("median uses available values without mutating input",()=>{const a=[8,2,4,6
 for(const count of [1,4,6,9,12])test("partial last-hour baseline with "+count+" readings",()=>{const m=buildMonitor(telemetry(count),null,now);assert.equal(m.baseline.reading_count,count);assert.equal(m.baseline.pm2_5,10+(count-1)/2);assert.equal(m.current.pm2_5,10);assert.equal(m.forecasts.length,3);assert.ok(m.forecasts.every(f=>f.method==="median_only"&&f.pm2_5===m.baseline.pm2_5&&f.risk.adult.score_0_100>=0));});
 test("older history excluded from last-hour median",()=>assert.equal(buildMonitor(telemetry(30),null,now).baseline.reading_count,12));
 test("now uses current measurements, not historical replay or median",()=>{const m=buildMonitor(telemetry(12),null,now);assert.deepEqual(m.current.risk,indicator(10,20,25,60));assert.notEqual(m.current.risk.adult.score_0_100,m.forecasts[0].risk.adult.score_0_100);});
-test("configured indicator nominal baselines match partner rules",()=>{const r=indicator(0,0,25,60);assert.ok(Math.abs(r.adult.score_0_100-20)<1e-12);assert.ok(Math.abs(r.pediatric.score_0_100-22)<1e-12);assert.equal(r.adult.tier,"moderate");});
+test("configured indicator nominal baselines match partner rules",()=>{const r=indicator(0,0,25,60);assert.ok(Math.abs(r.adult.score_0_100-20)<1e-12);assert.ok(Math.abs(r.pediatric.score_0_100-22)<1e-12);assert.equal(r.adult.tier,"low");});
 for(const patch of [{sample_count:29},{data_quality_status:"INVALID"},{pm2_5:-1},{humidity:101},{temperature:NaN}])test("invalid completed block cannot calculate now: "+Object.keys(patch)[0],()=>{const t=telemetry(6);t.latest={...t.latest,...patch};assert.equal(buildMonitor(t,null,now).current,null);});
 test("invalid history does not affect available median",()=>{const t=telemetry(6);t.history[0].pm2_5=NaN;assert.equal(buildMonitor(t,null,now).baseline.reading_count,5);});
 test("duplicate five-minute slots count only once",()=>{const t=telemetry(6);t.history.push(row(1));assert.equal(buildMonitor(t,null,now).baseline.reading_count,6);});
@@ -22,3 +22,11 @@ test("gaps, duplicates, wrong devices and missing receipt times prevent neural i
 const model=()=>({sensor_device_id:"sensor-a",model_id:"median-residual-single-v1",checkpoint_sha256:CHECKPOINT,status:"ok",mode:"live",node_id:"node-1",trained_or_recalibrated:false,is_future_allergy_probability:false,forecast_origin:new Date(now-1000).toISOString(),forecasts:[6,12,24].flatMap(h=>["pm2_5","pm10"].map(p=>({pollutant:p,horizon_hours:h,value:h*2,units:"ug/m3",target_block_end:new Date(now-1000+h*3600000).toISOString(),target_block_start:new Date(now-1000+h*3600000-300000).toISOString()})))});
 test("verified model values and horizon-specific scores replace median estimates",()=>{const m=buildMonitor(telemetry(12),model(),now);assert.ok(m.forecasts.every(f=>f.method==="model_adjusted"));assert.notEqual(m.forecasts[0].risk.adult.score_0_100,m.forecasts[2].risk.adult.score_0_100);assert.deepEqual(m.current.risk,indicator(10,20,25,60));});
 test("other sensor, historical, stale or invalid model outputs cannot masquerade as live",()=>{for(const patch of [{sensor_device_id:"other"},{mode:"historical_fixture"},{checkpoint_sha256:"bad"},{forecast_origin:"2000-01-01T00:00:00Z"},{forecasts:[]}])assert.equal(validModelForecast({...model(),...patch},"sensor-a",now),false);});
+
+test("model warm-up diagnostics expose missing receipt provenance and duplicate slots",()=>{
+  const rows=Array.from({length:648},(_,i)=>row(647-i));
+  assert.equal(modelInputStatus(rows,now-1000,now).status,"input_ready");
+  assert.equal(modelInputStatus(rows.slice(1),now-1000,now).eligible_blocks,647);
+  assert.equal(modelInputStatus(rows.map(r=>({...r,created_at:null})),now-1000,now).missing_receipts,648);
+  assert.equal(modelInputStatus([...rows,rows[0]],now-1000,now).status,"duplicate_blocks");
+});

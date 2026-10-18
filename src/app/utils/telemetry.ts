@@ -1,5 +1,4 @@
-import { projectId, publicAnonKey } from "/utils/supabase/info";
-import { getValidAuthToken, logout } from "./auth";
+import { privateApi } from "./private-api";
 
 export interface SensorReading {
   id: number;
@@ -18,6 +17,7 @@ export interface SensorReading {
 export interface SensorTelemetry {
   device: {
     device_id: string;
+    role?: "owner" | "member";
     location_label: string | null;
     is_active: boolean;
   } | null;
@@ -28,28 +28,14 @@ export interface SensorTelemetry {
 export async function getSensorTelemetry(
   signal?: AbortSignal,
 ): Promise<SensorTelemetry> {
-  const token = await getValidAuthToken();
+  signal?.throwIfAborted();
+  const data = await privateApi<SensorTelemetry>("/sensor-telemetry", { signal });
 
-  if (!token) throw new Error("Please sign in.");
-
-  const response = await fetch(
-    `https://${projectId}.supabase.co/functions/v1/make-server-a473accf/sensor-telemetry`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        apikey: publicAnonKey,
-      },
-      cache: "no-store",
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15_000)]) : AbortSignal.timeout(15_000),
-    },
-  );
-
-  if (response.status === 401) logout();
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.error || "Unable to load sensor readings.");
+  if (!data || typeof data !== "object" || !Array.isArray(data.history) || data.history.length > 1000 ||
+      !("latest" in data) || !("device" in data) ||
+      (data.device !== null && (typeof data.device !== "object" || typeof data.device.device_id !== "string")) ||
+      (data.latest !== null && (typeof data.latest !== "object" || typeof data.latest.timestamp !== "string"))) {
+    throw new Error("Unexpected sensor response. Check that the deployed telemetry route matches the app.");
   }
-
   return data;
 }

@@ -1,0 +1,58 @@
+{
+  "order": [
+    2,
+    1,
+    2
+  ],
+  "trend": "n",
+  "seasonal": false,
+  "exogenous_inputs": false,
+  "cadence_minutes": 5,
+  "forecast_steps": [
+    72,
+    144,
+    288
+  ],
+  "n_origins": 2094,
+  "fit_first": "2026-06-01 00:00:00",
+  "fit_last": "2026-08-23 21:25:00",
+  "fit_rows_per_pollutant": 24162,
+  "coefficient_refits_during_assessment": 0,
+  "latest_available_observation": "issue time minus 5 minutes",
+  "state_updates": "contiguous observed readings strictly before each issue; fixed coefficients",
+  "fallback_used": false,
+  "negative_forecast_clipping": false,
+  "fits": {
+    "pm2_5": {
+      "converged": true,
+      "iterations": 5,
+      "parameters": {
+        "ar.L1": -0.33177043830091696,
+        "ar.L2": -0.04554521171809779,
+        "ma.L1": 0.022084324769697312,
+        "ma.L2": -0.05586284597645734,
+        "sigma2": 1.6451221744552502
+      },
+      "AIC_training": 80603.95163236765,
+      "BIC_training": 80644.41410757725,
+      "warnings": []
+    },
+    "pm10": {
+      "converged": true,
+      "iterations": 10,
+      "parameters": {
+        "ar.L1": -0.13188704496346554,
+        "ar.L2": -0.004384323759546975,
+        "ma.L1": -0.13470161464779185,
+        "ma.L2": -0.02507359871868372,
+        "sigma2": 3.2947554566834576
+      },
+      "AIC_training": 97384.09340057729,
+      "BIC_training": 97424.55587578689,
+      "warnings": [
+        "Non-stationary starting autoregressive parameters found. Using zeros as starting parameters.",
+        "Non-invertible starting MA parameters found. Using zeros as starting parameters."
+      ]
+    }
+  }
+}

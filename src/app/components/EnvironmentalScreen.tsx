@@ -1,3 +1,5 @@
+import { ForecastNotices } from "./ForecastNotices";
+import { SensorNotices } from "./SensorNotices";
 import { useEffect, useState } from "react";
 import { Wind, Thermometer, Droplets, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
@@ -6,8 +8,7 @@ import {
   type SensorReading,
 } from "../utils/telemetry";
 
-import { useEnvironment, displayTime } from "../utils/environment";
-import { selectEnvironmentSource } from "../utils/environment-source.mjs";
+import { displayTime } from "../utils/environment";
 import { EnvironmentNotice } from "./EnvironmentNotice";
 
 import { summarizeHistory, metricTrend } from "../utils/telemetry-analysis.mjs";
@@ -84,7 +85,7 @@ function ReadingChart({
 }
 
 export function EnvironmentalScreen() {
-  const { snapshot, status, retry } = useEnvironment();
+  const status = "unavailable";
   const [attempt, setAttempt] = useState(0);
   const [telemetry, setTelemetry] = useState<SensorTelemetry | null>(null);
   const [error, setError] = useState("");
@@ -130,6 +131,8 @@ export function EnvironmentalScreen() {
     const reset = () => { revision++; setTelemetry(null); setError(""); setLoading(true); void refresh(); };
     window.addEventListener("storage", reset);
     window.addEventListener("allert-session-changed", reset);
+    window.addEventListener("allert-node-changed", reset);
+    window.addEventListener("allert-location-changed", reset);
     window.addEventListener("focus", refresh);
     void refresh();
 
@@ -138,14 +141,16 @@ export function EnvironmentalScreen() {
       clearTimeout(timer);
       window.removeEventListener("storage", reset);
       window.removeEventListener("allert-session-changed", reset);
+      window.removeEventListener("allert-node-changed", reset);
+      window.removeEventListener("allert-location-changed", reset);
       window.removeEventListener("focus", refresh);
     };
   }, [attempt]);
 
-  const view = selectEnvironmentSource(telemetry, snapshot, status);
-  const replay = view.source === "historical_replay";
+  const view = {source:"sensor",latest:telemetry?.latest ?? null,history:telemetry?.history ?? [],device:telemetry?.device ?? null};
+  const replay = false;
   const latest = view.latest;
-  const retryAll = () => { retry(); setAttempt(value => value + 1); };
+  const retryAll = () => { setAttempt(value => value + 1); };
   const age = latest ? now - Date.parse(latest.timestamp) : null;
   const recent = age !== null && age >= 0 && age <= 10 * 60 * 1000;
 
@@ -210,6 +215,8 @@ export function EnvironmentalScreen() {
         </section>
         <p className="mt-3 text-[10px] text-zinc-500">{latest.device_id} - {replay ? "Recorded window ended" : "Last reading"} {displayTime(latest.timestamp)} (Manila).</p>
       </>}
+      <ForecastNotices />
+      <SensorNotices />
     </div>
   );
 }

@@ -1,0 +1,269 @@
+{
+  "project": {
+    "name": "ALLERT",
+    "version": "2.0.0",
+    "random_seed": 7
+  },
+  "paths": {
+    "data_raw": "C:\\Users\\USER\\Codes\\allert_rebuild\\data\\new data\\allert_data_node_1.csv",
+    "data_processed": "C:\\Users\\USER\\Codes\\allert_rebuild\\results\\model_retraining\\revised_data_20261013_v1\\common\\model_input.csv",
+    "model_dir": "C:\\Users\\USER\\Codes\\allert_rebuild\\results\\model_retraining\\revised_data_20261013_v1\\runs\\seed7\\model",
+    "results_dir": "C:\\Users\\USER\\Codes\\allert_rebuild\\results\\model_retraining\\revised_data_20261013_v1\\runs\\seed7\\results",
+    "visualizations_dir": "C:\\Users\\USER\\Codes\\allert_rebuild\\results\\model_retraining\\revised_data_20261013_v1\\runs\\seed7\\results\\figures",
+    "tables_dir": "C:\\Users\\USER\\Codes\\allert_rebuild\\results\\model_retraining\\revised_data_20261013_v1\\runs\\seed7\\results\\tables"
+  },
+  "sampling": {
+    "raw_interval_seconds": 10,
+    "transmission_interval_minutes": 5,
+    "records_per_day": 288,
+    "sequence_stride_train": 3,
+    "sequence_stride_val_test": 3
+  },
+  "preprocessing": {
+    "gap_fill_threshold_hours": 2,
+    "rolling_median_window": 3,
+    "outlier_zscore_threshold": 3.5,
+    "outlier_zscore_window_hours": 24,
+    "availability_target_pct": 95,
+    "validate_pm10_geq_pm25": true,
+    "exclude_non_ok_quality": true,
+    "range_limits": {
+      "pm2_5": [
+        0,
+        1000
+      ],
+      "pm10": [
+        0,
+        1000
+      ],
+      "temperature": [
+        -10,
+        60
+      ],
+      "humidity": [
+        0,
+        100
+      ]
+    }
+  },
+  "features": {
+    "target_variables": [
+      "pm2_5",
+      "pm10"
+    ],
+    "raw_inputs": [
+      "pm2_5",
+      "pm10",
+      "temperature",
+      "humidity"
+    ],
+    "lag_hours": [
+      0.25,
+      0.5,
+      1,
+      3,
+      6,
+      12,
+      24,
+      48,
+      72
+    ],
+    "rolling_windows_hours": [
+      1,
+      3,
+      6,
+      12,
+      24,
+      48,
+      168
+    ],
+    "velocity_hours": [
+      0.25,
+      0.5,
+      1,
+      3,
+      6,
+      12
+    ],
+    "acceleration_hours": [
+      1,
+      3,
+      6,
+      12
+    ],
+    "ratio_lag_hours": [
+      0,
+      1,
+      6,
+      24
+    ],
+    "ema_windows_hours": [
+      1,
+      6,
+      24
+    ],
+    "cyclical_features": [
+      "hour",
+      "dayofweek",
+      "month"
+    ],
+    "cumulative_exposure_hours": 72,
+    "scaler_type": "robust",
+    "scale_targets": false,
+    "add_spike_lag_features": true,
+    "add_spike_rate_features": true,
+    "add_roc_threshold_features": true,
+    "spike_thresholds_pm25": [
+      25,
+      35,
+      50
+    ],
+    "spike_thresholds_pm10": [
+      50,
+      75,
+      100
+    ],
+    "spike_lag_hours": [
+      1,
+      3,
+      6,
+      24
+    ],
+    "spike_rate_windows_hours": [
+      6,
+      24,
+      72
+    ],
+    "roc_thresholds_ugm3_per_hour": [
+      5,
+      10,
+      15
+    ],
+    "roc_hours": [
+      0.5,
+      1,
+      3
+    ]
+  },
+  "reproducibility": {
+    "random_seed": 7,
+    "deterministic_mode": false
+  },
+  "model": {
+    "sequence_length": 576,
+    "n_lstm_layers": 2,
+    "lstm_units_layer1": 64,
+    "lstm_units_layer2": 96,
+    "lstm_units_layer3": 96,
+    "lstm_units_layer4": 96,
+    "dropout_rate": 0.43,
+    "recurrent_dropout": 0.027,
+    "l2_lambda": 9.46e-06,
+    "learning_rate": 0.000363,
+    "batch_size": 16,
+    "max_epochs": 100,
+    "gradient_clip_norm": 0.5,
+    "use_attention": true,
+    "attention_units": 64,
+    "attention_type": "vector",
+    "use_layer_norm": true,
+    "use_spike_head": false,
+    "spike_threshold": 35.0,
+    "spike_head_weight": 0.0,
+    "mixed_precision": true,
+    "forecast_horizons_hours": [
+      6,
+      12,
+      24
+    ],
+    "loss_weights": [
+      0.5,
+      0.3,
+      0.2
+    ],
+    "optimizer": "adam",
+    "scheduler": "cosine",
+    "scheduler_max_epochs": 100,
+    "loss_type": "huber",
+    "loss_alpha": 0.0,
+    "smooth_spike_weighting": true,
+    "smooth_spike_power": 1.5
+  },
+  "risk": {
+    "pm2_5_beta": 0.0104,
+    "pm10_beta": 0.0026,
+    "temp_baseline_c": 25.0,
+    "temp_beta": 0.012,
+    "humidity_baseline_pct": 60.0,
+    "humidity_beta": -0.004,
+    "baseline_prevalence_adult": 0.2,
+    "baseline_prevalence_pediatric": 0.22,
+    "distributed_lag_weights": [
+      0.6,
+      0.25,
+      0.1,
+      0.05
+    ],
+    "distributed_lag_hours": [
+      0,
+      24,
+      48,
+      72
+    ],
+    "adult_tiers": {
+      "low": 0.0,
+      "moderate": 0.15,
+      "high": 0.25,
+      "very_high": 0.4
+    },
+    "pediatric_tiers": {
+      "low": 0.0,
+      "moderate": 0.13,
+      "high": 0.23,
+      "very_high": 0.38
+    },
+    "sensitivity_perturbation_pct": 0.1
+  },
+  "training": {
+    "train_split": 0.7,
+    "val_split": 0.15,
+    "test_split": 0.15,
+    "split_gap_hours": 12,
+    "early_stopping_patience": 20,
+    "early_stopping_monitor": "val_loss",
+    "restore_best_weights": true,
+    "lr_reduction_factor": 0.5,
+    "lr_reduction_patience": 5,
+    "min_lr": 1e-07,
+    "data_augmentation": {
+      "enabled": false,
+      "jitter_std": 0.0,
+      "window_slice_prob": 0.1,
+      "mixup_alpha": 0.0,
+      "protect_indicator_features": true,
+      "sample_multiplier": 1
+    },
+    "walk_forward_cv": {
+      "enabled": false,
+      "n_splits": 5,
+      "test_size_days": 7
+    },
+    "curriculum": {
+      "enabled": false,
+      "initial_horizon_hours": 6,
+      "final_horizon_hours": 24,
+      "switch_epoch": 10
+    },
+    "progress_log": {
+      "enabled": true,
+      "path": "C:\\Users\\USER\\Codes\\allert_rebuild\\results\\model_retraining\\revised_data_20261013_v1\\runs\\seed7\\training_progress.json"
+    },
+    "checkpoint": {
+      "enabled": true,
+      "checkpoint_frequency_epochs": 1,
+      "keep_last_n": 100,
+      "resume_if_checkpoint_exists": false,
+      "checkpoint_dir": "C:\\Users\\USER\\Codes\\allert_rebuild\\results\\model_retraining\\revised_data_20261013_v1\\runs\\seed7\\model\\checkpoints"
+    }
+  }
+}
