@@ -1,3 +1,4 @@
+import "../../styles/patient-page-header.css";
 import "../../styles/patient-settings.css";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -179,17 +180,17 @@ export function ClinicalScreen() {
   };
 
   return (
-    <div className="allert-ui clinical-screen min-h-screen bg-zinc-950 px-4 py-8 sm:px-6 relative">
+    <div className="allert-patient-page allert-ui clinical-screen min-h-screen bg-zinc-950 px-4 py-8 sm:px-6 relative">
       {/* Header with History Button */}
-      <div className="mb-6 flex items-start justify-between">
-        <div className="flex-1">
-          <div className="allert-eyebrow mb-2">
-            ALLERT · Your health
+      <div className="allert-patient-header allert-header-with-action">
+        <div className="allert-header-copy">
+          <div className="allert-header-label">
+            Your health
           </div>
           <h1 ref={heading} tabIndex={-1} className="text-2xl font-bold">
             Symptom Tracker
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="allert-header-description">
             Log how you feel and review your symptom history.
           </p>
         </div>

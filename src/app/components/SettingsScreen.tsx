@@ -1,3 +1,4 @@
+import "../../styles/patient-page-header.css";
 import "../../styles/patient-settings.css";
 import { AdminAccessLink } from "./AdminLiveTools";
 import { AppInstallation } from "./AppInstallation";
@@ -24,11 +25,11 @@ export function SettingsScreen() {
   const handleLogout = () => { logout(); navigate("/"); };
   const joinDate = userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString("en-PH", { month: "long", year: "numeric" }) : null;
 
-  return <div className="allert-ui settings-screen min-h-screen bg-zinc-950 px-4 py-8 sm:px-6">
-    <header className="mb-6">
-      <p className="allert-eyebrow">ALLERT · Your preferences</p>
+  return <div className="allert-patient-page allert-ui settings-screen min-h-screen bg-zinc-950 px-4 py-8 sm:px-6">
+    <header className="allert-patient-header">
+      <p className="allert-header-label">Your preferences</p>
       <h1 className="text-2xl font-bold mt-2">Settings</h1>
-      <p className="text-sm text-zinc-400 mt-2">Manage your profile, home node, and notifications.</p>
+      <p className="allert-header-description">Manage your profile, home node, and notifications.</p>
     </header>
     <section id="settings-profile" aria-labelledby="settings-profile-title" className="allert-card">
       <div className="allert-section-heading"><UserRound aria-hidden="true" /><div><h2 id="settings-profile-title">Your profile</h2><p>Manage your display name and account details.</p></div></div>
