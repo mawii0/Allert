@@ -1,0 +1,20 @@
+/* Consistent spacing and readable descriptions, scoped to these cards and actions. */
+.environment-review-card { padding:16px; margin-top:16px; border-radius:16px; min-width:0; }
+.environment-review-copy { margin-top:8px; color:#a1a1aa; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+.environment-review-card dl > div { align-items:baseline; }
+.environment-review-card dl dt { flex:1 1 55%; min-width:0; }
+.environment-review-card dl dd { flex:0 1 45%; min-width:0; text-align:right; overflow-wrap:anywhere; }
+.node-location-controls { min-width:0; }
+.node-location-controls > .flex { gap:12px; }
+.node-location-controls input:not([type="checkbox"]) { min-width:0; max-width:100%; box-sizing:border-box; }
+.node-location-actions { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; padding-top:8px; }
+.node-location-actions button { display:flex; align-items:center; justify-content:center; width:100%; min-height:44px; padding:12px 16px; border:1px solid #52525b; border-radius:12px; font-size:14px; font-weight:500; line-height:1.4; text-align:center; white-space:normal; text-decoration:none; cursor:pointer; }
+.node-location-actions .node-location-primary { background:#047857; border-color:#047857; color:#fafafa; }
+.node-location-actions .node-location-primary:hover { background:#065f46; }
+.node-location-actions .node-location-secondary { background:#18181b; color:#e4e4e7; }
+.node-location-actions .node-location-secondary:hover { background:#27272a; border-color:#71717a; }
+.node-location-actions button:focus-visible { outline:2px solid #6ee7b7; outline-offset:3px; }
+.node-location-actions button:disabled { cursor:not-allowed; opacity:.5; }
+@media (min-width:640px) { .environment-review-card { padding:20px; } }
+
+.environment-review-card > p:last-child { font-size:12px; line-height:1.6; }

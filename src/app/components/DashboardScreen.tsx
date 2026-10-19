@@ -11,7 +11,9 @@ export function DashboardScreen() {
   const { data, status, retry } = useRiskMonitor();
   const current = data?.current;
   const selected = data?.forecasts.find(value => value.horizon_hours === horizon);
-  const population = useProfilePopulation();
+  const profilePopulation = useProfilePopulation();
+  const [selectedPopulation, setSelectedPopulation] = useState<"adult" | "pediatric" | null>(null);
+  const population = selectedPopulation ?? profilePopulation;
   const indicator = current?.risk?.[population];
   const adultIndicator = current?.risk?.adult;
   const pediatricIndicator = current?.risk?.pediatric;
@@ -30,11 +32,13 @@ export function DashboardScreen() {
         <circle cx="128" cy="128" r="88" fill="none" stroke="#203040" strokeWidth="9"/>
         <circle cx="128" cy="128" r="88" fill="none" stroke="#38bdf8" strokeWidth="9" strokeLinecap="round" strokeDasharray={2 * Math.PI * 88} strokeDashoffset={2 * Math.PI * 88 * (1 - (pediatricIndicator?.score_0_100 || 0) / 100)} transform="rotate(-90 128 128)"/>
       </svg>
-      <div className="gauge-center"><strong title="Categories use the unrounded score; the display is rounded to one decimal place. A displayed 100 can reflect rounding or numerical saturation, not health certainty." style={{ color }}>{indicator ? indicator.score_0_100.toFixed(1) : "—"}<small> /100</small></strong><span>{indicator ? tier.replaceAll("_", " ") : "Unavailable"}</span><p>Current environmental indicator</p></div>
+      <div className="gauge-center" role="status" aria-live="polite" aria-atomic="true"><strong title="Categories use the unrounded score; the display is rounded to one decimal place. A displayed 100 can reflect rounding or numerical saturation, not health certainty." style={{ color }}>{indicator ? indicator.score_0_100.toFixed(1) : "—"}<small> /100</small></strong><span>{indicator ? tier.replaceAll("_", " ") : "Unavailable"}</span><p>{population === "adult" ? "Adult" : "Pediatric"} · Current environmental indicator</p></div>
     </div>
-    <div className="population-scores" aria-label="Adult and pediatric environmental indicator scores"><span>Adult <strong>{adultIndicator ? adultIndicator.score_0_100.toFixed(1) : "—"}</strong></span><span>Pediatric <strong>{pediatricIndicator ? pediatricIndicator.score_0_100.toFixed(1) : "—"}</strong></span></div>
+    <div className="population-scores" role="group" aria-label="Choose the displayed environmental indicator">
+      {([{key:"adult",label:"Adult",value:adultIndicator},{key:"pediatric",label:"Pediatric",value:pediatricIndicator}] as const).map(({key,label,value}) => <button type="button" key={key} aria-pressed={population === key} aria-label={`Show ${label.toLowerCase()} environmental indicator`} onClick={() => setSelectedPopulation(key)}>{label} <strong>{value ? value.score_0_100.toFixed(1) : "—"}</strong></button>)}
+    </div>
     <h2 className="readings-title">Current readings</h2>
-    <div className="quick-stats">{[["Particulate matter 2.5", current?.pm2_5, "μg/m³"], ["Particulate matter 10", current?.pm10, "μg/m³"], ["Temp", current?.temperature, "°C"], ["Humidity", current?.humidity, "%"]].map(([label, value, unit]) => <section className="model-card" key={label}><p>{label}</p><strong>{typeof value === "number" ? value.toFixed(1) : "—"}<small> {unit}</small></strong><span>{typeof value === "number" ? "Observed" : "Unavailable"}</span></section>)}</div>
+    <div className="quick-stats">{[["PM2.5", current?.pm2_5, "μg/m³"], ["PM10", current?.pm10, "μg/m³"], ["Temp", current?.temperature, "°C"], ["Humidity", current?.humidity, "%"]].map(([label, value, unit]) => <section className="model-card" key={label}><p>{label}</p><strong>{typeof value === "number" ? value.toFixed(1) : "—"}<small> {unit}</small></strong>{typeof value !== "number" && <span>Unavailable</span>}</section>)}</div>
     <section className="model-card timeline"><p className="subtitle">Forecast Timeline</p><div className="timeline-buttons">{[6, 12, 24].map(hour => <button key={hour} aria-pressed={hour === horizon} className={hour === horizon ? "selected" : ""} onClick={() => setHorizon(hour)}>{hour}h</button>)}</div></section>
     <section className="model-card forecast-card"><p className="forecast-eyebrow">Forecast · {horizon} hours ahead</p><h2>Particulate matter estimates</h2>{values.length ? values.map(value => <div className="forecast-row" key={value.pollutant}><span>{value.pollutant === "pm2_5" ? "Particulate matter 2.5" : "Particulate matter 10"}</span><strong>{value.value.toFixed(1)} <small>μg/m³</small></strong></div>) : <p className="subtitle">Particulate matter estimates unavailable.</p>}
       {forecastIndicator && <><div className="forecast-row"><span>Forecast particulate matter indicator</span><strong title="Categories use the unrounded score; displayed points are rounded.">{forecastIndicator.score_0_100.toFixed(1)} points</strong></div><p className="forecast-category">Category: {forecastIndicator.tier.replaceAll("_", " ")}</p></>}
@@ -42,7 +46,7 @@ export function DashboardScreen() {
 
     </section>
     <section className="model-card guidance"><div className="shield-icon"><Shield size={21}/></div><div><h2>Environmental Guidance</h2><p>{status === "stale" ? "Stored sensor readings are stale. Current conditions are unknown." : indicator ? `Current ${population} environmental indicator: ${tier.replaceAll("_", " ")}. This is not a personal symptom probability.` : "Valid completed sensor measurements will appear here when available."}</p></div></section>
-    <p className="model-note guidance-disclaimer">Environmental indicators and forecasts are for informational purposes only and do not provide a diagnosis or treatment recommendation. Consult a qualified healthcare professional for medical advice.{current && <> Last completed sensor block: {displayTime(current.timestamp)} (Iloilo local time).</>}</p>
+    <p className="model-note guidance-disclaimer">Environmental estimates only—not a diagnosis or medical advice.{current && <> Last reading: {displayTime(current.timestamp)} (Iloilo local time).</>}</p>
 
   </div>;
 }

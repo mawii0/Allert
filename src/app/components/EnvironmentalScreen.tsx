@@ -1,3 +1,4 @@
+import "../../styles/environment-settings.css";
 import { useEffect, useState } from "react";
 import { Wind, Thermometer, Droplets, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import {
@@ -36,7 +37,7 @@ function ReadingChart({ readings, field, now, color }: {
     return typeof value === "number" && Number.isFinite(value) && time >= start && time <= now
       ? [{ value, time }] : [];
   });
-  if (points.length < 2) return <p className="text-sm text-zinc-500">Waiting for more readings.</p>;
+  if (points.length < 2) return <p className="text-sm text-zinc-400">Waiting for more readings.</p>;
   const min = Math.min(...points.map((point) => point.value));
   const max = Math.max(...points.map((point) => point.value));
   const range = max - min || 1;
@@ -148,23 +149,23 @@ export function EnvironmentalScreen() {
         {view.device.location_label || view.device.device_id} - {error ? "Connection check failed" : latest ? recent ? "Recent data" : "No recent data" : "Waiting for readings"}
       </section>}
       {latest && <>
-        <div className="space-y-3">
+        <div className="space-y-4">
           {metrics.map(({key,label,unit,icon:Icon,color}) => {
             const trend=metricTrend(view.history,key);
             const TrendIcon=trend==="Rising" ? TrendingUp : trend==="Falling" ? TrendingDown : Minus;
-            return <section key={key} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3">
+            return <section key={key} className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="rounded-full bg-zinc-800 p-2"><Icon className="h-4 w-4" style={{color}} /></div>
                 <div className="flex-1">
                   <h2 className="text-xs text-zinc-400">{label}</h2>
-                  <p className="text-lg font-bold leading-tight">{formatMeasurement(latest[key])}<span className="ml-1 text-xs font-normal text-zinc-500">{unit}</span></p>
+                  <p className="text-lg font-bold leading-tight">{formatMeasurement(latest[key])}<span className="ml-1 text-xs font-normal text-zinc-400">{unit}</span></p>
                 </div>
                 <span className="flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-1 text-[10px]" style={{color:trend==="Stable" ? "#a1a1aa" : color}}>
                   <TrendIcon className="h-3 w-3" />{trend}
                 </span>
               </div>
               <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-2 py-2">
-                <p className="text-[10px] text-zinc-500 mb-1">24-Hour Trend{replay ? " - Recorded" : ""}</p>
+                <p className="text-[10px] text-zinc-400 mb-1">24-Hour Trend{replay ? " - Recorded" : ""}</p>
                 <ReadingChart readings={view.history} field={key} now={chartEnd} color={color} />
               </div>
             </section>;
@@ -172,16 +173,16 @@ export function EnvironmentalScreen() {
         </div>
         <RiskHistoryChart readings={view.history} end={chartEnd} deviceId={latest.device_id} />
         <SampleHistoryTable readings={view.history} end={chartEnd} deviceId={latest.device_id} replay={replay} />
-        <section className="mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-4">
+        <section className="environment-review-card mt-3 rounded-xl border border-zinc-800 bg-zinc-900/60 px-3 py-4">
           <h2 className="text-sm font-semibold mb-2">Pollutant Accumulation Patterns</h2>
           <dl className="text-xs">
-            <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">Peak Hours</dt><dd>{summary.coverage >= 95 ? summary.peaks.map(hourLabel).join(", ") : "Awaiting full history"}</dd></div>
-            <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">{summary.coverage >= 95 ? "Average daily particulate matter 2.5" : "Available history particulate matter 2.5"}</dt><dd>{summary.average === null ? "Unavailable" : `${summary.average.toFixed(1)} μg/m³`}</dd></div>
-            <div className="flex justify-between gap-3 pt-3"><dt className="text-zinc-400">History Coverage</dt><dd className="text-emerald-400">{summary.coverage.toFixed(1)}%</dd></div>
+            <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">Hours with highest PM2.5</dt><dd>{summary.coverage >= 95 ? summary.peaks.map(hourLabel).join(", ") : "Not enough data yet"}</dd></div>
+            <div className="flex justify-between gap-3 py-3 border-b border-zinc-800"><dt className="text-zinc-400">{summary.coverage >= 95 ? "Average PM2.5 · past 24 hours" : "Average PM2.5 · recorded readings"}</dt><dd>{summary.average === null ? "Unavailable" : `${summary.average.toFixed(1)} μg/m³`}</dd></div>
+            <div className="flex justify-between gap-3 pt-3"><dt className="text-zinc-400">Data available</dt><dd className="text-emerald-400">{summary.coverage.toFixed(1)}%</dd></div>
           </dl>
-          <p className="mt-3 text-[10px] text-zinc-500">Peak hours use recorded hourly averages (Manila). Coverage is available five-minute blocks out of 288.</p>
+          <p className="mt-3 text-[10px] text-zinc-400">Shows when PM2.5 was highest and how much of the past 24 hours was recorded.</p>
         </section>
-        <p className="mt-3 text-[10px] text-zinc-500">{latest.device_id} - {replay ? "Recorded window ended" : "Last reading"} {displayTime(latest.timestamp)} (Manila).</p>
+        <p className="mt-3 text-[10px] text-zinc-400">{latest.device_id} - {replay ? "Recorded window ended" : "Last reading"} {displayTime(latest.timestamp)} (Manila).</p>
       </>}
     </div>
   );
