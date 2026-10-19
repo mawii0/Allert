@@ -15,3 +15,10 @@ test('invalid quality is excluded from chart and marked red',()=>{const html=ren
 test('missing five-minute blocks break the line',()=>{const html=render([row,{...row,id:2,timestamp:new Date(end-900000).toISOString()}]);assert.equal((html.match(/<path/g)||[]).length,2);});
 test('empty and replay states remain explicit',()=>{assert.match(render([]),/No readings in this time range/);assert.match(render([row],{replay:true}),/Previously recorded readings/);});
 test('constant readings have consistent axis bounds',()=>{const html=render();assert.match(html,/>1\.0<\/text>/);assert.match(html,/>0\.0<\/text>/);});
+
+test('Lowest is the minimum valid measurement, not the middle value, and keeps genuine zero',()=>{
+ const rows=[{...row,pm2_5:8},{...row,id:2,timestamp:new Date(end-300000).toISOString(),pm2_5:2},{...row,id:3,timestamp:new Date(end-600000).toISOString(),pm2_5:11},{...row,id:4,timestamp:new Date(end-900000).toISOString(),pm2_5:-99,data_quality_status:'INVALID'}];
+ const html=render(rows);assert.match(html,/Lowest<\/p><p[^>]*>2\.0<\/p>/);assert.doesNotMatch(html,/Middle value/);
+ assert.match(render([{...row,pm2_5:0}]),/Lowest<\/p><p[^>]*>0\.0<\/p>/);
+});
+test('measurement choices and time choices have a distinct divider group',()=>{assert.match(render(),/class="history-window-controls[^"]*" aria-label="History window"/);});
