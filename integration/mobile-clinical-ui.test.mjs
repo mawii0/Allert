@@ -19,11 +19,11 @@ afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
 test('empty correlation shows insufficient data and keeps export disabled',async()=>{
   globalThis.currentAccount='a';globalThis.readClinical=async()=>({device:{device_id:'NODE-A'},analysis:{population:'adult',pairs:[],vas:{rho:null,reason:'insufficient_pairs'},tnss:{rho:null,reason:'insufficient_pairs'},excluded:{no_matching_forecast:3,missing_observation_time:1}}});
   await act(async()=>{tree=TestRenderer.create(React.createElement(app.ClinicalCorrelation));});
-  assert.match(text(tree.toJSON()),/Insufficient matched days/);assert.equal(button('Export matched pairs').props.disabled,true);assert.ok(!text(tree.toJSON()).includes('ρ = 0'));
+  assert.match(text(tree.toJSON()),/Not enough matched days/);assert.equal(button('Export matched pairs').props.disabled,true);assert.ok(!text(tree.toJSON()).includes('ρ = 0'));
 });
 test('real coefficients, constant values, category and period controls remain honest',async()=>{
   const calls=[];globalThis.readClinical=async path=>{calls.push(path);return {device:{device_id:'NODE-A'},analysis:{population:'pediatric',pairs:[{}],vas:{rho:-0.375,reason:null},tnss:{rho:null,reason:'constant_values'},excluded:{no_matching_forecast:0,missing_observation_time:0}}};};
-  await act(async()=>{tree=TestRenderer.create(React.createElement(app.ClinicalCorrelation));});assert.match(text(tree.toJSON()),/ρ = -0.375/);assert.match(text(tree.toJSON()),/values do not vary/);assert.match(text(tree.toJSON()),/pediatric/);
+  await act(async()=>{tree=TestRenderer.create(React.createElement(app.ClinicalCorrelation));});assert.match(text(tree.toJSON()),/ρ = -0.375/);assert.match(text(tree.toJSON()),/Scores stayed the same/);assert.match(text(tree.toJSON()),/pediatric/);
   await act(async()=>tree.root.findByProps({'aria-label':'Correlation forecast horizon'}).props.onChange({target:{value:'24'}}));assert.ok(calls.at(-1).endsWith('horizon=24'));
 });
 test('a failed correlation request cannot display a sample result',async()=>{

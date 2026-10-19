@@ -1,6 +1,8 @@
+import "../../styles/patient-actions.css";
+import { nodeStatusMessage } from "../utils/node-status-copy.mjs";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Cloud } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Cloud } from "lucide-react";
 import { HouseholdSharing } from "./HouseholdSharing";
 import { Button } from "./ui/button";
 import { useNodeTelemetry } from "../utils/useNodeTelemetry";
@@ -58,7 +60,7 @@ export function DeviceConnectionScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white max-w-md mx-auto px-6 py-8">
+    <div className="allert-device-page allert-ui min-h-screen bg-zinc-950 text-white max-w-md mx-auto px-6 py-8">
       <button aria-label="Back to Settings" onClick={() => navigate("/app/settings")}
         className="mb-6 rounded-full bg-zinc-800 p-3">
         <ArrowLeft size={20} />
@@ -69,8 +71,10 @@ export function DeviceConnectionScreen() {
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 mb-5">
         <div className="flex items-center gap-3 mb-4">
           <Cloud className="text-emerald-400" />
-          <h2 className="font-semibold">{nodeStatus}</h2>
+          <h2 className="font-semibold">Node readings</h2>
         </div>
+        <p role="status" className="text-sm text-zinc-300 mb-2">{loading ? "Refreshing readings…" : nodeStatusMessage(nodeStatus)}</p>
+        <p className="text-xs text-zinc-400 mb-4">This checks the last uploaded reading, not a live connection to the node.</p>
         {error && <p role="alert" className="text-sm text-red-400 mb-4">{error}</p>}
         {device && <div className="space-y-2 text-sm">
           <p>Node: {device.device_id}</p>
@@ -78,7 +82,7 @@ export function DeviceConnectionScreen() {
           <p>Last reading: {lastReading} (Iloilo local time)</p>
         </div>}
         <Button onClick={retry} disabled={loading || submitting} variant="outline" className="mt-4 w-full">
-          {loading ? "Checking…" : "Check Assigned Node"}
+          {loading ? "Refreshing…" : "Refresh readings"}
         </Button>
         {device && <Button onClick={() => navigate("/app/environmental")}
           className="w-full mt-3 bg-emerald-600">View Sensor Readings</Button>}
@@ -110,7 +114,7 @@ export function DeviceConnectionScreen() {
           {claimError && <p role="alert" className="text-sm text-red-400">{claimError}</p>}
           {success && <p role="status" className="text-sm text-emerald-400">{success}</p>}
           <Button type="submit" disabled={submitting || loading}
-            className="w-full bg-purple-600">
+            className="w-full bg-emerald-700">
             {submitting ? "Linking…" : device ? "Verify Node Link" : "Link Node"}
           </Button>
         </form>
@@ -122,16 +126,14 @@ export function DeviceConnectionScreen() {
           <li>Power on the node. If it cannot join its saved Wi-Fi, it opens its setup hotspot.</li>
           <li>Join the node's ALLERT-Setup Wi-Fi network using the password supplied with the node.</li>
           <li>Open http://192.168.4.1 in your browser and select Configure WiFi.</li>
-          <li>Select your home Wi-Fi, enter its password and then save. For the first firmware check, keep the FastAPI upload address; after switching to cloud mode, the node uploads to Supabase.</li>
+          <li>Select your home Wi-Fi, enter its password, and save. The node will reconnect and resume uploads.</li>
           <li>Reconnect your phone to your normal Wi-Fi and return to ALLERT.</li>
         </ol>
         <p className="text-xs text-zinc-400 mt-4">
-          Wi-Fi setup requires the updated node firmware. Wi-Fi credentials are
-          entered on the node's local setup page. FastAPI is needed in the initial
-          Wi-Fi test mode. Cloud upload mode runs without your PC.
+          Enter Wi-Fi details on the node’s setup page. ALLERT does not ask for your Wi-Fi password.
         </p>
-        <p className="text-xs text-zinc-400 mt-3">If the node already joins Wi-Fi, send lowercase <code>s</code> in Serial Monitor to open setup. With the optional setup button fitted, hold it for three seconds.</p>
-        <a href="http://192.168.4.1" className="block mt-4 text-sm text-emerald-400 underline">Open Node Wi-Fi Setup</a>
+        <p className="text-xs text-zinc-400 mt-3">If your node has a setup button, hold it for three seconds to reopen setup. Otherwise, ask the person who supplied the node for help.</p>
+        <a href="http://192.168.4.1" className="allert-action-link mt-4"><ArrowUpRight aria-hidden="true" />Open Node Wi-Fi Setup</a>
       </section>
       {device && device.role!=="member" && <section className="rounded-2xl border border-red-900 bg-zinc-900/50 p-5 mt-5">
         <h2 className="font-semibold mb-2">Unlink Node</h2>

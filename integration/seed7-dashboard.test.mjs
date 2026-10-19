@@ -61,3 +61,12 @@ test('selecting a missing population reports unavailable and retains a genuine z
  await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));assert.match(text(tree.root.findByProps({className:'gauge-center'})),/0\.0/);
  await act(async()=>tree.root.findByProps({'aria-label':'Show pediatric environmental indicator'}).props.onClick());const center=text(tree.root.findByProps({className:'gauge-center'}));assert.match(center,/Unavailable/);assert.doesNotMatch(center,/low/);
 });
+
+test('the displayed category color follows the selected population and missing results stay neutral',async()=>{
+ globalThis.population='adult';globalThis.monitor=value();monitor.data.current.risk={adult:{score_0_100:40,tier:'high'},pediatric:{score_0_100:80,tier:'very_high'}};
+ await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));
+ const label=()=>tree.root.findByProps({className:'gauge-center'}).findByType('span');
+ assert.equal(label().props.style.color,'#fb923c');
+ await act(async()=>tree.root.findByProps({'aria-label':'Show pediatric environmental indicator'}).props.onClick());assert.equal(label().props.style.color,'#f87171');
+ monitor.data.current.risk.pediatric=null;await act(async()=>tree.update(React.createElement(DashboardScreen)));assert.equal(label().props.style.color,'#a1a1aa');assert.match(text(label()),/Unavailable/);
+});

@@ -446,7 +446,7 @@ export function ClinicalScreen() {
       <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 border border-zinc-800 shadow-xl">
         <h2 className="font-semibold mb-2">Historical Trend</h2>
         <p className="text-xs text-zinc-500 mb-4">
-          Last 7 days: daily VAS and TNSS averages
+          Your daily symptom scores over the past 7 days. Higher scores mean stronger symptoms.
         </p>
 
         <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700/50">
@@ -460,8 +460,8 @@ export function ClinicalScreen() {
                 bottom: 5,
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
+              <XAxis dataKey="date" stroke="#a1a1aa" tick={{fontSize:12}} />
               <YAxis
                 yAxisId="left"
                 domain={[0, 12]}
@@ -477,24 +477,26 @@ export function ClinicalScreen() {
                 width={32}
                 tick={{ fontSize: 12 }}
               />
-              <Tooltip />
+              <Tooltip contentStyle={{backgroundColor:"#18181b",border:"1px solid #3f3f46",borderRadius:12,color:"#fafafa"}} />
               <Legend />
               <Line
                 key="historical-risk-line"
-                type="monotone"
+                type="linear"
                 dataKey="tnss"
                 stroke="#3b82f6"
-                strokeWidth={2}
+                strokeWidth={2.5}
+                isAnimationActive={false}
                 name="TNSS /12"
                 yAxisId="left"
                 dot={{ r: 4 }}
               />
               <Line
                 key="historical-severity-line"
-                type="monotone"
+                type="linear"
                 dataKey="severity"
                 stroke="#eab308"
-                strokeWidth={2}
+                strokeWidth={2.5}
+                isAnimationActive={false}
                 strokeDasharray="5 5"
                 name="VAS /10"
                 yAxisId="right"
@@ -503,6 +505,7 @@ export function ClinicalScreen() {
             </LineChart>
           </ResponsiveContainer>}
         </div>
+        {trend.length === 1 && <p className="text-xs text-zinc-400 mt-3">One day is shown as a point. Save an entry on another day to see a line.</p>}
         {trend.length > 0 && <details className="allert-disclosure mt-4"><summary>View daily values</summary><div className="overflow-x-auto"><table className="w-full text-sm mt-3"><caption className="sr-only">Daily symptom averages in Asia/Manila</caption><thead><tr><th scope="col">Day</th><th scope="col">VAS /10</th><th scope="col">TNSS /12</th></tr></thead><tbody>{trend.map(point => <tr key={point.day}><th scope="row">{point.day}</th><td>{point.vas.toFixed(1)}</td><td>{point.tnss.toFixed(1)}</td></tr>)}</tbody></table></div></details>}
       </div>
 
@@ -613,7 +616,7 @@ export function ClinicalScreen() {
                   <h3 className="font-semibold mb-3">
                     Seven-Day Symptom Trend
                   </h3>
-                  <p className="text-xs text-zinc-500 mb-3">Daily VAS/TNSS averages. Older entries use creation time when observation time is unknown. Days without reports are omitted.</p>
+                  <p className="text-xs text-zinc-500 mb-3">Each point is a day with a saved report. VAS is overall discomfort; TNSS is the total nasal symptom score.</p>
                   <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-700/50">
                     <ResponsiveContainer
                       width="100%"
