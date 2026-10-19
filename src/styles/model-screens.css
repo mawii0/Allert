@@ -9,10 +9,12 @@
 .model-gauge { width: 256px; height: 256px; position: relative; margin: 0 auto 24px; }
 .model-home .model-gauge { margin-bottom: 4px; }
 .population-scores { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; font-size: 11px; color: #a1a1aa; }
-.population-scores span { padding: 5px 9px; border-radius: 999px; background: #05291f; }
+.population-scores button { min-height:44px; padding:8px 12px; border:1px solid transparent; border-radius:999px; background:#05291f; color:#d4d4d8; font:inherit; font-size:12px; cursor:pointer; }
+.population-scores button[aria-pressed="true"] { border-color:#6ee7b7; box-shadow:0 0 0 1px #6ee7b733; }
+.population-scores button:focus-visible { outline:2px solid #fafafa; outline-offset:3px; }
 .population-scores strong { color: #6ee7b7; margin-left: 4px; }
-.population-scores span:last-child { background: #09263a; }
-.population-scores span:last-child strong { color: #38bdf8; }
+.population-scores button:last-child { background: #09263a; }
+.population-scores button:last-child strong { color: #38bdf8; }
 .readings-title { margin-bottom: 8px !important; }
 .model-gauge svg { width: 100%; height: 100%; }
 .model-gauge circle { transition: stroke-dashoffset .7s; }
@@ -67,3 +69,30 @@
 .patterns dt { color: #a1a1aa; }
 .patterns .quality { color: #34d399; }
 @media (max-width: 360px) { .model-screen { padding: 24px 16px; } .quick-stats .model-card { padding: 12px 8px; } }
+
+/* Compact current readings leave more room for the forecast without shrinking controls. */
+.model-home .quick-stats { gap:8px; }
+.model-home .quick-stats .model-card { min-width:0; padding:9px 10px; }
+.model-home .quick-stats p { color:#a1a1aa; line-height:1.3; }
+.model-home .quick-stats strong { margin-top:3px; font-size:18px; line-height:1.35; }
+.model-home .quick-stats span { margin-top:2px; }
+
+.model-home .forecast-card {
+  background: #18181b;
+  border-color: #3f3f46;
+  box-shadow: none;
+}
+
+.model-home .forecast-eyebrow,
+.model-home .forecast-category {
+  color: #d4d4d8;
+}
+
+.model-home .forecast-row {
+  border-bottom-color: #3f3f46;
+}
+
+.population-scores button:last-child[aria-pressed="true"] {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 1px #38bdf833;
+}

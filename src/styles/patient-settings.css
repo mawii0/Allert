@@ -64,3 +64,12 @@
 @media (prefers-reduced-motion: reduce) {
   .allert-ui *, .allert-ui *::before, .allert-ui *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Native date/time controls must shrink with the card, including on iOS Safari. */
+.clinical-screen .diary-entry-details,
+.clinical-screen .diary-entry-details > div,
+.clinical-screen .diary-entry-details > div > div { min-width:0; }
+.clinical-screen #diary-time { display:block; box-sizing:border-box; width:100%; max-width:100%; min-width:0; inline-size:100%; min-inline-size:0; margin:0; -webkit-appearance:none; appearance:none; }
+.clinical-screen #diary-time::-webkit-datetime-edit { min-width:0; padding:0; }
+.clinical-screen #diary-time::-webkit-date-and-time-value { text-align:left; min-height:1.5em; }
+@media(max-width:480px) { .clinical-screen #diary-time { font-size:16px; } }

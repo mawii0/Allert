@@ -19,8 +19,8 @@ function value(optional=false){const pm=currentIndicator(25,35,25,60);return{dat
 afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
 test('horizon controls show paired PM forecasts while the gauge remains the current indicator',async()=>{
  globalThis.population='adult';globalThis.monitor=value();await act(async()=>{tree=Renderer.create(React.createElement(DashboardScreen));});
- const buttons=tree.root.findAllByType('button');assert.deepEqual(buttons.map(buttonLabel),['6h','12h','24h']);assert.equal(buttons[0].props['aria-pressed'],true);
- const initial=text(tree.toJSON());assert.ok(initial.indexOf('Particulate matter 2.5')<initial.indexOf('Forecast Timeline'));assert.ok(initial.indexOf('Particulate matter 10')<initial.indexOf('Forecast Timeline'));assert.match(initial,/Forecast · 6 hours aheadParticulate matter estimates/);assert.match(initial,/Adult 20\.0Pediatric 22\.0/);
+ const buttons=tree.root.findAllByType('button').filter(b=>/^\d+h$/.test(buttonLabel(b)));assert.deepEqual(buttons.map(buttonLabel),['6h','12h','24h']);assert.equal(buttons[0].props['aria-pressed'],true);
+ const initial=text(tree.toJSON());assert.ok(initial.indexOf('PM2.5')<initial.indexOf('Forecast Timeline'));assert.ok(initial.indexOf('PM10')<initial.indexOf('Forecast Timeline'));assert.match(initial,/Forecast · 6 hours aheadParticulate matter estimates/);assert.match(initial,/Adult 20\.0Pediatric 22\.0/);
  await act(async()=>buttons[0].props.onClick());
  const content=text(tree.toJSON());assert.match(content,/20\.0/);assert.match(content,/Current environmental indicator/);assert.match(content,/Particulate matter estimates/);assert.match(content,/25\.0/);assert.match(content,/35\.0/);assert.doesNotMatch(content,/Forecast particulate matter indicator/);assert.doesNotMatch(content,/weather.*median|Median estimate/);
 });
@@ -36,6 +36,28 @@ test('unavailable model results retain the reference layout and retry control',a
  globalThis.population='adult';globalThis.monitor={data:null,status:'error',retry(){}};
  await act(async()=>{tree=Renderer.create(React.createElement(DashboardScreen));});
  const content=text(tree.toJSON());assert.match(content,/Model Results Unavailable/);assert.match(content,/Try Again/);assert.match(content,/Measurements unavailable/);assert.match(content,/Particulate matter estimates unavailable/);
- assert.deepEqual(tree.root.findAllByType('button').map(buttonLabel),['Try Again','6h','12h','24h']);
- assert.ok(content.indexOf('Particulate matter 2.5')<content.indexOf('Forecast Timeline'));
+ assert.deepEqual(tree.root.findAllByType('button').filter(b=>!b.props['aria-label']?.startsWith('Show ')).map(buttonLabel),['Try Again','6h','12h','24h']);
+ assert.ok(content.indexOf('PM2.5')<content.indexOf('Forecast Timeline'));
+});
+
+test('tapping a population updates the central score, tier and label without changing the stored profile',async()=>{
+ globalThis.population='adult';globalThis.monitor=value(true);monitor.data.current.risk={adult:{score_0_100:21,tier:'low'},pediatric:{score_0_100:23,tier:'moderate'}};
+ await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));
+ const gauge=()=>tree.root.findByProps({className:'gauge-center'});
+ assert.match(text(gauge()),/21\.0.*low.*Adult/);
+ await act(async()=>tree.root.findByProps({'aria-label':'Show pediatric environmental indicator'}).props.onClick());
+ assert.match(text(gauge()),/23\.0.*moderate.*Pediatric/);assert.equal(globalThis.population,'adult');
+ assert.equal(tree.root.findByProps({'aria-label':'Show pediatric environmental indicator'}).props['aria-pressed'],true);
+ await act(async()=>tree.root.findByProps({'aria-label':'Show adult environmental indicator'}).props.onClick());assert.match(text(gauge()),/21\.0.*low.*Adult/);
+});
+test('population selection preserves the selected horizon and paired PM estimates',async()=>{
+ globalThis.population='adult';globalThis.monitor=value(true);await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));
+ await act(async()=>tree.root.findAllByType('button').find(b=>buttonLabel(b)==='12h').props.onClick());
+ await act(async()=>tree.root.findByProps({'aria-label':'Show pediatric environmental indicator'}).props.onClick());
+ assert.match(text(tree.toJSON()),/Forecast · 12 hours ahead/);assert.match(text(tree.toJSON()),/25\.0/);assert.match(text(tree.toJSON()),/35\.0/);
+});
+test('selecting a missing population reports unavailable and retains a genuine zero result',async()=>{
+ globalThis.population='adult';globalThis.monitor=value();monitor.data.current.risk={adult:{score_0_100:0,tier:'low'},pediatric:null};
+ await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));assert.match(text(tree.root.findByProps({className:'gauge-center'})),/0\.0/);
+ await act(async()=>tree.root.findByProps({'aria-label':'Show pediatric environmental indicator'}).props.onClick());const center=text(tree.root.findByProps({className:'gauge-center'}));assert.match(center,/Unavailable/);assert.doesNotMatch(center,/low/);
 });

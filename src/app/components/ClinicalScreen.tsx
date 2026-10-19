@@ -400,7 +400,7 @@ export function ClinicalScreen() {
         <input id="diary-total" type="number" min={0} max={12} step={1} disabled={diary.busy} value={aggregate} onChange={event => setAggregate(Number(event.target.value))} className={inputClass} />
       </div>}
 
-      <section aria-labelledby="entry-details-title" className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
+      <section aria-labelledby="entry-details-title" className="diary-entry-details bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 mb-6 border border-zinc-800 shadow-xl">
         <h2 id="entry-details-title" className="font-semibold">Entry details &amp; notes</h2>
         <div className="mt-5 space-y-4">
           <div><label htmlFor="diary-time" className="block text-sm text-zinc-400 mb-2">Observation time</label>
