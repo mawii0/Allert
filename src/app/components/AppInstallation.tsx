@@ -1,3 +1,4 @@
+import "../../styles/patient-actions.css";
 import { useEffect,useState } from "react";
 import { installationState,subscribeInstallation,installApp } from "../utils/pwa-install";
 export function AppInstallation(){
@@ -5,7 +6,7 @@ export function AppInstallation(){
   useEffect(()=>subscribeInstallation(()=>setState(installationState())),[]);
   return <div className="text-left border-t border-zinc-800 mt-4 pt-4" aria-label="App installation">
     <p className="text-sm text-zinc-300 font-medium">Install ALLERT</p>
-    {state.installed?<p className="text-xs text-emerald-400 mt-2">Running as an installed app.</p>:state.available?<button type="button" disabled={state.busy} onClick={()=>{void installApp();}} className="text-xs text-emerald-400 underline mt-2 disabled:opacity-50">{state.busy?"Opening installation…":"Install on this device"}</button>:<p className="text-xs text-zinc-400 mt-2">Use your browser menu → Install app or Add to Home Screen. On iPhone, open in Safari and choose Share → Add to Home Screen.</p>}
+    {state.installed?<p className="text-xs text-emerald-400 mt-2">Running as an installed app.</p>:state.available?<button type="button" disabled={state.busy} onClick={()=>{void installApp();}} className="allert-action-link mt-2 disabled:opacity-50">{state.busy?"Opening installation…":"Install on this device"}</button>:<p className="text-xs text-zinc-400 mt-2">Use your browser menu → Install app or Add to Home Screen. On iPhone, open in Safari and choose Share → Add to Home Screen.</p>}
     {state.error&&<p role="alert" className="text-xs text-red-300 mt-2">{state.error}</p>}
     <p className="text-xs text-zinc-500 mt-2">An internet connection is required for readings, diary saves, and account changes. Installation does not enable notifications automatically.</p>
   </div>;

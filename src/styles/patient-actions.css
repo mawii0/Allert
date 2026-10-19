@@ -1,0 +1,23 @@
+/* Shared inline actions: visibly interactive without boxing every control. */
+.allert-action-link { display:inline-flex; align-items:center; justify-content:flex-start; gap:8px; min-height:44px; max-width:100%; padding:8px 2px; border:0; border-radius:6px; background:transparent; color:#6ee7b7; font-size:14px; line-height:1.5; font-weight:600; text-align:left; text-decoration:none; cursor:pointer; white-space:normal; overflow-wrap:anywhere; }
+.allert-action-link:hover { color:#a7f3d0; background:rgb(16 185 129 / .07); }
+.allert-action-link:focus-visible { outline:2px solid #6ee7b7; outline-offset:3px; }
+.allert-action-link:disabled { cursor:not-allowed; opacity:.5; }
+.allert-action-link.text-red-300 { color:#fca5a5; }
+.allert-action-link.text-red-300:hover { color:#fecaca; background:rgb(239 68 68 / .06); }
+.allert-action-link > svg { width:16px; height:16px; flex-shrink:0; }
+.settings-screen #settings-notifications [aria-label="Browser push settings"] { background:transparent; border:0; border-top:1px solid #3f3f46; border-radius:0; padding:16px 0 0; margin-top:16px; }
+.settings-screen #settings-notifications [aria-label="Browser push settings"] .allert-action-link { background:transparent; border:0; padding:8px 2px; border-radius:6px; text-align:left !important; }
+.settings-screen #settings-notifications [aria-label="Browser push settings"] > section { background:transparent; box-shadow:none; }
+.allert-device-page .allert-action-link { margin-right:12px; }
+.allert-device-page .allert-action-link.text-zinc-400 { color:#6ee7b7; }
+.allert-device-page input { min-width:0; max-width:100%; box-sizing:border-box; }
+.allert-correlation-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:16px; }
+.allert-correlation-controls label { min-width:0; }
+.allert-correlation-controls select { min-width:0; width:100%; min-height:44px; }
+.sensor-notice-meta { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; }
+.sensor-notice-status { font-size:12px; color:#d4d4d8; padding:3px 8px; border:1px solid #52525b; border-radius:999px; }
+.sensor-notice-status[data-recovered="true"] { color:#a7f3d0; border-color:#065f46; background:rgb(16 185 129 / .08); }
+.sensor-notices-page .allert-card { margin-top:8px; }
+
+.allert-device-page button.bg-emerald-600, .allert-device-page button.bg-emerald-700 { background:#047857; color:#fafafa; }

@@ -1,3 +1,5 @@
+import "../../styles/patient-actions.css";
+import { nodeStatusMessage } from "../utils/node-status-copy.mjs";
 import "../../styles/patient-page-header.css";
 import "../../styles/patient-settings.css";
 import { AdminAccessLink } from "./AdminLiveTools";
@@ -47,7 +49,8 @@ export function SettingsScreen() {
 
     <section id="settings-node" aria-labelledby="settings-node-title" className="allert-card">
       <div className="allert-section-heading"><Radio aria-hidden="true" /><div><h2 id="settings-node-title">Home node</h2><p>Sensor Node Status</p></div></div>
-      <p role="status" className="allert-state mb-4">{nodeLoading ? "Checking node…" : nodeStatus}</p>
+      <p role="status" className="allert-state mb-4">{nodeLoading ? "Refreshing readings…" : nodeStatusMessage(nodeStatus)}</p>
+      <p className="text-xs text-zinc-400 mb-4">Status is based on when your node last sent a reading.</p>
       {nodeError && <p role="alert" className="text-sm text-red-300 mb-4">{nodeError}{device ? " Previously fetched device details are shown below." : ""}</p>}
       {device && <dl className="allert-data-list mb-5">
         <div><dt>Node ID</dt><dd className="font-mono">{device.device_id}</dd></div>
@@ -57,7 +60,7 @@ export function SettingsScreen() {
       </dl>}
       {!device && !nodeLoading && !nodeError && <p className="text-sm text-zinc-300 mb-4">No active node is assigned to this account. Link a node to start monitoring your home.</p>}
       <div className="allert-actions">
-        <Button onClick={retry} disabled={nodeLoading} variant="outline">{nodeLoading ? "Checking…" : "Check Node"}</Button>
+        <Button onClick={retry} disabled={nodeLoading} variant="outline">{nodeLoading ? "Refreshing…" : "Refresh readings"}</Button>
         <Button onClick={() => navigate(device ? "/app/environmental" : "/device-connection")} className="bg-emerald-600">{device ? "View Sensor Readings" : "Node Setup"}</Button>
       </div>
       {device && <Button onClick={() => navigate("/device-connection")} variant="outline" className="w-full mt-3 whitespace-normal">Node Setup &amp; Wi-Fi Instructions</Button>}

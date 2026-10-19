@@ -110,7 +110,7 @@ test('resource state clears after an account switch and ignores a late previous-
   const pending=[];globalThis.api=(path,options)=>new Promise(resolve=>pending.push({resolve,options}));function Harness(){state=app.usePrivateResource('/alerts');return null;}await mount(Harness);await act(async()=>{account='account-b';window.dispatchEvent(new Event('allert-session-changed'));});assert.equal(pending[0].options.signal.aborted,true);await act(async()=>pending[1].resolve({events:['B']}));await act(async()=>pending[0].resolve({events:['A']}));assert.deepEqual(state.data,{events:['B']});
 });
 test('sensor notices use stored events and explicitly describe observed rather than forecast data',async()=>{
-  await mount(app.SensorNotices);const content=text(tree.toJSON());assert.match(content,/Observed particulate changes/);assert.match(content,/INITIAL observed PM event/);assert.match(content,/18.00/);assert.match(content,/median\/MAD/);assert.ok(!content.includes('85.3%'));
+  await mount(app.SensorNotices);const content=text(tree.toJSON());assert.match(content,/measurements, not forecasts/);assert.match(content,/Sudden spike/);assert.match(content,/18.00/);assert.match(content,/unusually high or rising particle levels/);assert.ok(!content.includes('85.3%'));
 });
 test('actual chart paths leave a missing sample gap empty',async()=>{
   const now=Date.now(),rows=[0,1,3,4].map(index=>({timestamp:new Date(now-(4-index)*300000).toISOString(),pm2_5:10+index}));await mount(app.AdminReadingChart,{rows,end:now});assert.equal(tree.root.findAllByType('polyline').length,2);
@@ -118,4 +118,9 @@ test('actual chart paths leave a missing sample gap empty',async()=>{
 test('CSV download uses actual records and escapes formula-leading text',async()=>{
   let blob,downloaded;const original=URL.createObjectURL,oldDocument=globalThis.document;URL.createObjectURL=value=>{blob=value;return 'blob:test';};globalThis.document={createElement:()=>({click(){downloaded=this.download;}})};
   try{app.downloadNodeCsv('NODE-A',[{timestamp:'2026-10-16T00:00:00Z',device_id:'=malicious',pm2_5:18}]);assert.match(downloaded,/NODE-A-24h\.csv/);const csv=await blob.text();assert.ok(csv.includes("'=malicious"));assert.ok(csv.includes('18'));assert.ok(!csv.includes('45 ug/m3'));}finally{URL.createObjectURL=original;globalThis.document=oldDocument;}
+});
+
+test('recovered spike notices remain explicitly ended rather than becoming a new active warning',async()=>{
+  globalThis.api=async()=>({device:{device_id:'NODE-A'},processorReady:true,fresh:true,events:[{id:'recovered',phase:'RECOVERED',observed_at:new Date().toISOString(),event:{peaks:{pm2_5:18,pm10:22}}}]});
+  await mount(app.SensorNotices);const content=text(tree.toJSON());assert.match(content,/Sudden spike/);assert.match(content,/Recovered/);assert.match(content,/no longer trigger this alert/);assert.doesNotMatch(content,/observed PM event|median\/MAD/);
 });
