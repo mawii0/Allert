@@ -19,7 +19,6 @@ import {
 } from "lucide-react";
 import { Slider } from "./ui/slider";
 import { useDiary } from "../utils/useDiary";
-import { ClinicalCorrelation } from "./ClinicalCorrelation";
 import type { DiaryEntry, DiaryFields } from "../utils/diary";
 import { diaryCsv, diaryDailyTrend, filteredDiary, manilaInput } from "../utils/diary-history.mjs";
 import {
@@ -127,7 +126,7 @@ export function ClinicalScreen() {
   const loadError = diary.error;
   const saveError = formError;
   const diaryEntries = filtered;
-  const historicalTrendData = trend.map(point => ({ date: point.day.slice(5), tnss: point.tnss, severity: point.vas }));
+  const historicalTrendData = trend.map(point => ({ date: new Date(`${point.day}T00:00:00+08:00`).toLocaleDateString("en-PH", { month: "short", day: "numeric", timeZone: "Asia/Manila" }), tnss: point.tnss, severity: point.vas }));
   const handlePrevSymptom = () => setCurrentSymptomIndex(value => value === 0 ? symptoms.length - 1 : value - 1);
   const handleNextSymptom = () => setCurrentSymptomIndex(value => value === symptoms.length - 1 ? 0 : value + 1);
   const updateSymptomSeverity = (id: string, value: number) => setScores(previous => previous ? { ...previous, [id]: value } : previous);
@@ -444,12 +443,12 @@ export function ClinicalScreen() {
       <div className="mt-8 mb-4"><h2 className="text-lg font-semibold">Your symptom patterns</h2><p className="text-sm text-zinc-400 mt-1">Review saved entries separately from the entry you are editing.</p></div>
       {/* Historical Trend Chart */}
       <div className="bg-zinc-900/50 backdrop-blur-sm rounded-2xl p-6 border border-zinc-800 shadow-xl">
-        <h2 className="font-semibold mb-2">Historical Trend</h2>
+        <h2 className="font-semibold mb-2">Symptom trend</h2>
         <p className="text-xs text-zinc-500 mb-4">
-          Your daily symptom scores over the past 7 days. Higher scores mean stronger symptoms.
+          See how your symptoms changed over the last 7 days. Higher points mean stronger symptoms.
         </p>
 
-        <div className="bg-zinc-800/30 rounded-lg p-4 border border-zinc-700/50">
+        <div style={{marginTop:16}}><p className="text-xs text-zinc-300 mb-2">Symptom score</p><div role="img" aria-label="Line graph: date on the horizontal axis and symptom scores from zero to twelve on the vertical axis">
           {historicalTrendData.length === 0 ? <p className="text-sm text-zinc-300 py-6">No entries in the last 7 days. Save an entry to start your trend.</p> : <ResponsiveContainer width="100%" height={220}>
             <LineChart
               data={historicalTrendData}
@@ -457,37 +456,30 @@ export function ClinicalScreen() {
                 top: 5,
                 right: 0,
                 left: 0,
-                bottom: 5,
+                bottom: 18,
               }}
             >
               <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-              <XAxis dataKey="date" stroke="#a1a1aa" tick={{fontSize:12}} />
+              <XAxis dataKey="date" stroke="#a1a1aa" tick={{fontSize:11}} minTickGap={12} tickLine={false} axisLine={false} height={42} label={{value:"Recorded date",position:"insideBottom",offset:-3,fill:"#a1a1aa",fontSize:11}} />
               <YAxis
-                yAxisId="left"
                 domain={[0, 12]}
-                stroke="#60a5fa"
-                width={32}
+                ticks={[0, 3, 6, 9, 12]}
+                stroke="#a1a1aa"
+                width={30}
                 tick={{ fontSize: 12 }}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                domain={[0, 10]}
-                stroke="#facc15"
-                width={32}
-                tick={{ fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
               />
               <Tooltip contentStyle={{backgroundColor:"#18181b",border:"1px solid #3f3f46",borderRadius:12,color:"#fafafa"}} />
-              <Legend />
+              <Legend iconType="plainline" wrapperStyle={{fontSize:12,paddingTop:8}} />
               <Line
-                key="historical-risk-line"
+                key="historical-tnss-line"
                 type="linear"
                 dataKey="tnss"
                 stroke="#3b82f6"
                 strokeWidth={2.5}
                 isAnimationActive={false}
-                name="TNSS /12"
-                yAxisId="left"
+                name="Nasal symptoms (TNSS)"
                 dot={{ r: 4 }}
               />
               <Line
@@ -497,19 +489,19 @@ export function ClinicalScreen() {
                 stroke="#eab308"
                 strokeWidth={2.5}
                 isAnimationActive={false}
-                strokeDasharray="5 5"
-                name="VAS /10"
-                yAxisId="right"
+                name="Overall discomfort (VAS)"
                 dot={{ r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>}
         </div>
+        </div>
+        <p className="text-xs text-zinc-300 mt-3">Nasal symptoms: TNSS, 0–12. Overall discomfort: VAS, 0–10.</p>
+        <p className="text-xs text-zinc-400 mt-2">Each point is the day’s average. Days without a report are not shown.</p>
         {trend.length === 1 && <p className="text-xs text-zinc-400 mt-3">One day is shown as a point. Save an entry on another day to see a line.</p>}
         {trend.length > 0 && <details className="allert-disclosure mt-4"><summary>View daily values</summary><div className="overflow-x-auto"><table className="w-full text-sm mt-3"><caption className="sr-only">Daily symptom averages in Asia/Manila</caption><thead><tr><th scope="col">Day</th><th scope="col">VAS /10</th><th scope="col">TNSS /12</th></tr></thead><tbody>{trend.map(point => <tr key={point.day}><th scope="row">{point.day}</th><td>{point.vas.toFixed(1)}</td><td>{point.tnss.toFixed(1)}</td></tr>)}</tbody></table></div></details>}
       </div>
 
-      <ClinicalCorrelation diaryRevision={diary.entries.map(entry=>`${entry.id}:${entry.revision}`).join(",")} />
 
       {/* Success Toast */}
       <AnimatePresence>
@@ -616,8 +608,9 @@ export function ClinicalScreen() {
                   <h3 className="font-semibold mb-3">
                     Seven-Day Symptom Trend
                   </h3>
-                  <p className="text-xs text-zinc-500 mb-3">Each point is a day with a saved report. VAS is overall discomfort; TNSS is the total nasal symptom score.</p>
-                  <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-700/50">
+                  <p className="text-xs text-zinc-500 mb-3">See how your symptoms changed over the last 7 days. Higher points mean stronger symptoms.</p>
+                  <p className="text-xs text-zinc-300 mb-2">Symptom score</p>
+                  <div>
                     <ResponsiveContainer
                       width="100%"
                       height={200}
@@ -628,7 +621,7 @@ export function ClinicalScreen() {
                           top: 5,
                           right: 10,
                           left: -20,
-                          bottom: 5,
+                          bottom: 18,
                         }}
                       >
                         <CartesianGrid
@@ -637,11 +630,16 @@ export function ClinicalScreen() {
                         />
                         <XAxis
                           dataKey="date"
-                          stroke="#71717a"
+                          height={40}
+                          label={{value:"Recorded date",position:"insideBottom",offset:-3,fill:"#a1a1aa",fontSize:11}}
+                          stroke="#a1a1aa"
                           style={{ fontSize: "11px" }}
                         />
                         <YAxis
-                          stroke="#71717a"
+                          stroke="#a1a1aa"
+                          ticks={[0, 3, 6, 9, 12]}
+                          axisLine={false}
+                          tickLine={false}
                           style={{ fontSize: "11px" }}
                           domain={[0, 12]}
                         />
@@ -655,17 +653,21 @@ export function ClinicalScreen() {
                         />
                         <Line
                           dataKey="tnss"
+                          type="linear"
+                          isAnimationActive={false}
                           stroke="#3b82f6"
                           strokeWidth={2}
-                          name="TNSS /12"
+                          name="Nasal symptoms (TNSS)"
                           dot={{ r: 4 }}
                         />
-                        <Line dataKey="severity" stroke="#eab308" strokeWidth={2} name="VAS /10" dot={{ r: 4 }} />
-                        <Legend />
+                        <Line dataKey="severity" type="linear" isAnimationActive={false} stroke="#eab308" strokeWidth={2} name="Overall discomfort (VAS)" dot={{ r: 4 }} />
+                        <Legend iconType="plainline" wrapperStyle={{fontSize:12,paddingTop:8}} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
+
+                <p className="text-xs text-zinc-300 mb-3">Nasal symptoms: TNSS, 0–12. Overall discomfort: VAS, 0–10.</p>
 
                 {/* Diary Entries List */}
                 <div>

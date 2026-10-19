@@ -18,3 +18,9 @@
 @media (min-width:640px) { .environment-review-card { padding:20px; } }
 
 .environment-review-card > p:last-child { font-size:12px; line-height:1.6; }
+
+.history-window-controls {
+  margin-top:12px;
+  padding-top:12px;
+  border-top:1px solid #3f3f46;
+}
