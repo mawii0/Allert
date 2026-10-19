@@ -1,3 +1,4 @@
+import "../../styles/patient-page-header.css";
 import { useState } from "react";
 import { Shield } from "lucide-react";
 import { EnvironmentNotice } from "./EnvironmentNotice";
@@ -21,8 +22,8 @@ export function DashboardScreen() {
   const values = selected ? [{pollutant:"pm2_5",value:selected.pm2_5},{pollutant:"pm10",value:selected.pm10}] : [];
   const tier = indicator?.tier || "low";
   const color = { low: "#6ee7b7", moderate: "#fde047", high: "#fb923c", very_high: "#f87171" }[tier];
-  return <div className="model-screen model-home">
-    <header><p className="eyebrow">Predictive Dashboard</p><h1>Risk Monitor</h1><p className="subtitle">{current ? `${data?.device?.device_id} - ${status === "stale" ? "Stale sensor reading" : "Current sensor readings"}` : status === "loading" ? "Loading measurements..." : "Measurements unavailable"}</p></header>
+  return <div className="allert-patient-page model-screen model-home">
+    <header className="allert-patient-header"><p className="allert-header-label">Predictive Dashboard</p><h1>Risk Monitor</h1><p className="allert-header-description">{current ? `${data?.device?.device_id} - ${status === "stale" ? "Stale sensor reading" : "Current sensor readings"}` : status === "loading" ? "Loading measurements..." : "Measurements unavailable"}</p></header>
     {!current && <EnvironmentNotice status={status === "unavailable" ? "unavailable" : status} retry={retry} />}
     {status === "stale" && <section className="model-card p-4 mb-4" role="status"><p className="text-sm">Last sensor reading is older than 10 minutes. These values do not establish current conditions.</p></section>}
     <div className="model-gauge" aria-label="Current environmental indicator">

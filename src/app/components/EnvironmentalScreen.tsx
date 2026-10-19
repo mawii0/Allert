@@ -1,3 +1,4 @@
+import "../../styles/patient-page-header.css";
 import "../../styles/environment-settings.css";
 import { useEffect, useState } from "react";
 import { Wind, Thermometer, Droplets, TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -126,11 +127,11 @@ export function EnvironmentalScreen() {
   const summary = summarizeHistory(view.history, chartEnd);
   const hourLabel = (hour: number) => `${hour % 12 || 12}${hour < 12 ? "AM" : "PM"}`;
   return (
-    <div className="min-h-screen bg-zinc-950 px-5 py-6 pb-24">
-      <header className="mb-5">
-        <p className="text-xs text-zinc-400">Environmental Analytics</p>
-        <h1 className="text-xl font-bold mt-1">Sensor Telemetry</h1>
-        <p className="text-xs text-zinc-400 mt-1">{replay ? "Recorded air quality monitoring" : "Real-time air quality monitoring"}</p>
+    <div className="allert-patient-page environment-screen min-h-screen bg-zinc-950 px-5 py-6 pb-24">
+      <header className="allert-patient-header">
+        <p className="allert-header-label">Environmental Analytics</p>
+        <h1>Sensor Telemetry</h1>
+        <p className="allert-header-description">{replay ? "Recorded air quality monitoring" : "Real-time air quality monitoring"}</p>
       </header>
       {loading && !replay && <p className="text-sm text-zinc-400 mb-4">Loading sensor readings...</p>}
       {error && <section role="alert" className="mb-4 rounded-xl border border-red-900 bg-red-950/40 p-3 text-xs text-red-200">

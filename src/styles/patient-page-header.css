@@ -1,0 +1,11 @@
+/* Shared Home / Environmental header format across the four patient pages. */
+.allert-patient-page.model-screen,
+.allert-patient-page.environment-screen,
+.allert-patient-page.clinical-screen,
+.allert-patient-page.settings-screen { padding-top:24px; padding-left:20px; padding-right:20px; }
+.allert-patient-page .allert-patient-header { margin:0 0 24px; }
+.allert-patient-header .allert-header-label { color:#a1a1aa; font-size:12px; font-weight:400; line-height:1.5; letter-spacing:normal; text-transform:none; margin:0 0 6px; }
+.allert-patient-page .allert-patient-header h1 { margin:0; color:#fafafa; font-size:24px; font-weight:700; line-height:1.25; }
+.allert-patient-header .allert-header-description { margin:6px 0 0; color:#a1a1aa; font-size:12px; font-weight:400; line-height:1.5; }
+.allert-header-with-action { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.allert-header-copy { flex:1 1 0%; min-width:0; }
