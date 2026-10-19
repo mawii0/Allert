@@ -1,6 +1,6 @@
 import "../../styles/patient-page-header.css";
 import { useState } from "react";
-import { Shield } from "lucide-react";
+import { EnvironmentalGuidance } from "./EnvironmentalGuidance";
 import { EnvironmentNotice } from "./EnvironmentNotice";
 import { displayTime } from "../utils/environment";
 import "../../styles/model-screens.css";
@@ -46,7 +46,7 @@ export function DashboardScreen() {
       {selected ? <p className="model-note">Model-only estimate · {population} · target {displayTime(selected.target_block_start)} (Manila).</p> : current && <p className="model-note">{data?.model_status?.replaceAll("_", " ") || "Forecasts unavailable"}. Current measurements remain available.</p>}
 
     </section>
-    <section className="model-card guidance"><div className="shield-icon"><Shield size={21}/></div><div><h2>Environmental Guidance</h2><p>{status === "stale" ? "Stored sensor readings are stale. Current conditions are unknown." : indicator ? `Current ${population} environmental indicator: ${tier.replaceAll("_", " ")}. This is not a personal symptom probability.` : "Valid completed sensor measurements will appear here when available."}</p></div></section>
+    <EnvironmentalGuidance risk={current?.risk} stale={status === "stale"} />
     <p className="model-note guidance-disclaimer">Environmental estimates only—not a diagnosis or medical advice.{current && <> Last reading: {displayTime(current.timestamp)} (Iloilo local time).</>}</p>
 
   </div>;

@@ -1,3 +1,4 @@
+import { modelDisplayName } from "../utils/model-display-name";
 import "../../styles/patient-actions.css";
 import { nodeStatusMessage } from "../utils/node-status-copy.mjs";
 import "../../styles/patient-page-header.css";
@@ -89,7 +90,7 @@ export function SettingsScreen() {
       <AppInstallation />
       <details className="allert-disclosure mt-4"><summary>Model &amp; app details</summary><dl className="allert-data-list mt-3">
         <div><dt>Model status</dt><dd>{monitor?.model_status?.replaceAll("_", " ") || (monitorStatus === "loading" ? "Checking…" : "Unavailable")}</dd></div>
-        <div><dt>Model version</dt><dd className="font-mono">{monitor?.model_id || "No neural output available"}</dd></div>
+        <div><dt>Model version</dt><dd className="font-mono">{modelDisplayName(monitor?.model_id)}</dd></div>
         <div><dt>App version</dt><dd>1.1.0</dd></div>
       </dl><p className="text-sm text-zinc-300 mt-4">Environmental forecasting model. Reference-case verification does not establish clinical accuracy.</p></details>
       <AdminAccessLink />
