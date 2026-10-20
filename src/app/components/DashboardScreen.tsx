@@ -1,3 +1,4 @@
+import { LiveForecastCard } from "./LiveForecastCard";
 import "../../styles/patient-page-header.css";
 import { useState } from "react";
 import { EnvironmentalGuidance } from "./EnvironmentalGuidance";
@@ -18,8 +19,6 @@ export function DashboardScreen() {
   const indicator = current?.risk?.[population];
   const adultIndicator = current?.risk?.adult;
   const pediatricIndicator = current?.risk?.pediatric;
-  const forecastIndicator = selected?.forecast_pm_indicator?.[population];
-  const values = selected ? [{pollutant:"pm2_5",value:selected.pm2_5},{pollutant:"pm10",value:selected.pm10}] : [];
   const tier = indicator?.tier || "low";
   const color = { low: "#6ee7b7", moderate: "#fde047", high: "#fb923c", very_high: "#f87171" }[tier];
   return <div className="allert-patient-page model-screen model-home">
@@ -41,11 +40,7 @@ export function DashboardScreen() {
     <h2 className="readings-title">Current readings</h2>
     <div className="quick-stats">{[["PM2.5", current?.pm2_5, "μg/m³"], ["PM10", current?.pm10, "μg/m³"], ["Temp", current?.temperature, "°C"], ["Humidity", current?.humidity, "%"]].map(([label, value, unit]) => <section className="model-card" key={label}><p>{label}</p><strong>{typeof value === "number" ? value.toFixed(1) : "—"}<small> {unit}</small></strong>{typeof value !== "number" && <span>Unavailable</span>}</section>)}</div>
     <section className="model-card timeline"><p className="subtitle">Forecast Timeline</p><div className="timeline-buttons">{[6, 12, 24].map(hour => <button key={hour} aria-pressed={hour === horizon} className={hour === horizon ? "selected" : ""} onClick={() => setHorizon(hour)}>{hour}h</button>)}</div></section>
-    <section className="model-card forecast-card"><p className="forecast-eyebrow">Forecast · {horizon} hours ahead</p><h2>Particulate matter estimates</h2>{values.length ? values.map(value => <div className="forecast-row" key={value.pollutant}><span>{value.pollutant === "pm2_5" ? "Particulate matter 2.5" : "Particulate matter 10"}</span><strong>{value.value.toFixed(1)} <small>μg/m³</small></strong></div>) : <p className="subtitle">Particulate matter estimates unavailable.</p>}
-      {forecastIndicator && <><div className="forecast-row"><span>Forecast particulate matter indicator</span><strong title="Categories use the unrounded score; displayed points are rounded.">{forecastIndicator.score_0_100.toFixed(1)} points</strong></div><p className="forecast-category">Category: {forecastIndicator.tier.replaceAll("_", " ")}</p></>}
-      {selected ? <p className="model-note">Model-only estimate · {population} · target {displayTime(selected.target_block_start)} (Manila).</p> : current && <p className="model-note">{data?.model_status?.replaceAll("_", " ") || "Forecasts unavailable"}. Current measurements remain available.</p>}
-
-    </section>
+    <LiveForecastCard horizon={horizon} forecast={selected} status={data?.model_status} hasCurrent={!!current} />
     <EnvironmentalGuidance risk={current?.risk} stale={status === "stale"} />
     <p className="model-note guidance-disclaimer">Environmental estimates only—not a diagnosis or medical advice.{current && <> Last reading: {displayTime(current.timestamp)} (Iloilo local time).</>}</p>
 

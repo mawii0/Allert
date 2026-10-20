@@ -24,9 +24,18 @@ test('horizon controls show paired PM forecasts while the gauge remains the curr
  await act(async()=>buttons[0].props.onClick());
  const content=text(tree.toJSON());assert.match(content,/20\.0/);assert.match(content,/Current environmental indicator/);assert.match(content,/Particulate matter estimates/);assert.match(content,/25\.0/);assert.match(content,/35\.0/);assert.doesNotMatch(content,/Forecast particulate matter indicator/);assert.doesNotMatch(content,/weather.*median|Median estimate/);
 });
-test('optional PM score switches population without changing the paired network concentrations',async()=>{
- globalThis.population='adult';globalThis.monitor=value(true);await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));await act(async()=>tree.root.findAllByType('button').find(b=>buttonLabel(b)==='6h').props.onClick());assert.match(text(tree.toJSON()),/Forecast particulate matter indicator/);
- globalThis.population='pediatric';await act(async()=>tree.update(React.createElement(DashboardScreen)));const content=text(tree.toJSON());assert.match(content,/Forecast particulate matter indicator/);assert.match(content,/22\.0/);assert.match(content,/moderate/);assert.match(content,/25\.0/);assert.match(content,/35\.0/);
+test('both forecast populations remain visible independently of the current gauge selection',async()=>{
+ globalThis.population='adult';globalThis.monitor=value(true);await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));
+ const card=()=>tree.root.findByProps({'aria-label':'Live particulate forecast'});
+ const before=text(card());assert.match(before,/Forecast environmental indicators/);
+ for(const population of ['adult','pediatric'])assert.ok(text(tree.root.findByProps({'aria-label':`${population} forecast environmental indicator`})).includes(monitor.data.forecasts[0].forecast_pm_indicator[population].score_0_100.toFixed(1)));
+ await act(async()=>tree.root.findByProps({'aria-label':'Show pediatric environmental indicator'}).props.onClick());assert.equal(text(card()),before);
+});
+test('forecast card follows each horizon and preserves unavailable backend indicators without recalculating them',async()=>{
+ globalThis.population='adult';globalThis.monitor=value();monitor.data.forecasts[1].pm2_5=18.25;monitor.data.forecasts[1].pm10=31.75;
+ await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));
+ await act(async()=>tree.root.findAllByType('button').find(b=>buttonLabel(b)==='12h').props.onClick());
+ const card=text(tree.root.findByProps({'aria-label':'Live particulate forecast'}));assert.match(card,/12 hours ahead/);assert.match(card,/18\.3/);assert.match(card,/31\.8/);assert.match(card,/Adult— \/100UnavailablePediatric— \/100Unavailable/);assert.doesNotMatch(card,/Simulated|REPLAY|historical test/);
 });
 test('missing weather leaves a visibly unavailable current gauge even when PM measurements exist',async()=>{
  globalThis.population='adult';globalThis.monitor=value();monitor.data.current.risk=null;monitor.data.current.temperature=null;monitor.data.current.humidity=null;monitor.data.model_status='warming_up';monitor.data.forecasts=[];
