@@ -4,18 +4,19 @@ const root='/make-server-a473accf';
 export function observationReading(row){return row?{id:row.id,device_id:row.device_id,timestamp:row.block_end,created_at:row.received_at,
  pm2_5:row.pm2_5,pm10:row.pm10,temperature:row.temperature,humidity:row.humidity,sample_count:row.quality?.pm2_5==='ok'?30:null,expected_samples:30,pm25_stddev:null,
  data_quality_status:Object.values(row.quality || {}).every(v=>v==='ok')?'VALID':'CHANNEL_QUALITY',channel_quality:row.quality}:null;}
-export function storedMonitor(device,observation,current,run,now=Date.now()){
+export function storedMonitor(device,observation,current,run,now=Date.now(),latestAttempt=run){
  const reading=observationReading(observation),age=now-Date.parse(reading?.timestamp),fresh=age>=-60000 && age<=600000;
  const matching=current?.observation_id===observation?.id;
  const indicator=matching && validIndicator(current?.indicator)?current.indicator:null;
- const valid=device?.device_id==='ALLERT-NODE-001' && validStoredForecast(run,device.device_id,now);
+ const valid=device?.device_id==='ALLERT-NODE-001' && validStoredForecast(run,device.device_id,now,86400000);
  const interpreted=valid && validPmInterpretations(run.forecast_pm_indicator,run);
+ const delayed=valid && (now-Date.parse(run.origin)>1200000 || (latestAttempt?.status!=='ready' && Date.parse(latestAttempt?.origin)>=Date.parse(run.origin)));
  const forecasts=valid?[6,12,24].map(h=>{const rows=run.result.forecasts.filter(v=>v.horizon_hours===h);return{horizon_hours:h,pm2_5:rows.find(v=>v.pollutant==='pm2_5').value,
- pm10:rows.find(v=>v.pollutant==='pm10').value,target_block_start:rows[0].target_block_start,target_block_end:rows[0].target_block_end,origin:run.origin,method:'seed7_model',forecast_pm_policy_id:POLICY.forecast_pm.id,forecast_pm_policy_hash:INDICATOR_HASH,forecast_pm_indicator:interpreted?run.forecast_pm_indicator.interpretations.find(v=>v.horizon_hours===h).populations:null};}):[];
+ pm10:rows.find(v=>v.pollutant==='pm10').value,target_block_start:rows[0].target_block_start,target_block_end:rows[0].target_block_end,origin:run.origin,generated_at:run.result.generated_at,update_delayed:delayed,method:'seed7_model',forecast_pm_policy_id:POLICY.forecast_pm.id,forecast_pm_policy_hash:INDICATOR_HASH,forecast_pm_indicator:interpreted?run.forecast_pm_indicator.interpretations.find(v=>v.horizon_hours===h).populations:null};}).filter(f=>Date.parse(f.target_block_end)>now):[];
  return{availability:!reading?'unavailable':fresh?'ready':'stale',device:device?{device_id:device.device_id,role:device.role}:null,
  current:reading?{...reading,risk:indicator}:null,indicator_status:!fresh?'stale':indicator?'ready':matching?'missing_or_invalid_channels':'processing',baseline:null,forecasts,
- model_id:MODEL_ID,checkpoint_sha256:CHECKPOINT,model_status:device?.device_id!=='ALLERT-NODE-001'?'sensor_not_enabled_for_model':valid?'ready':run?.status==='ready'?'stale_or_unverified_forecast':run?.status || 'warming_up',
- model_input:run?.summary || null,provenance:valid?{receipt_cutoff:run.receipt_cutoff,generated_at:run.result.generated_at,input_hash:run.input_hash,origin:run.origin}:null};
+ model_id:MODEL_ID,checkpoint_sha256:CHECKPOINT,model_status:device?.device_id!=='ALLERT-NODE-001'?'sensor_not_enabled_for_model':forecasts.length?(delayed?'update_delayed':'ready'):run?.status==='ready'?'stale_or_unverified_forecast':run?.status || 'warming_up',
+ model_input:latestAttempt?.summary || null,provenance:valid?{receipt_cutoff:run.receipt_cutoff,generated_at:run.result.generated_at,input_hash:run.input_hash,origin:run.origin}:null};
 }
 export function installSeed7ReadRoutes(app,authenticate,env={get:()=>undefined}){
  const guard=fn=>async c=>{try{const a=await authenticate(c);if(a.response)return a.response;const device=await accessibleNode(a.client,a.user.id);
@@ -27,14 +28,15 @@ export function installSeed7ReadRoutes(app,authenticate,env={get:()=>undefined})
  const scope=(query,device)=>query.eq('device_id',device.device_id).eq('stream_id','live').eq('owner_epoch',device.owner_since || '1970-01-01T00:00:00Z');
  async function monitor({client},device){
  if(!device)return storedMonitor(null,null,null,null);
- const [reading,state,forecasts,heartbeat,settings]=await Promise.all([
+ const [reading,state,forecasts,successful,heartbeat,settings]=await Promise.all([
  scope(client.from('allert_v2_observations').select('*'),device).eq('mode','live').order('block_end',{ascending:false}).limit(1),
  scope(client.from('allert_v2_current').select('*'),device).eq('policy_hash',OBSERVED_HASH).maybeSingle(),
  scope(client.from('allert_v2_forecasts').select('*'),device).eq('mode','live').eq('model_id',MODEL_ID).eq('checkpoint_sha256',CHECKPOINT).order('origin',{ascending:false}).limit(1),
+ scope(client.from('allert_v2_forecasts').select('*'),device).eq('mode','live').eq('model_id',MODEL_ID).eq('checkpoint_sha256',CHECKPOINT).eq('status','ready').order('origin',{ascending:false}).limit(1),
  client.from('allert_v2_worker').select('last_finished_at,summary').eq('id',1).maybeSingle(),
  client.from('allert_v2_settings').select('enabled,forecast_enabled').eq('id',1).maybeSingle()]);
- if([reading,state,forecasts,heartbeat,settings].some(r=>r.error))throw Error('Analytics query failed');
- const value=storedMonitor(device,reading.data?.[0],state.data,forecasts.data?.[0]);
+ if([reading,state,forecasts,successful,heartbeat,settings].some(r=>r.error))throw Error('Analytics query failed');
+ const value=storedMonitor(device,reading.data?.[0],state.data,successful.data?.[0] || forecasts.data?.[0],Date.now(),forecasts.data?.[0]);
  if(settings.data?.forecast_enabled!==true && device.device_id==='ALLERT-NODE-001'){value.forecasts=[];value.model_status='model_not_enabled';value.provenance=null;}
  return {...value,worker:{...heartbeat.data,enabled:settings.data?.enabled===true}};
  }

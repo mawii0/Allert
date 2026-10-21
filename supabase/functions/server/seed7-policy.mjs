@@ -13,10 +13,10 @@ export function validIndicator(value){
  const tier=v.indicator_0_1>=cuts[2]?'very_high':v.indicator_0_1>=cuts[1]?'high':v.indicator_0_1>=cuts[0]?'moderate':'low';
  return v.tier===tier && Math.abs(v.score_0_100-v.indicator_0_1*100)<1e-6;});
 }
-export function validStoredForecast(run,node,now=Date.now()){
+export function validStoredForecast(run,node,now=Date.now(),maxOriginAgeMs=1200000){
  const v=run?.result,origin=Date.parse(run?.origin),cutoff=Date.parse(run?.receipt_cutoff),generated=Date.parse(v?.generated_at);
  if(!run || run.device_id!==node || run.stream_id!=='live' || run.mode!=='live' || run.status!=='ready' || run.model_id!==MODEL_ID || run.checkpoint_sha256!==CHECKPOINT ||
- !/^[a-f0-9]{64}$/.test(run.input_hash || '') || !Number.isFinite(origin) || origin%900000!==0 || origin>now || now-origin>1200000 ||
+ !/^[a-f0-9]{64}$/.test(run.input_hash || '') || !Number.isFinite(origin) || origin%900000!==0 || origin>now || now-origin>maxOriginAgeMs ||
  !Number.isFinite(cutoff) || cutoff>generated || generated>now+60000 ||
  v?.model_id!==MODEL_ID || v.checkpoint_sha256!==CHECKPOINT || v.node_id!==node || v.mode!=='live' || v.status!=='ok' ||
  Date.parse(v.forecast_origin)!==origin || Date.parse(v.input_last_block_end)!==origin || v.is_future_allergy_probability!==false || v.trained_or_recalibrated!==false ||

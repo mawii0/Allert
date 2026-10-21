@@ -14,8 +14,8 @@ await build({entryPoints:['src/app/components/DashboardScreen.tsx'],outfile:'int
 const {DashboardScreen}=await import('./test-output/seed7-dashboard.mjs');let tree;
 const text=n=>typeof n==='string'?n:Array.isArray(n)?n.map(text).join(''):(n?.children || []).map(text).join('');
 const buttonLabel=b=>Array.isArray(b.props.children)?b.props.children.join(''):b.props.children;
-const origin='2026-10-16T18:00:00Z';
-function value(optional=false){const pm=currentIndicator(25,35,25,60);return{data:{model_id:MODEL_ID,checkpoint_sha256:CHECKPOINT,device:{device_id:'ALLERT-NODE-001'},current:{pm2_5:0,pm10:0,temperature:25,humidity:60,timestamp:origin,risk:currentIndicator(0,0,25,60)},model_status:'ready',forecasts:[6,12,24].map(h=>({horizon_hours:h,pm2_5:25,pm10:35,target_block_start:`target-${h}-start`,target_block_end:`target-${h}-end`,origin,...(optional?{forecast_pm_indicator:{adult:pm.adult,pediatric:pm.pediatric}}:{})}))},status:'ready',retry(){}};}
+const origin=new Date(Math.floor(Date.now()/900000)*900000).toISOString();
+function value(optional=false){const pm=currentIndicator(25,35,25,60);return{data:{model_id:MODEL_ID,checkpoint_sha256:CHECKPOINT,device:{device_id:'ALLERT-NODE-001'},current:{pm2_5:0,pm10:0,temperature:25,humidity:60,timestamp:origin,risk:currentIndicator(0,0,25,60)},model_status:'ready',forecasts:[6,12,24].map(h=>({horizon_hours:h,pm2_5:25,pm10:35,target_block_start:new Date(Date.parse(origin)+h*3600000-300000).toISOString(),target_block_end:new Date(Date.parse(origin)+h*3600000).toISOString(),origin,...(optional?{forecast_pm_indicator:{adult:pm.adult,pediatric:pm.pediatric}}:{})}))},status:'ready',retry(){}};}
 afterEach(async()=>{if(tree)await act(async()=>tree.unmount());tree=null;});
 test('horizon controls show paired PM forecasts while the gauge remains the current indicator',async()=>{
  globalThis.population='adult';globalThis.monitor=value();await act(async()=>{tree=Renderer.create(React.createElement(DashboardScreen));});
@@ -78,4 +78,18 @@ test('the displayed category color follows the selected population and missing r
  assert.equal(label().props.style.color,'#fb923c');
  await act(async()=>tree.root.findByProps({'aria-label':'Show pediatric environmental indicator'}).props.onClick());assert.equal(label().props.style.color,'#f87171');
  monitor.data.current.risk.pediatric=null;await act(async()=>tree.update(React.createElement(DashboardScreen)));assert.equal(label().props.style.color,'#a1a1aa');assert.match(text(label()),/Unavailable/);
+});
+
+
+test('delayed updates display original timing and verified values',async()=>{
+ globalThis.monitor=value(true);const f=monitor.data.forecasts[0];f.update_delayed=true;f.generated_at=origin;
+ await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));
+ const card=text(tree.root.findByProps({'aria-label':'Live particulate forecast'}));
+ assert.match(card,/Update delayed/);assert.match(card,/Forecast starting time/);assert.match(card,/Calculated/);assert.match(card,/25\.0/);
+});
+test('expired target values are hidden even if an old response reaches the card',async()=>{
+ globalThis.monitor=value(true);monitor.data.forecasts[0].target_block_end=new Date(Date.now()-1).toISOString();
+ await act(async()=>tree=Renderer.create(React.createElement(DashboardScreen)));
+ const card=text(tree.root.findByProps({'aria-label':'Live particulate forecast'}));
+ assert.match(card,/expired/);assert.doesNotMatch(card,/Forecast environmental indicators|25\.0/);
 });

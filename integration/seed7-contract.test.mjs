@@ -39,3 +39,24 @@ test('PM-only interpretation is optional and must match the same verified pair a
  const r=stored(),score=currentIndicator(25,25,25,60),pm={enabled:true,policy_id:POLICY.forecast_pm.id,policy_hash:INDICATOR_HASH,basis:'forecast_pm_only',score_unit:'points',interpretations:[6,12,24].map(h=>({horizon_hours:h,node_id:r.device_id,model_id:MODEL_ID,forecast_origin:r.origin,status:'neural_forecast',target_block_start:new Date(origin+h*3600000-300000).toISOString(),target_block_end:new Date(origin+h*3600000).toISOString(),populations:{adult:score.adult,pediatric:score.pediatric}}))};
  assert.ok(validPmInterpretations(pm,r));pm.interpretations[0].node_id='ALLERT-NODE-002';assert.equal(validPmInterpretations(pm,r),false);pm.interpretations[0].node_id=r.device_id;pm.interpretations[0].populations.adult.tier='low';assert.equal(validPmInterpretations(pm,r),false);
 });
+
+test('display retains verified forecasts after a failed update without weakening default freshness',()=>{
+ const r=stored(),now=origin+2*3600000;
+ const latest={status:'insufficient_history',origin:new Date(now).toISOString(),summary:{eligible_blocks:646,required_blocks:648}};
+ const value=storedMonitor({device_id:r.device_id},null,null,r,now,latest);
+ assert.equal(value.model_status,'update_delayed');assert.equal(value.forecasts.length,3);
+ assert.equal(value.forecasts[0].origin,r.origin);assert.equal(value.forecasts[0].generated_at,r.result.generated_at);
+ assert.equal(value.forecasts[0].update_delayed,true);assert.equal(value.model_input.eligible_blocks,646);
+ assert.equal(validStoredForecast(r,r.device_id,now),false);
+});
+test('each target expires independently at its actual target end',()=>{
+ const r=stored(),device={device_id:r.device_id};
+ assert.deepEqual(storedMonitor(device,null,null,r,origin+6*3600000).forecasts.map(f=>f.horizon_hours),[12,24]);
+ assert.deepEqual(storedMonitor(device,null,null,r,origin+12*3600000).forecasts.map(f=>f.horizon_hours),[24]);
+ assert.deepEqual(storedMonitor(device,null,null,r,origin+24*3600000).forecasts,[]);
+});
+test('retained display never accepts replay, wrong checkpoints or malformed forecasts',()=>{
+ for(const mutate of [r=>r.mode='replay',r=>r.checkpoint_sha256='bad',r=>r.result.forecasts[0].value=-1]){
+  const r=stored();mutate(r);assert.deepEqual(storedMonitor({device_id:r.device_id},null,null,r,origin+2*3600000).forecasts,[]);
+ }
+});
