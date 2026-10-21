@@ -10,10 +10,12 @@ export function LiveForecastCard({ horizon, forecast, status, hasCurrent }: {
   return <section className="model-card forecast-card" aria-label="Live particulate forecast" aria-live="polite" aria-atomic="true">
     <p className="forecast-eyebrow">Forecast · {horizon} hours ahead</p>
     <h2>Particulate matter estimates</h2>
-    {forecast ? <>
+    {forecast && Date.parse(forecast.target_block_end)>Date.now() ? <>
+      {forecast.update_delayed && <p className="model-note" role="status">Update delayed. Showing the last verified forecast.</p>}
+      <p className="model-note">Forecast starting time: {displayTime(forecast.origin)} (Manila).{forecast.generated_at ? ` Calculated: ${displayTime(forecast.generated_at)} (Manila).` : ""}</p>
       <div className="forecast-row"><span>Particulate matter 2.5</span><strong>{forecast.pm2_5.toFixed(1)} <small>μg/m³</small></strong></div>
       <div className="forecast-row"><span>Particulate matter 10</span><strong>{forecast.pm10.toFixed(1)} <small>μg/m³</small></strong></div>
-      <p className="model-note">Estimated levels for one five-minute period, {horizon} hours ahead.</p>
+      <p className="model-note">Estimated levels for one five-minute period, {horizon} hours after the forecast starting time.</p>
       <div style={{marginTop:16,paddingTop:16,borderTop:"1px solid #3f3f46"}}>
         <h3 style={{fontSize:18,fontWeight:600,lineHeight:1.4}}>Forecast environmental indicators</h3>
         <div style={{display:"grid",gridTemplateColumns:"repeat(2,minmax(0,1fr))",gap:16,marginTop:16}}>
@@ -31,7 +33,7 @@ export function LiveForecastCard({ horizon, forecast, status, hasCurrent }: {
       <p className="model-note">Target: {displayTime(forecast.target_block_start)}–{displayTime(forecast.target_block_end)} (Manila).</p>
     </> : <>
       <p className="subtitle">Particulate matter estimates unavailable.</p>
-      {hasCurrent && <p className="model-note">{status?.replaceAll("_"," ") || "Forecasts unavailable"}. Current measurements remain available.</p>}
+      {hasCurrent && <p className="model-note">{status === "update_delayed" || forecast ? "This estimate has expired. Waiting for a new forecast" : status?.replaceAll("_"," ") || "Forecasts unavailable"}. Current measurements remain available.</p>}
     </>}
   </section>;
 }
